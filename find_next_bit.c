@@ -8,6 +8,26 @@
  * as published by the Free Software Foundation; either version
  * 2 of the License, or (at your option) any later version.
  */
+/*
+How to compile a 32-bit application using gcc on the 64-bit Linux version 
+http://www.cyberciti.biz/tips/compile-32bit-application-using-gcc-64-bit-linux.html
+=> The 32-bit environment sets int, long and pointer to 32 bits and generates code that runs on any i386 system.
+=> The 64-bit environment sets int to 32 bits and long and pointer to 64 bits and generates code for AMD's x86-64 architecture.
+You can pass -m64 or -m32 as follows
+For 32 bit version:
+$ gcc -m32 -o output32 hello.c
+
+Arch64 FAQ - ArchWiki
+https://wiki.archlinux.org/index.php/Arch64_FAQ#Multilib_Repository_-_Multilib_Project
+pacman -S   gcc-multilib
+*after this -m32 works fine - rednoah
+
+multilib package database search results
+https://www.archlinux.org/packages/?sort=&q=multilib&maintainer=&flagged=
+
+[SOLVED]Compiling 32bit C programs on a 64bit arch
+https://bbs.archlinux.org/viewtopic.php?id=145757
+*/
 #if 0
 #include <linux/bitops.h>
 #include <linux/module.h>
@@ -385,31 +405,67 @@ int main(int argc, char** argv)
 		{0x0, 0x0, 1<<31, 0x1},
 		{~0x1, ~0x1, ~0x0, ~0x1},
 	};
-	unsigned long offset, ret, size, nr, *addr;
+	unsigned long val, offset, ret, size, nr, *addr;
 	size = sizeof(bitmap[0])<<3;
-	printf("total bits:%ld\n", size);
-	print_bitmap(bitmap[0], 4);
+	addr = bitmap[0];
+	printf("---total bits:%ld---\n", size);
+	print_bitmap(addr, 4);
 	offset = 95;
-	ret = find_next_bit(bitmap[0], size, offset);
-	printf("next bit: [%ld @%ld\n", offset, ret);
+	ret = find_next_bit(addr, size, offset);
+	printf("next bit [%ld %ld) @%ld\n", offset, size, ret);
 	offset = 32;
-	ret = find_next_bit(bitmap[0], size, offset);
-	printf("next bit: [%ld @%ld\n", offset, ret);
+	ret = find_next_bit(addr, size, offset);
+	printf("next bit [%ld %ld) @%ld\n", offset, size, ret);
 	offset = 96;
-	ret = find_next_bit(bitmap[0], size, offset);
-	printf("next bit: [%ld @%ld\n", offset, ret);
+	ret = find_next_bit(addr, size, offset);
+	printf("next bit [%ld %ld) @%ld\n", offset, size, ret);
+	/*
+	3 special cases
+	1. size < 32 && offset < size
+	2. offset >= size
+	3. size == 0
+	both 2 and 3 return size
+	*/
+	val = 0xc0;
+	addr = &val;
+	offset = 4;
+	size = 8;
+	ret = find_next_bit(addr, size, offset);
+	printf("next bit %lx [%ld %ld) @%ld\n", val, offset, size, ret);
+	offset = 9;
+	ret = find_next_bit(addr, size, offset);
+	printf("next bit %lx [%ld %ld) @%ld\n", val, offset, size, ret);
+	size = 0;
+	ret = find_next_bit(addr, size, offset);
+	printf("next bit %lx [%ld %ld) @%ld\n", val, offset, size, ret);
 	
 	print_bitmap(bitmap[1], 4);
+	size = sizeof(bitmap[1])*8;
+	addr = bitmap[1];
 	offset = 65;
-	ret = find_next_zero_bit(bitmap[1], size, offset);
-	printf("zero bit: [%ld @%ld\n", offset, ret);
+	ret = find_next_zero_bit(addr, size, offset);
+	printf("next zero bit: [%ld %ld) @%ld\n", offset, size, ret);
 	offset = 64;
-	ret = find_next_zero_bit(bitmap[1], size, offset);
-	printf("zero bit: [%ld @%ld\n", offset, ret);
+	ret = find_next_zero_bit(addr, size, offset);
+	printf("next zero bit: [%ld %ld) @%ld\n", offset, size, ret);
 	offset = 95;
-	ret = find_next_zero_bit(bitmap[1], size, offset);
-	printf("zero bit: [%ld @%ld\n", offset, ret);
-
+	ret = find_next_zero_bit(addr, size, offset);
+	printf("next zero bit: [%ld %ld) @%ld\n", offset, size, ret);
+	//3 special cases as before
+	val = 0xd0;
+	addr = &val;
+	offset = 4;
+	size = 8;
+	ret = find_next_zero_bit(addr, size, offset);
+	printf("next zero bit %lx [%ld %ld) @%ld\n", val, offset, size, ret);
+	offset = 8;
+	ret = find_next_zero_bit(addr, size, offset);
+	printf("next zero bit %lx [%ld %ld) @%ld\n", val, offset, size, ret);
+	size = 0;
+	ret = find_next_zero_bit(addr, size, offset);
+	printf("next zero bit %lx [%ld %ld) @%ld\n", val, offset, size, ret);
+	
+	
 	addr = &bitmap[2][3];
 	nr = 1;
 	print_bitmap(addr, nr);
@@ -425,6 +481,14 @@ int main(int argc, char** argv)
 	print_bitmap(addr, nr);
 	ret = find_first_bit(addr, nr * 32);
 	printf("first bit: %ld\n", ret);
+	//2 special cases
+	val = 0xc0;
+	size = 8;
+	ret = find_first_bit(&val, size);
+	printf("first bit %lx, [0, %ld) @%ld\n", val, size, ret);
+	size = 0;
+	ret = find_first_bit(&val, size);
+	printf("first bit %lx, [0, %ld) @%ld\n", val, size, ret);	
 	
 	addr = bitmap[3];
 	nr = 2;
