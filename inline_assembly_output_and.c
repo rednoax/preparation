@@ -110,6 +110,50 @@ int _add(int i)
 	return temp;
 }
 
+//borrowed from __xchg, only verify size == 4.
+
+/*
+@ 117 "inline_assembly_output_and.c" 1
+        @__xchg4
+        swp r0, r0, [r1]
+
+@ 0 "" 2
+        bx      lr
+*/
+unsigned long xchg4(unsigned long x, volatile void *ptr)
+{
+	unsigned long ret;
+	__asm__ __volatile__("@__xchg4\n\t"
+	"swp %0, %1, [%2]\n\t"
+	:"=r"(ret)
+	:"r"(x), "r"(ptr)
+	:"memory", "cc");
+	return ret;
+}
+/* from the output of -Os, a different reg from 2 input regs is selected(r3), 
+   and an extra mov r0,r3 is needed to return proper value.
+   It seems that "&" here is unnecessary since we need not keep input parameter
+   "x"'s value not changed.
+#APP
+@ 127 "inline_assembly_output_and.c" 1
+        @__xchg4
+        swp r3, r0, [r1]
+
+@ 0 "" 2
+        mov     r0, r3
+        bx      lr
+*/
+unsigned long _xchg4(unsigned long x, volatile void *ptr)
+{
+	unsigned long ret;
+	__asm__ __volatile__("@__xchg4\n\t"
+	"swp %0, %1, [%2]\n\t"
+	:"=&r"(ret)
+	:"r"(x), "r"(ptr)
+	:"memory", "cc");
+	return ret;
+}
+
 int main()
 {
 	return 0;
@@ -169,7 +213,7 @@ add:
 	@ frame_needed = 0, uses_anonymous_args = 0
 	@ link register save eliminated.
 #APP
-@ 81 "inline_assembly_output_and.c" 1
+@ 88 "inline_assembly_output_and.c" 1
 	add r0, r0, #128
 
 @ 0 "" 2
@@ -183,13 +227,44 @@ _add:
 	@ frame_needed = 0, uses_anonymous_args = 0
 	@ link register save eliminated.
 #APP
-@ 91 "inline_assembly_output_and.c" 1
+@ 106 "inline_assembly_output_and.c" 1
 	add r3, r0, #128
 
 @ 0 "" 2
 	mov	r0, r3
 	bx	lr
 	.size	_add, .-_add
+	.align	2
+	.global	xchg4
+	.type	xchg4, %function
+xchg4:
+	@ args = 0, pretend = 0, frame = 0
+	@ frame_needed = 0, uses_anonymous_args = 0
+	@ link register save eliminated.
+#APP
+@ 126 "inline_assembly_output_and.c" 1
+	@__xchg4
+	swp r0, r0, [r1]
+	
+@ 0 "" 2
+	bx	lr
+	.size	xchg4, .-xchg4
+	.align	2
+	.global	_xchg4
+	.type	_xchg4, %function
+_xchg4:
+	@ args = 0, pretend = 0, frame = 0
+	@ frame_needed = 0, uses_anonymous_args = 0
+	@ link register save eliminated.
+#APP
+@ 149 "inline_assembly_output_and.c" 1
+	@__xchg4
+	swp r3, r0, [r1]
+	
+@ 0 "" 2
+	mov	r0, r3
+	bx	lr
+	.size	_xchg4, .-_xchg4
 	.section	.text.startup,"ax",%progbits
 	.align	2
 	.global	main
