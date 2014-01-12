@@ -16,9 +16,50 @@ Additional post-processing of the returned value may be needed, see __builtin_
 extract_return_address.
 This function should only be used with a nonzero argument for debugging purposes.
 */
-/*
+#if 0
 FIXME:
-1. inline usage is not clear!
+1. inline usage:gcc -m32 -O0 cannot inline;but -O1 implement inline:
+ 80483fd:       66 90                   xchg   %ax,%ax
+ 80483ff:       90                      nop
+
+08048400 <func0>:
+ 8048400:       55                      push   %ebp
+ 8048401:       89 e5                   mov    %esp,%ebp
+ 8048403:       83 ec 28                sub    $0x28,%esp
+ 8048406:       8b 45 04                mov    0x4(%ebp),%eax
+ 8048409:       8b 55 00                mov    0x0(%ebp),%edx
+ 804840c:       8b 52 04                mov    0x4(%edx),%edx
+ 804840f:       89 44 24 14             mov    %eax,0x14(%esp)
+ 8048413:       89 54 24 10             mov    %edx,0x10(%esp)
+ 8048417:       89 44 24 0c             mov    %eax,0xc(%esp)
+ 804841b:       c7 44 24 08 00 84 04    movl   $0x8048400,0x8(%esp)
+ 8048422:       08 
+ 8048423:       c7 44 24 04 8e 85 04    movl   $0x804858e,0x4(%esp)
+ 804842a:       08 
+ 804842b:       c7 04 24 30 85 04 08    movl   $0x8048530,(%esp)
+ 8048432:       e8 99 fe ff ff          call   80482d0 <printf@plt>
+ 8048437:       c9                      leave  
+ 8048438:       c3                      ret    
+
+08048439 <func1>:
+ 8048439:       83 ec 1c                sub    $0x1c,%esp
+ 804843c:       8b 44 24 1c             mov    0x1c(%esp),%eax
+ 8048440:       89 44 24 0c             mov    %eax,0xc(%esp)
+ 8048444:       c7 44 24 08 39 84 04    movl   $0x8048439,0x8(%esp)
+ 804844b:       08 
+ 804844c:       c7 44 24 04 88 85 04    movl   $0x8048588,0x4(%esp)
+ 8048453:       08 
+ 8048454:       c7 04 24 68 85 04 08    movl   $0x8048568,(%esp)
+ 804845b:       e8 70 fe ff ff          call   80482d0 <printf@plt>
+ 8048460:       e8 9b ff ff ff          call   8048400 <func0>
+ 8048465:       83 c4 1c                add    $0x1c,%esp<---the return address of inline_func
+ 8048468:       c3                      ret    
+
+ [root@localhost preparation]# ./a.out 
+main:0x8048469
+func1:0x8048439, caller0:8048493
+func0:0x8048400, caller0:8048465 caller1:f76259d3, inline_func return 8048465
+
 2. only tested on x86, arm maybe need the following when compiling:
 from arch/arm/Makefile
 ifeq ($(CONFIG_FRAME_POINTER),y)
@@ -43,7 +84,7 @@ also check include/linux/ftrace.h:
 # define CALLER_ADDR5 0UL
 # define CALLER_ADDR6 0UL
 #endif
-*/
+#endif
 #define CALLER_ADDR0 ((unsigned long)__builtin_return_address(0))//the return address of the current function
 #define CALLER_ADDR1 ((unsigned long)__builtin_return_address(1))
 #include <stdio.h>
