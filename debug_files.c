@@ -15,6 +15,7 @@
 #include <linux/list.h>
 #include <linux/fs.h>
 #include <linux/slab.h>
+#include <linux/interrupt.h>
 
 #define SYSRQ_HARDIRQ_TRIGGER_CHAR 'x'
 
@@ -175,6 +176,65 @@ debug_rb_erase(struct file *filp, const char __user *ubuf,
 	return cnt;
 }
 
+static irqreturn_t fake_irq_handler(int irq, void *dev_id)
+{
+	static int nr = 0;
+	printk("%s %d\n", __func__, nr++);
+	return IRQ_HANDLED;
+}
+
+static ssize_t
+debug_request_irq_write(struct file *filp, const char __user *ubuf, 
+					size_t cnt, loff_t *ppos)
+{
+	int ret;
+	unsigned long val;
+	ret = kstrtoul_from_user(ubuf, cnt, 10, &val);
+	if (ret)
+		return ret;
+	ret = request_irq(val, fake_irq_handler, 0, "fake_device", NULL);
+	printk("request_irq %ld %d\n", val, ret);
+	*ppos += cnt;
+	return cnt;
+}				
+
+static ssize_t
+debug_free_irq_write(struct file *filp, const char __user *ubuf, 
+					size_t cnt, loff_t *ppos)
+{
+	int ret;
+	unsigned long val;
+	ret = kstrtoul_from_user(ubuf, cnt, 10, &val);
+	if (ret)
+		return ret;
+	free_irq(val, NULL);
+	*ppos += cnt;
+	return cnt;
+}				
+
+struct tasklet_struct free_irq_tasklet;
+
+static void free_tasklet(unsigned long data)
+{
+	free_irq(data, NULL);
+}
+
+static ssize_t
+debug_tasklet_write(struct file *filp, const char __user *ubuf, 
+					size_t cnt, loff_t *ppos)
+{
+	int ret;
+	unsigned long val;
+	ret = kstrtoul_from_user(ubuf, cnt, 10, &val);
+	if (ret)
+		return ret;
+	tasklet_init(&free_irq_tasklet, free_tasklet, val);
+	tasklet_schedule(&free_irq_tasklet);
+	//free_irq(val, NULL);
+	*ppos += cnt;
+	return cnt;
+}
+
 static const struct file_operations debug_rb_insert_fops = {
 	.open	= debug_open_generic,
 	.read	= debug_rb_read,
@@ -186,6 +246,24 @@ static const struct file_operations debug_rb_erase_fops = {
 	.open	= debug_open_generic,
 	.read	= debug_rb_read,
 	.write	= debug_rb_erase,
+	.llseek	= generic_file_llseek,
+};
+
+static const struct file_operations debug_request_irq_fops = {
+	.open	= debug_open_generic,
+	.write	= debug_request_irq_write,
+	.llseek	= generic_file_llseek,
+};
+
+static const struct file_operations debug_free_irq_fops = {
+	.open	= debug_open_generic,
+	.write	= debug_free_irq_write,
+	.llseek	= generic_file_llseek,
+};
+
+static const struct file_operations debug_tasklet_fops = {
+	.open	= debug_open_generic,
+	.write	= debug_tasklet_write,
 	.llseek	= generic_file_llseek,
 };
 
@@ -218,6 +296,9 @@ static int debug_init(void)
 		spin_lock_init(&cfs_rq->lock);
 		debug_create_file("rb_link", 0644, d_debug, cfs_rq, &debug_rb_insert_fops);
 		debug_create_file("rb_erase", 0644, d_debug, cfs_rq, &debug_rb_erase_fops);
+		debug_create_file("request_irq", 0220, d_debug, cfs_rq, &debug_request_irq_fops);
+		debug_create_file("free_irq", 0220, d_debug, cfs_rq, &debug_free_irq_fops);
+		debug_create_file("tasklet", 0220, d_debug, cfs_rq, &debug_tasklet_fops);
 	}
 EXIT:	
 	return ret;
@@ -262,6 +343,12 @@ static void debug_exit(void)
          to NULL will not occur.	
 	*/
 	unregister_sysrq_key(SYSRQ_HARDIRQ_TRIGGER_CHAR, &sysrq_dbg_op);
+	/*
+	filesystem/debugfs.txt
+	If this function is passed a pointer for the dentry corresponding to the
+	top-level directory, the entire hierarchy below that directory will be
+	removed.	
+	*/
 	debugfs_remove_recursive(d_debug);
 	tree_destroy(&cfs_rq->tasks_timeline);
 	kfree(cfs_rq);
