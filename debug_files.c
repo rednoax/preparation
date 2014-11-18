@@ -16,6 +16,8 @@
 #include <linux/fs.h>
 #include <linux/slab.h>
 #include <linux/interrupt.h>
+#include <asm/atomic.h>
+#include <asm/bitops.h>
 
 #define SYSRQ_HARDIRQ_TRIGGER_CHAR 'x'
 
@@ -235,6 +237,75 @@ debug_tasklet_write(struct file *filp, const char __user *ubuf,
 	return cnt;
 }
 
+//
+static unsigned long g_count = 0;
+
+static atomic_t g_atomic_count = ATOMIC_INIT(0);
+/*
+on SMP vmware test, it nerver gets 2000000 if using "inc" file
+*/
+static ssize_t
+debug_inc_read(struct file *filep, char __user *ubuf,
+			size_t cnt, loff_t *ppos)
+{
+	printk("\nnormal count %ld\n", g_count);
+	g_count = 0;
+	return 0;//FIXME?
+}
+
+static ssize_t
+debug_inc_write(struct file *filp, const char __user *ubuf,
+					size_t cnt, loff_t *ppos)
+{
+	g_count++;
+	return 1;
+}
+
+/*
+the app uses "atomic_inc" file need not some implementqtion like "test_and_set_inc" and it will get 2000000
+*/
+static ssize_t
+debug_atomic_inc_read(struct file *filep, char __user *ubuf,
+			size_t cnt, loff_t *ppos)
+{
+	printk("\natomic count %d\n", atomic_read(&g_atomic_count));
+	atomic_set(&g_atomic_count, 0);
+	return 0;//FIXME?
+}
+
+static ssize_t
+debug_atomic_inc_write(struct file *filp, const char __user *ubuf,
+					size_t cnt, loff_t *ppos)
+{
+	atomic_inc(&g_atomic_count);
+	return 0;
+}
+static ssize_t
+debug_test_and_set_inc_read(struct file *filep, char __user *ubuf,
+			size_t cnt, loff_t *ppos)
+{
+	printk("\ntest_and_set count %ld\n", g_count);
+	g_count = 0;
+	return 0;//FIXME?
+}
+static unsigned long state;
+static ssize_t
+debug_test_and_set_inc_write(struct file *filp, const char __user *ubuf,
+					size_t cnt, loff_t *ppos)
+{
+	/*
+	only one CPU will enter the critical section, others fail. 
+	It is different with spin lock critical section, where all CPUs will finally enter and no one will bypass.
+	The app who uses "test_and_set_inc" file will have to take the lower bypass into account if it want get 2000000.
+	*/
+	if (!test_and_set_bit(0, &state)) {
+		g_count++;
+		clear_bit(0, &state);
+		return 1;
+	}
+	return 0;
+}
+
 static const struct file_operations debug_rb_insert_fops = {
 	.open	= debug_open_generic,
 	.read	= debug_rb_read,
@@ -264,6 +335,27 @@ static const struct file_operations debug_free_irq_fops = {
 static const struct file_operations debug_tasklet_fops = {
 	.open	= debug_open_generic,
 	.write	= debug_tasklet_write,
+	.llseek	= generic_file_llseek,
+};
+
+static const struct file_operations debug_inc_fops = {
+	.open	= debug_open_generic,
+	.read	= debug_inc_read,
+	.write	= debug_inc_write,
+	.llseek	= generic_file_llseek,
+};
+
+static const struct file_operations debug_atomic_inc_fops = {
+	.open	= debug_open_generic,
+	.read	= debug_atomic_inc_read,
+	.write	= debug_atomic_inc_write,
+	.llseek	= generic_file_llseek,
+};
+
+static const struct file_operations debug_test_and_set_inc_fops = {
+	.open	= debug_open_generic,
+	.read	= debug_test_and_set_inc_read,
+	.write	= debug_test_and_set_inc_write,
 	.llseek	= generic_file_llseek,
 };
 
@@ -299,6 +391,9 @@ static int debug_init(void)
 		debug_create_file("request_irq", 0220, d_debug, cfs_rq, &debug_request_irq_fops);
 		debug_create_file("free_irq", 0220, d_debug, cfs_rq, &debug_free_irq_fops);
 		debug_create_file("tasklet", 0220, d_debug, cfs_rq, &debug_tasklet_fops);
+		debug_create_file("inc", 0220, d_debug, cfs_rq, &debug_inc_fops);
+		debug_create_file("atomic_inc", 0220, d_debug, cfs_rq, &debug_atomic_inc_fops);
+		debug_create_file("test_and_set_inc", 0220, d_debug, cfs_rq, &debug_test_and_set_inc_fops);
 	}
 EXIT:	
 	return ret;
