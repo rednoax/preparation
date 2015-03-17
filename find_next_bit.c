@@ -396,6 +396,34 @@ found_middle_swap:
 EXPORT_SYMBOL(generic_find_next_le_bit);
 #endif /* __BIG_ENDIAN */
 
+static /*__always_inline*/ int fls(int x)
+{
+	int r = 32;
+
+	if (!x)
+		return 0;
+	if (!(x & 0xffff0000u)) {
+		x <<= 16;
+		r -= 16;
+	}
+	if (!(x & 0xff000000u)) {
+		x <<= 8;
+		r -= 8;
+	}
+	if (!(x & 0xf0000000u)) {
+		x <<= 4;
+		r -= 4;
+	}
+	if (!(x & 0xc0000000u)) {
+		x <<= 2;
+		r -= 2;
+	}
+	if (!(x & 0x80000000u)) {
+		x <<= 1;
+		r -= 1;
+	}
+	return r;
+}
 int main(int argc, char** argv)
 {
 	unsigned long bitmap[][4] = {
@@ -548,6 +576,20 @@ int main(int argc, char** argv)
 	ret = ffz(offset);
 	printf("ffz %lx:%ld\n", offset, ret);
 	
-
+	addr = &bitmap[1][2];
+	ret = fls(addr[0]);
+	printf("fls %lx:%ld\n", addr[0], ret);
+	addr = &bitmap[0][2];
+	ret = fls(addr[0]);
+	printf("fls %lx:%ld\n", addr[0], ret);
+	addr = &bitmap[0][0];
+	ret = fls(addr[0]);
+	printf("fls %lx:%ld\n", addr[0], ret);
+	offset = 0x8086;
+	ret = fls(offset);
+	printf("fls %lx:%ld\n", offset, ret);
+	offset = 0x400;
+	ret = fls(offset);
+	printf("fls %lx:%ld\n", offset, ret);
 	return 0;
 }
