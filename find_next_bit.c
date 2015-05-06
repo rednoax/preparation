@@ -466,6 +466,16 @@ int main(int argc, char** argv)
 	size = 0;
 	ret = find_next_bit(addr, size, offset);
 	printf("next bit %lx [%ld %ld) @%ld\n", val, offset, size, ret);
+	offset = 8;
+	size = 8;
+	ret = find_next_bit(addr, size, offset);
+	printf("next bit %lx [%ld %ld) @%ld\n", val, offset, size, ret);
+	offset = 7;
+	ret = find_next_bit(addr, size, offset);
+	printf("next bit %lx [%ld %ld) @%ld\n", val, offset, size, ret);
+	val = 0x40;
+	ret = find_next_bit(addr, size, offset);
+	printf("next bit %lx [%ld %ld) @%ld\n", val, offset, size, ret);
 	
 	print_bitmap(bitmap[1], 4);
 	size = sizeof(bitmap[1])*8;
