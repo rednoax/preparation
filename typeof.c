@@ -23,6 +23,12 @@
 #define __get_cpu3() ({preempt_disable();*&current_thread_info()->flags;})
 #define __get_cpu4() ({*&current_thread_info()->flags;})
 #define __get_cpu5() (*({preempt_disable();&current_thread_info()->flags;}))
+//a simplified lvalue test
+static int v;
+#define L1 ({v;})
+#define L2 ({preempt_disable();v;})
+#define __L2 ({preempt_disable();&v;})
+
 /*
 error: expected ';' before '}' token, so the following is wrong:
 #define raw_processor_id() ({current_thread_info()->flags})//error!
@@ -159,5 +165,11 @@ typeof.c:135:2: note: in expansion of macro ¡®container_of4¡¯
 	printf("%ld\n", __get_cpu5());
 	container_of3(parry, struct thread_info, array)->flags = 7;
 	container_of4(parry, struct thread_info, array)->flags = 8;
+
+	L1 = 0;
+	/*
+	L2 = 1;//error: lvalue required as left operand of assignment
+	*/
+	*__L2 = 1;
 	return 0;
 }
