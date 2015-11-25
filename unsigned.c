@@ -89,7 +89,7 @@ unsigned.c:89:2: warning: format ‘%x’ expects argument of type ‘unsigned i
 	//0xff00 0100 is uint, 0xff00 0100UL is ulong
 	printf("%x %lx\n", 0xff000000 + 0x100, 0xff000000UL + 0x100UL);
 	printf("%d %lu\n", 0xff000000 + 0x100, 0xff000000UL + 0x100UL);
-	//
+	//1000000000 is int, when left shifted by 8, the result is still int so higher bits will disappear
 	printf("%x %lx\n", (1000000000<<8)/25600, (1000000000UL<<8)/25600);//minus division then positive division
 	printf("%x %lx\n", (1000000000<<8), (1000000000UL<<8));//no difference
 	/*
@@ -102,7 +102,7 @@ unsigned.c:89:2: warning: format ‘%x’ expects argument of type ‘unsigned i
 	printf("%x %x %llx\n", __NSEC_PER_JIFFY(NSEC_PER_SEC2), NSEC_PER_SEC2<<8, (u64)NSEC_PER_SEC2<<8);
 
 	printf("%x %x\n", ~0x9aca0000+1, ~0x10319+1);
-	//for 32bit gcc(seems c90 default):
+	//for 32bit gcc(seems c90 default):what really matters are commented with "<------"
 	
 	//0xXX MSB set & with no suffix:unsigned int
 	//0xXX MSB set & with 'u' suffix:unsigned int
@@ -114,17 +114,17 @@ unsigned.c:89:2: warning: format ‘%x’ expects argument of type ‘unsigned i
 	//0xXX MSB not set & with no suffix:int
 	//0xXX MSB not set & with 'u' suffix:unsigned int	//<------
 	//0xXX MSB not set & with 'l' suffix:long int
-	//0xXX MSB not set & with 'ul' suffix:long unsigned int//<-------
+	//0xXX MSB not set & with 'ul' suffix:long unsigned int//<------
 	//0xXX MSB not set & with 'll' suffix:long long int
 	//0xXX MSB not set & with 'ull' suffix:long long unsigned int
 	
 	//a positive decimal value with MSB set & no suffix:unsigned
 	//a positive decimal value with MSB set & 'u':unsigned int
-	//a positive decimal value with MSB set & 'L':long unsigned int
-	//a positive decimal value with MSB set & 'll':long long int//<------MSB is bit 31???
+	//a positive decimal value with MSB set & 'L':long unsigned int//<------'L' cannot change the decimal to "long int"!!!
+	//a positive decimal value with MSB set & 'll':long long int//<------here MSB means bit 31
 	//a positive decimal value with MSB set & 'ULL':long long unsigned int
 	//a positive decimal value without MSB set & no suffix:int
-	//a positive decimal value without MSB set & 'u':unsigned int//<---
+	//a positive decimal value without MSB set & 'u':unsigned int//<------
 	//a positive decimal value without MSB set & 'l':long int
 	//a positive decimal value without MSB set & 'LL':long long int
 	//a positive decimal value without MSB set & 'ULL':long long unsigned int
@@ -182,6 +182,7 @@ unsigned. If the list contains both signed and unsigned types, the extended inte
 may be signed or unsigned. If an integer constant cannot be represented by anytype in
 its list and has no extended integer type, then the integer constant has no type.
 	
+	redoah:gcc default option is C89/C90(?), but from C99's spec, the 1000000000000000L is not "long long long"
 $ gcc -Wall unsigned.c
 unsigned.c: In function ‘main’:
 unsigned.c:182:2: warning: format ‘%lx’ expects argument of type ‘long unsigned int’, but argument 2 has type ‘long long int’ [-Wformat=]
