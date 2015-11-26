@@ -62,15 +62,30 @@ Your literal has no suffix (like u for unsigned or L for long). C99 has a differ
 typedef unsigned int u32;
 typedef unsigned long long u64;
 //__NSEC_PER_JIFFY will be fffefce7 when the following macro is opened
-#define NSEC_PER_SEC1 1000000000L
+#define NSEC_PER_SEC1 1000000000L// 0x3B9A CA00
 //__NSEC_PER_JIFFY will be 18c42 when the following macro is opened
-#define NSEC_PER_SEC2 1000000000U
+#define NSEC_PER_SEC2 1000000000U// 0x3B9A CA00
 
 #define ACTHZ 25600
 //#define __PART(MOD,DEN,LSH) ((((MOD)%(DEN))<<(LSH))+(DEN)/2)/(DEN)
-#define NSEC_PER_JIFFY	((u32)((((u64)NSEC_PER_SEC)<<8)/ACTHZ))//==10^9/HZ==10^7 //unit:ns/jiffies
+#define NSEC_PER_JIFFY	((u32)((((u64)NSEC_PER_SEC1)<<8)/ACTHZ))//==10^9/HZ==10^7 //unit:ns/jiffies
 #define __NSEC_PER_JIFFY(x)	((u32)(((x)<<8)/ACTHZ))//==10^9/HZ==10^7 //unit:ns/jiffies
 #define FSEC_PER_SEC	1000000000000000L//should be LL!?
+
+#define SH_DIV(NOM,DEN,LSH) (   (((NOM) / (DEN)) << (LSH))              \
+                             + ((((NOM) % (DEN)) << (LSH)) + (DEN) / 2) / (DEN))
+
+#define __PART2(NOM,DEN,LSH) ((((NOM) % (DEN)) << (LSH)) + (DEN) / 2)
+
+/* TICK_NSEC is the time between ticks in nsec assuming real ACTHZ */
+#define TICK_NSEC (SH_DIV (1000000UL * 1000, ACTHZ, 8))
+/*
+check the following 3 conditions
+1. 10^9/25600:0x9896, is among [24:0]
+2. 10^9%25600:0x3200, is among [24:0]
+3. (10^9%25600)<<8+12800:0x323200, is among [31,0]
+*/
+#define __TICK_NSEC (SH_DIV (1000000L * 1000, ACTHZ, 8))//==TICK_NSEC, no difference
 
 int main()
 {
@@ -211,6 +226,33 @@ unsigned.c:90:2: warning: format ‘%lx’ expects argument of type ‘long unsi
   ^
 unsigned.c:90:2: warning: format ‘%lx’ expects argument of type ‘long unsigned int’, but argument 2 has type ‘long long unsigned int’ [-Wformat=]
 	*/
-	printf("%llx\n", FSEC_PER_SEC);	
+	printf("%llx\n", FSEC_PER_SEC);
+	//
+	printf("%d %d %d %d "
+			"%u==%d %d(%d) "
+			"%x(%d) %lx-%x "
+			"%x %x %lx "
+			"%lx:%lx\n", 
+			ACTHZ, NSEC_PER_JIFFY, sizeof(long), 1000000000%25600, 
+			0x80000001, 0x80000001, 0x80000001%129, ((int)0x80000001)%129, 
+			__NSEC_PER_JIFFY(NSEC_PER_SEC1), __NSEC_PER_JIFFY(NSEC_PER_SEC1), NSEC_PER_SEC1<<8, NSEC_PER_SEC2<<8, 
+			(((u32)NSEC_PER_SEC1)<<8)/25600, ((u32)(NSEC_PER_SEC1<<8))/25600, (NSEC_PER_SEC1<<8)/25600,
+			TICK_NSEC, __TICK_NSEC);
+	//the following __PART2 all beyond limit:		0xff<<24+ 0x780 0000, , and the final result of SH_DIV is wrong!
+	printf("%d, %x\n",  SH_DIV(0xff, 0x0f000000, 24), __PART2(0xff, 0x0f000000, 24));
+	printf("%u, %x\n",  SH_DIV(0xffu, 0x0f000000u, 24), __PART2(0xffu, 0x0f000000u, 24));
+	printf("%ld, %lx\n",  SH_DIV(0xffl, 0x0f000000l, 24), __PART2(0xffl, 0x0f000000l, 24));
+	/*
+	the following __PART2 donnot beyond 64bits limit: 0xffll<<24 + 0x780 0000, and the final result of SH_DIV is right;
+	Win8.1 calc.exe's result:(ffll<<24)/0x0f000000==0x11
+	limits when no LL or ULL suffix:
+	1. NOM/DEN fits in (32-LSH) bits
+	2. NOM%DEN fits in (32-LSH) bits
+	3. __PART2 fits in 32bits
+	so use LL or ULL suffix in SH_DIV if one of the above limits are not meeted!!!
+	*/
+	printf("%lld, %llx\n",  SH_DIV(0xffll, 0x0f000000, 24), __PART2(0xffll, 0x0f000000, 24));
+	printf("%llu, %llx\n",  SH_DIV(0xffull, 0x0f000000ull, 24), __PART2(0xffull, 0x0f000000ull, 24));	
+	//
 	return 0;
 }
