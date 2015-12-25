@@ -8,7 +8,7 @@
 //#define offsetof(TYPE, MEMBER) ((unsigned int)&((TYPE*)0)->(MEMBER))
 #undef offsetof
 #define offsetof(TYPE, MEMBER) ((size_t) &((TYPE *)0)->MEMBER)
-
+#define ARRAY_SIZE(x) sizeof(x)/sizeof((x)[0])
 #if 0
 /*
 if no "_ptr;" at the end of container_of(ptr, type, member), 
@@ -69,7 +69,8 @@ static inline void __list_add(struct list_head *new,
 }
 /*
 'new' will be the next element after 'head', list_add_xx seems to be marriage. Whether new is 
-initialized(virgin) doesnot matter:)
+initialized(virgin) doesnot matter:), but if "head"'s link-list is empty, head must be properly
+initialized!
 */
 static inline void list_add(struct list_head *new, struct list_head *head)
 {
@@ -325,6 +326,117 @@ void list_build(int argc, char **argv)
 	
 	printf("after :list empty %d\n", list_empty(&unwind_tables));
 }
+
+static LIST_HEAD(clocksource_list);
+
+struct clocksource {
+	char *name;
+	struct list_head list;
+	int rating;
+};
+
+struct clocksource clocksource_jiffies = {
+	.name = "jiffies",
+	//no need to use LIST_HEAD_INIT since list_add doesnot care whether added new stuff is virgin:)
+	//.list = ,
+	.rating = 1,
+};
+
+struct clocksource clocksource_versatile0 = {
+	.name = "timer0",
+	.rating = 200,
+};
+struct clocksource clocksource_versatile1 = {
+	.name = "timer1",
+	.rating = 200,
+};
+struct clocksource clocksource_versatile2 = {
+	.name = "timer2",
+	.rating = 200,
+};
+struct clocksource clocksource_versatile3 = {
+	.name = "timer3",
+	.rating = 200,
+};
+
+static int clocksource_enqueue(struct clocksource *c)
+{
+	struct list_head *tmp, *entry = &clocksource_list;
+	list_for_each(tmp, &clocksource_list) {
+		struct clocksource *cs = list_entry(tmp, struct clocksource, list);
+		if (c == cs) {
+			printf("***duplicated insert:%p, %s %d\n", cs, cs->name, cs->rating);
+			return -1;
+		}
+		if (cs->rating >= c->rating)
+			entry = tmp;//break;
+	}
+	list_add(&c->list, entry);
+	return 0;
+}
+
+int clocksource_register(struct clocksource *c)
+{
+	return clocksource_enqueue(c);
+}
+
+void clocksource_resume(void)
+{
+	struct clocksource *cs;
+	list_for_each_entry(cs, &clocksource_list, list) {
+		printf("%d:%s\n", cs->rating, cs->name);
+	}
+}
+
+void clocksource_change_rating(struct clocksource *cs, int rating)
+{
+	list_del(&cs->list);
+	cs->rating = rating;
+	clocksource_enqueue(cs);
+}
+
+void clocksource_unregister(struct clocksource *cs)
+{
+	list_del(&cs->list);
+}
+
+void clocksource_list_build(void)
+{
+	int i;
+	struct clocksource clocksources0[] = {
+		clocksource_jiffies,
+		clocksource_jiffies,
+		clocksource_versatile0,
+		clocksource_versatile0,
+		clocksource_versatile1,
+		clocksource_versatile2,
+		clocksource_versatile3,
+	};
+	struct clocksource *clocksources1[] = {
+		&clocksource_jiffies,
+		&clocksource_jiffies,
+		&clocksource_versatile0,
+		&clocksource_versatile0,
+		&clocksource_versatile1,
+		&clocksource_versatile2,
+		&clocksource_versatile3,
+	};
+	for (i = 0; i < ARRAY_SIZE(clocksources0); i++) {
+		struct clocksource *cs = &clocksources0[i];
+		clocksource_register(cs);
+		printf("%p:%d %s\n", cs, cs->rating, cs->name);
+	}
+	clocksource_resume();
+	for (i = 0; i < ARRAY_SIZE(clocksources0); i++)
+		clocksource_unregister(&clocksources0[i]);
+
+	for (i = 0; i < ARRAY_SIZE(clocksources1); i++)
+		clocksource_register(clocksources1[i]);
+	clocksource_resume();
+	for (i = 0; i < ARRAY_SIZE(clocksources1); i++)
+		clocksource_unregister(clocksources1[i]);
+}
+
 int main(int argc, char **argv)
 {
 	struct string str, *p = &str;
@@ -343,5 +455,6 @@ int main(int argc, char **argv)
 	printf("%p\n", list_entry(str.list.prev, struct string, list));
 	printf("%d %d\n", offsetof(struct string, list.prev), offsetof(struct string, list.next));
 	list_build(argc, argv);
+	clocksource_list_build();
 	return 0;
 }
