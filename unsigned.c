@@ -86,11 +86,16 @@ check the following 3 conditions
 3. (10^9%25600)<<8+12800:0x323200, is among [31,0]
 */
 #define __TICK_NSEC (SH_DIV (1000000L * 1000, ACTHZ, 8))//==TICK_NSEC, no difference
-
+//~'s precedence is higher than >>or<<
+#define ___LONG_MAX (~0)//int
+#define __LONG_MAX ((~0)>>1)//int
+#define _LONG_MAX (~0UL>>1)//long unsigned int
+#define LONG_MAX ((long)(~0UL>>1))//long int
 int main()
 {
 	int i = 0x9aca0000;
 	long j = 0x9aca0000;
+	printf("%ld, %lu, %u, %u\n", LONG_MAX, _LONG_MAX, __LONG_MAX, ___LONG_MAX);
 	/*
 $ gcc -Wall unsigned.c
 unsigned.c: In function ‘main’:
