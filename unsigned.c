@@ -61,6 +61,7 @@ Your literal has no suffix (like u for unsigned or L for long). C99 has a differ
 
 typedef unsigned int u32;
 typedef unsigned long long u64;
+typedef long long s64;
 //__NSEC_PER_JIFFY will be fffefce7 when the following macro is opened
 #define NSEC_PER_SEC1 1000000000L// 0x3B9A CA00
 //__NSEC_PER_JIFFY will be 18c42 when the following macro is opened
@@ -91,11 +92,12 @@ check the following 3 conditions
 #define __LONG_MAX ((~0)>>1)//int
 #define _LONG_MAX (~0UL>>1)//long unsigned int
 #define LONG_MAX ((long)(~0UL>>1))//long int
+#define KTIME_MAX ((s64)(~((u64)1<<63)))//long long int//will be 7fff ffff ffff ffff
 int main()
 {
 	int i = 0x9aca0000;
 	long j = 0x9aca0000;
-	printf("%ld, %lu, %u, %u\n", LONG_MAX, _LONG_MAX, __LONG_MAX, ___LONG_MAX);
+	printf("%ld, %lu, %u, %u, %llx\n", LONG_MAX, _LONG_MAX, __LONG_MAX, ___LONG_MAX, KTIME_MAX);
 	/*
 $ gcc -Wall unsigned.c
 unsigned.c: In function ‘main’:
