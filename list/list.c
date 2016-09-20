@@ -384,7 +384,7 @@ void clocksource_resume(void)
 {
 	struct clocksource *cs;
 	list_for_each_entry(cs, &clocksource_list, list) {
-		printf("%d:%s\n", cs->rating, cs->name);
+		printf("<%p>:%d %s\n", cs, cs->rating, cs->name);
 	}
 }
 
