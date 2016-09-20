@@ -430,8 +430,11 @@ void clocksource_list_build(void)
 	for (i = 0; i < ARRAY_SIZE(clocksources0); i++)
 		clocksource_unregister(&clocksources0[i]);
 
-	for (i = 0; i < ARRAY_SIZE(clocksources1); i++)
-		clocksource_register(clocksources1[i]);
+	for (i = 0; i < ARRAY_SIZE(clocksources1); i++) {
+		struct clocksource *cs = clocksources1[i];
+		clocksource_register(cs);
+		printf("%p: %d %s\n", cs, cs->rating, cs->name);
+	}
 	clocksource_resume();
 	for (i = 0; i < ARRAY_SIZE(clocksources1); i++)
 		clocksource_unregister(clocksources1[i]);
