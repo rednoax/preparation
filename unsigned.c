@@ -261,5 +261,6 @@ unsigned.c:90:2: warning: format ‘%lx’ expects argument of type ‘long unsi
 	printf("%lld, %llx\n",  SH_DIV(0xffll, 0x0f000000, 24), __PART2(0xffll, 0x0f000000, 24));
 	printf("%llu, %llx\n",  SH_DIV(0xffull, 0x0f000000ull, 24), __PART2(0xffull, 0x0f000000ull, 24));	
 	//
+	printf("%x %x\n", ((unsigned int)0xa0000000)<<3, ((int)0xa0000000)<<3);
 	return 0;
 }
