@@ -233,16 +233,16 @@ unsigned.c:90:2: warning: format ‘%lx’ expects argument of type ‘long unsi
   ^
 unsigned.c:90:2: warning: format ‘%lx’ expects argument of type ‘long unsigned int’, but argument 2 has type ‘long long unsigned int’ [-Wformat=]
 	*/
-	printf("%llx\n", FSEC_PER_SEC);
-	//
+	printf("%llx(%lld)\n", FSEC_PER_SEC, FSEC_PER_SEC);
+	//>>,/,% care signed/unsigned
 	printf("%d %d %d %d "
-			"%u==%d %d(%d) "
+			"%u==%d %d(%d) %x-%x\n"
 			"%x(%d) %lx-%x "
 			"%x %x %lx "
 			"%lx:%lx\n", 
 			ACTHZ, NSEC_PER_JIFFY, sizeof(long), 1000000000%25600, 
-			0x80000001, 0x80000001, 0x80000001%129, ((int)0x80000001)%129, 
-			__NSEC_PER_JIFFY(NSEC_PER_SEC1), __NSEC_PER_JIFFY(NSEC_PER_SEC1), NSEC_PER_SEC1<<8, NSEC_PER_SEC2<<8, 
+			0x80000001, 0x80000001, 0x80000001%129, ((int)0x80000001)%129, (unsigned)0x80000000>>1, (int)0x80000000>>1,
+			__NSEC_PER_JIFFY(NSEC_PER_SEC1), __NSEC_PER_JIFFY(NSEC_PER_SEC1), NSEC_PER_SEC1<<8, NSEC_PER_SEC2<<8, //leftshift is ALWAYS unsigned
 			(((u32)NSEC_PER_SEC1)<<8)/25600, ((u32)(NSEC_PER_SEC1<<8))/25600, (NSEC_PER_SEC1<<8)/25600,
 			TICK_NSEC, __TICK_NSEC);
 	//the following __PART2 all beyond limit:		0xff<<24+ 0x780 0000, , and the final result of SH_DIV is wrong!
