@@ -1,5 +1,16 @@
 #include <stdio.h>
 #include <string.h>
+//return value and behivor is similar to snprintf
+size_t strlcpy(char *dest, const char *src, size_t size)
+{
+	size_t ret = strlen(src);
+	if (size) {
+		size_t len = ret >= size ? size - 1 : ret;
+		memcpy(dest, src, len);
+		dest[len] = '\0';
+	}
+	return ret;
+}
 
 char *__strncpy(char *dest, const char *src, size_t n)
 {
@@ -47,6 +58,7 @@ int main(int argc, char *argv[])
 	   last byte is '\0'
 	2. if the return value >= size, truncating has happened
 	*/
+	snprintf_test("deadbe");//return strlen, i.e. 6
 	snprintf_test("deadbee");//return strlen, i.e. 7
 	snprintf_test("deadbeef");//return 8
 	snprintf_test("deadbeeffacebooc");//return 16
