@@ -6,6 +6,8 @@
 #include <sys/types.h> 
 #include <sys/wait.h>
 #include <errno.h>
+#include <signal.h>
+
 #define MAXLINE 4096
 static void err_doit(int errnoflag, int error, const char *fmt, va_list ap)
 {
@@ -44,10 +46,30 @@ void err_sys(const char *fmt, ...)
 
 }
 
-int main()
+typedef void Sigfunc(int);
+Sigfunc * signal_install(int signo, Sigfunc *func)
+{
+	struct sigaction act, oact;
+	act.sa_handler = func;
+	sigemptyset(&act.sa_mask);
+	act.sa_flags = 0;
+	if (signo == SIGALRM) {
+		act.sa_flags = SA_INTERRUPT;
+	} else {
+		act.sa_flags = SA_RESTART;
+	}
+	if (sigaction(signo, &act, &oact) < 0)
+		return SIG_ERR;
+	return oact.sa_handler;
+}
+
+int main(int argc, char* argv[])
 {
 	int status;
 	pid_t pid;
+
+	if (argc >1 && atoi(argv[1]) > 0 && signal_install(SIGCHLD, SIG_IGN) == SIG_ERR)
+		err_sys("signal(SIGCHLD) error");
 	pid = fork();
 	if (pid < 0) {
 		err_sys("fork error");
@@ -55,6 +77,7 @@ int main()
 		printf("new proc:%d ppid:%d\n", getpid(), getppid());
 	} else {
 		printf("parent:%d child pid %d\n", getpid(), pid);
+		sleep(10);
 		if (wait(&status) != pid) {
 			printf("wait error");
 			exit(1);
