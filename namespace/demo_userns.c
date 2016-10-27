@@ -26,6 +26,8 @@ int main(int argc, char *argv[])
 	the child dies. If this signal is specified as anything other then SIGCHLD, then the parent process must specify
 	the __WALL or __WCLONE options when waiting for the child with wait(2). If no signal is specified, then the parent
 	process is not signaled when the child terminates.
+	kernel behavior this in exit_notify:tracehook_notify_death/do_notify_parent:
+	if parent has not SIG_IGN SIGCHLD, child will sent it to parent.
 	*/
 	/*
 	for fork(), it will call sys_clone and the signal is SIGCHLD:
