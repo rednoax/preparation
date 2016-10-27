@@ -22,12 +22,16 @@ int main(int argc, char *argv[])
 {
 	int stack_var[2] = {-99, -100};
 	/*
+	man 2 clone
 	The low byte of flags, ie lowest byte, contains the number of the termination signal sent to the parent when
 	the child dies. If this signal is specified as anything other then SIGCHLD, then the parent process must specify
 	the __WALL or __WCLONE options when waiting for the child with wait(2). If no signal is specified, then the parent
 	process is not signaled when the child terminates.
+	-------
 	kernel behavior this in exit_notify:tracehook_notify_death/do_notify_parent:
 	if parent has not SIG_IGN SIGCHLD, child will sent it to parent.
+	-------
+	man 2 exit:...and the process's parent is sent a SIGCHLD signal
 	*/
 	/*
 	for fork(), it will call sys_clone and the signal is SIGCHLD:
