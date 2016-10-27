@@ -65,7 +65,7 @@ Sigfunc * signal_install(int signo, Sigfunc *func)
 
 int main(int argc, char* argv[])
 {
-	int status;
+	int status, ret;
 	pid_t pid;
 
 	if (argc >1 && atoi(argv[1]) > 0 && signal_install(SIGCHLD, SIG_IGN) == SIG_ERR)
@@ -77,11 +77,22 @@ int main(int argc, char* argv[])
 		printf("new proc:%d ppid:%d\n", getpid(), getppid());
 	} else {
 		printf("parent:%d child pid %d\n", getpid(), pid);
-		sleep(10);
-		if (wait(&status) != pid) {
-			printf("wait error");
+#if 0
+	man 2 wait
+POSIX.1-2001 specifies that if the disposition of SIGCHLD is set to SIG_IGN or the SA_NOCLDWAIT flag  is  set  for  SIGCHLD
+(see  sigaction(2)),  then children that terminate do not become zombies and a call to wait() or waitpid() will block until
+all children have terminated, and then fail with errno set to ECHILD.  (The original POSIX standard left  the  behavior  of
+setting  SIGCHLD  to SIG_IGN unspecified.  Note that even though the default disposition of SIGCHLD is "ignore", explicitly
+setting the disposition to SIG_IGN results in different treatment of zombie process children.)
+	apue 10.7:
+	If it subsequently calls one of the wait functions, the calling process will block until all its children have terminated, and then wait returns 1 with errno set to ECHILD.
+#endif
+		sleep(5);
+		if ((ret = wait(&status)) != pid) {
+			printf("wait error %d\n", ret);
 			exit(1);
 		}
+		sleep(5);// for ps or top
 	} 
 	return 0;
 }
