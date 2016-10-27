@@ -86,6 +86,7 @@ setting  SIGCHLD  to SIG_IGN unspecified.  Note that even though the default dis
 setting the disposition to SIG_IGN results in different treatment of zombie process children.)
 	apue 10.7:
 	If it subsequently calls one of the wait functions, the calling process will block until all its children have terminated, and then wait returns 1 with errno set to ECHILD.
+	***actually return -1 on x86 vmware archlinux
 #endif
 		sleep(5);
 		if ((ret = wait(&status)) != pid) {
