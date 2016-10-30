@@ -1,5 +1,6 @@
 #include <stdio.h>
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof((x)[0]))
+typedef unsigned long ulong;
 struct rcu_ctrlblk {
 	long cur, completed, pending;
 	ulong gp_start, jiffies_stall;
@@ -22,10 +23,14 @@ rcuclassic.c:16:2: warning: braces around scalar initializer [enabled by default
 		[0] = -1UL,
 		[1] = -1UL,
 	},
-#else	
+#elif 0	
 	.cpumask = {
 		[0 ... 1] = -1UL,
 		[2] = 0UL,
+	},
+#else
+	.cpumask = {
+		-1UL,
 	},
 #endif
 };
