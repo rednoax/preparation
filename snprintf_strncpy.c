@@ -1,5 +1,65 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
+#include <stdlib.h>
+//2.6.29-rc3's vsnprint usage example
+#define ARRAY_SIZE(x) sizeof(x)/sizeof((x)[0])
+struct kobject_uevent_env {
+	char *envp[32];
+	int envp_idx;
+	char buf[2048];
+	int buflen;
+};
+/*
+format (archetype, string-index, first-to-check)
+cause the compiler to check the arguments in calls to "add_uevent_var" for consistency with the printf style
+format string argument "fmt", the parameter string-index specifies which argument is the format string argument(starting from 1),
+while first-to-check is the number of the first argument to check against the format string.
+*/
+int add_uevent_var(struct kobject_uevent_env *env, const char *format, ...) __attribute__((format (printf, 2, 3)));
+int add_uevent_var(struct kobject_uevent_env *env, const char *format, ...)
+{
+	va_list args;
+	int len;
+	if (env->envp_idx >= ARRAY_SIZE(env->envp)) {
+		printf("no free index\n");
+		return -1;
+	}
+	va_start(args, format);
+	len = vsnprintf(&env->buf[env->buflen], sizeof(env->buf) - env->buflen, format, args);
+	va_end(args);
+	if ((env->buflen + len + 1) > sizeof(env->buf)) {//kernel ver:len >= (sizeof(env->buf) - env->buflen)
+		printf("no free mem\n");
+		return -1;
+	}
+	env->envp[env->envp_idx++] = &env->buf[env->buflen];
+	env->buflen += len + 1;
+	//va_end(args);
+	return 0;
+}
+
+int kobject_uevent_env(char *envp_ext[])
+{
+	struct kobject_uevent_env *env;
+	int i = 0;
+	int retval = 0;
+	env = malloc(sizeof(struct kobject_uevent_env));
+	if (!env)
+		return -1;
+	if (envp_ext) {
+		for (i = 0; envp_ext[i]; i++) {
+			retval = add_uevent_var(env, "%s", envp_ext[i]);
+			if (retval)
+				goto exit;
+		}
+		for (i = 0; env->envp[i]; i++)
+			printf("%d:\"%s\"\n", i, env->envp[i]);
+	}
+exit:
+	free(env);
+	return retval;
+}
+//
 //return value and behivor is similar to snprintf
 size_t strlcpy(char *dest, const char *src, size_t size)
 {
@@ -44,10 +104,11 @@ int snprintf_test(const char *str)
 	return ret;
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char *argv[], char *envp[])
 {
 	/*
-	int snprintf(char *buf, size_t size, const char *fmt, ...)
+	int snprintf(char *buf, size_t size, const char *fmt, ...);
+	int vsnprintf(char *str, size_t size, const char *format, va_list ap);
 	The functions snprintf() and vsnprintf() write at most size bytes (including the terminating null byte ('\0')) 
 	to str.
 	return value is AL the strlen of the original source string:
@@ -62,5 +123,6 @@ int main(int argc, char *argv[])
 	snprintf_test("deadbee");//return strlen, i.e. 7
 	snprintf_test("deadbeef");//return 8
 	snprintf_test("deadbeeffacebooc");//return 16
+	kobject_uevent_env(envp);
 	return 0;
 }
