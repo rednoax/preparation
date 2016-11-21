@@ -35,6 +35,23 @@ rcuclassic.c:16:2: warning: braces around scalar initializer [enabled by default
 #endif
 };
 
+#define NR_CPUS 2
+#define BITS_TO_LONGS(nr) (((nr) + 8*sizeof(long) - 1)/(8*sizeof(long)))
+typedef struct cpumask {
+	unsigned long bits[BITS_TO_LONGS(NR_CPUS)];
+}cpumask_t;
+#define CPU_MASK_ALL (cpumask_t) {{[BITS_TO_LONGS(NR_CPUS)-1] = (1<<NR_CPUS)-1,}}
+#if 0
+#define CPU_MASK_ALL_PTR (&CPU_MASK_ALL)
+#else
+#define CPU_MASK_ALL_PTR (&(cpumask_t){.bits = {[0] = ((1<<2)-1)}})
+#endif
+#define RCU_CTRLBLK (&(struct rcu_ctrlblk){.cur = 1,.cpumask = {[0] = 1,}})
+int set_cpus_allowed_ptr(const struct cpumask *newmask, const struct rcu_ctrlblk *blk)
+{
+	return 0;
+}
+
 int main()
 {
 	int i;
@@ -45,5 +62,6 @@ int main()
 	var[0] = var[1] = var[2];
 	for(i = 0; i < ARRAY_SIZE(var); i++)
 		printf("%d:%x\n", i, var[i]);
+	set_cpus_allowed_ptr(CPU_MASK_ALL_PTR, RCU_CTRLBLK);
 	return 0;
 }
