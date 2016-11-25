@@ -28,10 +28,12 @@ rcuclassic.c:16:2: warning: braces around scalar initializer [enabled by default
 		[0 ... 1] = -1UL,
 		[2] = 0UL,
 	},
-#else
+#elif 0
 	.cpumask = {
 		-1UL,
 	},
+#else
+	.cpumask[0] = -1UL,
 #endif
 };
 
