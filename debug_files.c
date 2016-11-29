@@ -16,6 +16,9 @@
 #include <linux/fs.h>
 #include <linux/slab.h>
 #include <linux/interrupt.h>
+#include <linux/percpu.h>
+#include <linux/wait.h>
+#include <linux/kthread.h>
 #include <asm/atomic.h>
 #include <asm/bitops.h>
 
@@ -335,6 +338,335 @@ debug_tasklet_test_write(struct file *filp, const char __user *ubuf,
 	return cnt;
 }
 
+//
+struct wq_struct;
+struct wk_struct;
+
+typedef void (*wk_func_t)(struct wk_struct*);
+
+#define WK_STRUCT_PENDING 0
+#define WK_STRUCT_FLAG_MASK (3UL)
+#define WK_STRUCT_WQ_DATA_MASK (~WK_STRUCT_FLAG_MASK)
+
+#define INIT_WK(_work, _func) \
+	do{\
+		(_work)->data = (atomic_t)ATOMIC_INIT(0);\
+		INIT_LIST_HEAD(&(_work)->entry);\
+		(_work)->func = (_func);\
+	}while(0)
+
+struct wk_struct {
+	atomic_t data;
+	struct list_head entry;
+	wk_func_t func;
+};
+
+struct cpu_wq_struct {
+	spinlock_t lock;
+
+	struct list_head worklist;
+	wait_queue_head_t more_work;
+	struct wk_struct *current_work;
+
+	struct wq_struct *wq;
+	struct task_struct *thread;
+};
+
+struct wq_struct {
+	struct cpu_wq_struct *cpu_wq;
+	const char *name;
+};
+
+static struct wq_struct *wqp = NULL;
+
+#define wk_data_bits(work) ((unsigned long*)(&(work)->data))
+#define wk_clear_pending(work) clear_bit(WK_STRUCT_PENDING, wk_data_bits(work))
+#define wk_pending(work) test_bit(WK_STRUCT_PENDING, wk_data_bits(work))
+
+static inline
+void set_wq_data(struct wk_struct *work, struct cpu_wq_struct *cwq)
+{
+	unsigned long new;
+
+	BUG_ON(!wk_pending(work));
+
+	new = *wk_data_bits(work) & WK_STRUCT_FLAG_MASK;
+	new |= (unsigned long)cwq |(1UL<<WK_STRUCT_PENDING);
+	atomic_set(&work->data, new);
+}
+
+struct cpu_wq_struct *get_wq_data(struct wk_struct *work)
+{
+	return (void*)(atomic_read(&work->data) & WK_STRUCT_WQ_DATA_MASK);
+}
+
+static void insert_wk(struct cpu_wq_struct *cwq, struct wk_struct *work, struct list_head *head)
+{
+	set_wq_data(work, cwq);
+	//
+	//smp_wmb();
+	//
+	list_add_tail(&work->entry, head);//work struct is FIFO
+	wake_up(&cwq->more_work);
+}
+
+static void __queue_wk(struct cpu_wq_struct *cwq, struct wk_struct *work)
+{
+	unsigned long flags;
+
+	spin_lock_irqsave(&cwq->lock, flags);
+	insert_wk(cwq, work, &cwq->worklist);
+	spin_unlock_irqrestore(&cwq->lock, flags);
+}
+
+//return 0 if @work was already on a queue, non-zero otherwise
+int queue_wk_on(int cpu, struct wq_struct *wq, struct wk_struct *work)
+{
+	int ret = 0;
+	/*
+	WK_STRUCT_PENDING is cleared before running, out of spin_lock critical section. It is safely a bit longer
+	than needed.
+	*/
+	if (!test_and_set_bit(WK_STRUCT_PENDING, wk_data_bits(work))) {
+		BUG_ON(!list_empty(&work->entry));
+		__queue_wk(per_cpu_ptr(wq->cpu_wq, cpu), work);
+		ret = 1;
+	}
+	return ret;
+}
+
+//return 0 if @work was already on a queue, non-zero otherwise
+int queue_wk(struct wq_struct *wq, struct wk_struct *work)
+{
+	int ret;
+	int cpu = get_cpu();
+	ret = queue_wk_on(cpu, wq, work);
+	put_cpu();
+	return ret;
+}
+
+static void run_wq(struct cpu_wq_struct *cwq)
+{
+	spin_lock_irq(&cwq->lock);
+	while (!list_empty(&cwq->worklist)) {
+		struct wk_struct *work = list_entry(cwq->worklist.next, struct wk_struct, entry);
+		wk_func_t fn = work->func;
+		list_del_init(&work->entry);
+		cwq->current_work = work;
+		spin_unlock_irq(&cwq->lock);
+
+		BUG_ON(get_wq_data(work) != cwq);
+		wk_clear_pending(work);
+		fn(work);
+		/*
+		if (unlikely(in_atomic())) {
+		}
+		*/
+		spin_lock_irq(&cwq->lock);
+		cwq->current_work = NULL;
+	}
+	spin_unlock_irq(&cwq->lock);
+}
+
+static int worker_thread(void *__cwq)
+{
+	struct cpu_wq_struct *cwq = __cwq;
+	DEFINE_WAIT(wait);
+
+	for (;;) {
+		prepare_to_wait(&cwq->more_work, &wait, TASK_INTERRUPTIBLE);
+		/*
+		When talking the sequence , "if" is a serial/batch of instructions; but we only care "wake_up" and "schedule", 
+		either of them is of task_rq_lock critical section, so there is only 2 possible sequence:
+		1. wake_up is done before schedule, and wake_up return 0=>autoremove_wake_function will 
+		   NOT list_del_init(&wait->task_list);
+		2. schedule is done before wake_up,and wake_up return 1;=?autoremove_wake_function will
+		   list_del_init(&wait->task_list);
+		*/
+		if (!kthread_should_stop() &&
+			list_empty(&cwq->worklist))
+			schedule();//can be waken up by queue_work or kthread_stop
+		finish_wait(&cwq->more_work, &wait);
+		if (kthread_should_stop())
+			break;
+		run_wq(cwq);
+	}
+
+	return 0;
+}
+
+int create_wq_thread(struct cpu_wq_struct *cwq, int cpu)
+{
+	struct wq_struct *wq = cwq->wq;
+	const char *fmt = "%s/%d";
+	struct task_struct *p;
+	/*
+	kthread_create return:
+	1. kernel_thread(return do_fork) return:
+	   a. >0:child PID
+	   b. <0:-EINVAL, -EPERM, etc
+
+	2. 1.a=>struct task_struct*
+	   1.b=>ERR_PTR
+	   both of them can be found by IS_ERR, and the value(1.a/1.b) is assigned to (kthread_create_info*)->result
+	   by create_kthread, and .result is returned by kthread_create	
+	*/
+	p = kthread_create(worker_thread, cwq, fmt, wq, cpu);
+	if (IS_ERR(p))
+		return PTR_ERR(p);
+	cwq ->thread = p;//otherwisr .thread is NULL during alloc_percpu
+	return 0;
+}
+
+void start_wq_thread(struct cpu_wq_struct *cwq, int cpu)
+{
+	struct task_struct *p = cwq->thread;
+	if (p) {
+		if (cpu >= 0)
+			kthread_bind(p, cpu);
+		wake_up_process(p);
+	}
+}
+
+//the non-initialized member is zeroed since alloc_percpu is kzalloc!
+static struct cpu_wq_struct *init_cpu_wq(struct wq_struct *wq, int cpu)
+{
+	struct cpu_wq_struct *cwq = per_cpu_ptr(wq->cpu_wq, cpu);
+
+	cwq->wq = wq;
+	spin_lock_init(&cwq->lock);
+	INIT_LIST_HEAD(&cwq->worklist);
+	init_waitqueue_head(&cwq->more_work);
+	return cwq;
+}
+
+struct wq_barrier
+{
+	struct wk_struct work;
+	struct completion done;
+};
+
+void wq_barrier_func(struct wk_struct *work)
+{
+	struct wq_barrier *barr = container_of(work, struct wq_barrier, work);
+	complete(&barr->done);
+}
+
+static void insert_wq_barrier(struct cpu_wq_struct *cwq, struct wq_barrier *barr, struct list_head *head)
+{
+	INIT_WK(&barr->work, wq_barrier_func);
+	set_bit(WK_STRUCT_PENDING, wk_data_bits(&barr->work));
+	init_completion(&barr->done);
+	insert_wk(cwq, &barr->work, head);
+}
+
+int flush_cpu_wq(struct cpu_wq_struct *cwq)
+{
+	int active = 0;
+	if (current == cwq->thread) {//some work_struct can run flush_cpu_wq itself
+		run_wq(cwq);
+		active = 1;
+	} else {
+		struct wq_barrier barr;
+		spin_lock_irq(&cwq->lock);
+		if (!list_empty(&cwq->worklist) || cwq->current_work) {
+			insert_wq_barrier(cwq, &barr, &cwq->worklist);
+			active = 1;
+		}
+		spin_unlock_irq(&cwq->lock);
+		if (active)
+			wait_for_completion(&barr.done);
+	}
+	return active;
+}
+
+void cleanup_wq_thread(struct cpu_wq_struct *cwq)
+{
+	struct task_struct *p = cwq->thread;
+	if (!p)
+		return;
+	flush_cpu_wq(cwq);
+	kthread_stop(p);
+	cwq->thread = NULL;
+}
+
+void destroy_wq(struct wq_struct *wq)
+{
+	int cpu;
+	for_each_online_cpu(cpu) {
+		cleanup_wq_thread(per_cpu_ptr(wq->cpu_wq, cpu));
+	}
+	free_percpu(wq->cpu_wq);
+	kfree(wq);
+}
+
+struct wq_struct *create_wq(const char* name)
+{
+	struct wq_struct *wq;
+	struct cpu_wq_struct *cwq;
+	int cpu, err = 0;
+
+	wq = kzalloc(sizeof(*wq), GFP_KERNEL);
+	if (!wq)
+		return NULL;
+	//alloc_percpu is kzalloc on both CONFIG_SMP & !CONFIG_SMP
+	wq->cpu_wq = alloc_percpu(struct cpu_wq_struct);
+	if (!wq->cpu_wq) {
+		kfree(wq);
+		return NULL;
+	}
+	wq->name = name;
+
+	for_each_online_cpu(cpu) {
+		cwq = init_cpu_wq(wq, cpu);
+		if (err)
+			continue;
+		err = create_wq_thread(cwq,cpu);
+		start_wq_thread(cwq, cpu);
+	}
+	if (err) {
+		destroy_wq(wq);
+		wq = NULL;
+	}
+	return wq;
+}
+
+static ssize_t debug_wq_test_read(struct file *filep, char __user *ubuf, size_t cnt, loff_t *ppos)
+{
+	return 0;
+}
+
+static ssize_t debug_wq_test_write(struct file *filep, const char __user *ubuf, size_t cnt, loff_t *ppos)
+{
+	char buf[64];
+	unsigned long val;
+
+	if (cnt >= sizeof(buf))
+		return -EINVAL;
+
+	if (copy_from_user(buf, ubuf, cnt))
+		return -EFAULT;
+
+	buf[cnt] = 0;
+	val = simple_strtoul(buf, NULL, 0);
+	switch(val)
+	{
+	case 0://shutdown
+		if (wqp) {
+			destroy_wq(wqp);
+			wqp = NULL;
+		}
+		break;
+	case 1://setup
+		if (!wqp)
+			wqp = create_wq("wq_test");
+		break;
+	default:
+		break;
+	}
+	return cnt;
+}
+//
 
 static const struct file_operations debug_rb_insert_fops = {
 	.open	= debug_open_generic,
@@ -396,6 +728,13 @@ static const struct file_operations debug_tasklet_test_fops = {
 	.llseek	= generic_file_llseek,
 };
 
+static const struct file_operations debug_wq_test_fops = {
+	.open	= debug_open_generic,
+	.read	= debug_wq_test_read,
+	.write	= debug_wq_test_write,
+	.llseek	= generic_file_llseek,
+};
+
 static int debug_init(void)
 {
 	struct dentry *d_debug;
@@ -432,6 +771,7 @@ static int debug_init(void)
 		debug_create_file("atomic_inc", 0220, d_debug, cfs_rq, &debug_atomic_inc_fops);
 		debug_create_file("test_and_set_inc", 0220, d_debug, cfs_rq, &debug_test_and_set_inc_fops);
 		debug_create_file("tasklet_test", 0220, d_debug, cfs_rq, &debug_tasklet_test_fops);
+		debug_create_file("wq", 0644, d_debug, NULL, &debug_wq_test_fops);
 	}
 EXIT:	
 	return ret;
