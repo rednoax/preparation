@@ -510,7 +510,7 @@ int create_wq_thread(struct cpu_wq_struct *cwq, int cpu)
 	   both of them can be found by IS_ERR, and the value(1.a/1.b) is assigned to (kthread_create_info*)->result
 	   by create_kthread, and .result is returned by kthread_create	
 	*/
-	p = kthread_create(worker_thread, cwq, fmt, wq, cpu);
+	p = kthread_create(worker_thread, cwq, fmt, wq->name, cpu);
 	if (IS_ERR(p))
 		return PTR_ERR(p);
 	cwq ->thread = p;//otherwisr .thread is NULL during alloc_percpu
@@ -655,9 +655,10 @@ void supervisor(struct wk_struct *work)
 	struct completion *start = p->sem[0];
 	struct completion *end = p->sem[1];
 	int i, loop = p->loop;
+	int cnt = 0;
 
+	printk("--%s %d--\n", __func__, loop);
 	for (i = 0; i < loop; i++) {
-		int cnt = 0;
 		p->x = 0;
 		p->y = 0;
 		complete(start + ENUM_READ);
@@ -665,8 +666,9 @@ void supervisor(struct wk_struct *work)
 		wait_for_completion(end + ENUM_READ);
 		wait_for_completion(end + ENUM_WRITE);
 		if (p->r1 == 0 && p->r2 == 0)
-			printk("%d reorders in %d\n", ++cnt, loop + 1);
+			printk("%d reorders in %d\n", ++cnt, i + 1);
 	}
+	printk("----\n");
 }
 
 void dummy(struct wk_struct *work)
@@ -675,6 +677,28 @@ void dummy(struct wk_struct *work)
 	(void)p;
 }
 
+/*
+man top:
+28. S  --  Process Status
+   The status of the task which can be one of:
+	   D = uninterruptible sleep
+	   R = running
+	   S = sleeping
+	   T = stopped by job control signal
+	   t = stopped by debugger during trace
+	   Z = zombie
+top
+ 1510 root      20   0    0.0m   0.0m  55.0  0.0   1:00.89 R  `- wq_test/0
+ 1511 root      20   0    0.0m   0.0m   0.0  0.0   0:00.00 S  `- wq_test/1
+ 1512 root      20   0    0.0m   0.0m   8.6  0.0   0:11.54 D  `- wq_test/2
+ 1513 root      20   0    0.0m   0.0m  15.2  0.0   0:19.88 D  `- wq_test/3
+
+ps aux
+root      1510  6.8  0.0      0     0 ?        R    19:40   0:41 [wq_test/0]
+root      1511  0.0  0.0      0     0 ?        S    19:40   0:00 [wq_test/1]
+root      1512  1.3  0.0      0     0 ?        D    19:40   0:08 [wq_test/2]
+root      1513  2.1  0.0      0     0 ?        D    19:40   0:13 [wq_test/3]
+*/
 void read_test(struct wk_struct *work)
 {
 	struct mem_barrier_test *p = container_of(work, struct mem_barrier_test, work[ENUM_READ]);
