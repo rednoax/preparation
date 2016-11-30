@@ -424,8 +424,7 @@ int queue_wk_on(int cpu, struct wq_struct *wq, struct wk_struct *work)
 {
 	int ret = 0;
 	/*
-	WK_STRUCT_PENDING is cleared before running, out of spin_lock critical section. It is safely a bit longer
-	than needed.
+	WK_STRUCT_PENDING is cleared before running, out of spin_lock critical section. It is safely a bit longer than needed.
 	*/
 	if (!test_and_set_bit(WK_STRUCT_PENDING, wk_data_bits(work))) {
 		BUG_ON(!list_empty(&work->entry));
@@ -636,10 +635,98 @@ static ssize_t debug_wq_test_read(struct file *filep, char __user *ubuf, size_t 
 	return 0;
 }
 
+#define __NR_CPUS (4)
+struct mem_barrier_test {
+	struct completion sem[2][__NR_CPUS];
+	struct wk_struct work[__NR_CPUS];
+	int loop;
+	int x, y, r1, r2;
+} barr_test;
+
+enum {
+	ENUM_SUPER,
+	ENUM_DUMMY,
+	ENUM_READ,
+	ENUM_WRITE,
+};
+void supervisor(struct wk_struct *work)
+{
+	struct mem_barrier_test *p = container_of(work, struct mem_barrier_test, work[ENUM_SUPER]);
+	struct completion *start = p->sem[0];
+	struct completion *end = p->sem[1];
+	int i, loop = p->loop;
+
+	for (i = 0; i < loop; i++) {
+		int cnt = 0;
+		p->x = 0;
+		p->y = 0;
+		complete(start + ENUM_READ);
+		complete(start + ENUM_WRITE);
+		wait_for_completion(end + ENUM_READ);
+		wait_for_completion(end + ENUM_WRITE);
+		if (p->r1 == 0 && p->r2 == 0)
+			printk("%d reorders in %d\n", ++cnt, loop + 1);
+	}
+}
+
+void dummy(struct wk_struct *work)
+{
+	struct mem_barrier_test *p = container_of(work, struct mem_barrier_test, work[ENUM_DUMMY]);
+	(void)p;
+}
+
+void read_test(struct wk_struct *work)
+{
+	struct mem_barrier_test *p = container_of(work, struct mem_barrier_test, work[ENUM_READ]);
+	struct completion *start = p->sem[0];
+	struct completion *end = p->sem[1];
+	int i, loop = p->loop;
+	for (i = 0; i < loop; i++) {
+		wait_for_completion(start + ENUM_READ);
+		p->x = 1;
+		p->r1 = p->y;
+		complete(end + ENUM_READ);
+	}
+}
+
+void write_test(struct wk_struct *work)
+{
+	struct mem_barrier_test *p = container_of(work, struct mem_barrier_test, work[ENUM_WRITE]);
+	struct completion *start = p->sem[0];
+	struct completion *end = p->sem[1];
+	int i, loop = p->loop;
+	for (i = 0; i < loop; i++) {
+		wait_for_completion(start + ENUM_WRITE);
+		p->y = 1;
+		p->r2 = p->x;
+		complete(end + ENUM_WRITE);
+	}
+}
+
+const wk_func_t func[__NR_CPUS] = {
+	[ENUM_SUPER] = supervisor,
+	[ENUM_DUMMY] = dummy,
+	[ENUM_READ] = read_test,
+	[ENUM_WRITE] = write_test,
+};
+
+void init_mem_barr_test(struct mem_barrier_test *p, long val)
+{
+	int i, j;
+	for (i = 0; i < 2; i++) {
+		for (j = 0; j < __NR_CPUS; j++) {
+			init_completion(p->sem[i] + j);
+		}
+	}
+	for (j = 0; j < __NR_CPUS; j++)
+		INIT_WK(p->work + j, func[j]);
+	p->loop = val;
+}
+
 static ssize_t debug_wq_test_write(struct file *filep, const char __user *ubuf, size_t cnt, loff_t *ppos)
 {
 	char buf[64];
-	unsigned long val;
+	long val;
 
 	if (cnt >= sizeof(buf))
 		return -EINVAL;
@@ -648,7 +735,7 @@ static ssize_t debug_wq_test_write(struct file *filep, const char __user *ubuf, 
 		return -EFAULT;
 
 	buf[cnt] = 0;
-	val = simple_strtoul(buf, NULL, 0);
+	val = simple_strtol(buf, NULL, 0);
 	switch(val)
 	{
 	case 0://shutdown
@@ -662,6 +749,14 @@ static ssize_t debug_wq_test_write(struct file *filep, const char __user *ubuf, 
 			wqp = create_wq("wq_test");
 		break;
 	default:
+		if (val > 0 && wqp) {
+			struct mem_barrier_test *p = &barr_test;
+			int i;
+			
+			init_mem_barr_test(p, val);
+			for (i = 0; i < __NR_CPUS; i++)
+				queue_wk_on(i, wqp, p->work + i);
+		}
 		break;
 	}
 	return cnt;
