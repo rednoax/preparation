@@ -1,3 +1,3 @@
 initramfs:initramfs.c inflate.c
-	gcc -Wall $< -o $@.out
+	gcc -Wall -static $< -o $@.out
 

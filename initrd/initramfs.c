@@ -1127,9 +1127,11 @@ int show_N_ALIGN(int argc, char **argv)
 	return 0;
 }
 
+#define CONFIG_DIR "chroot"
 int main(int argc, char **argv, char **envp)
 {
 	int ret;
+	char *dir = CONFIG_DIR;
 	if (argc < 2) {//must >= 2
 		printf("usage:./initramfs cpio|cpio.gz [cpio|cpio.gz]\n");
 		return 0;
@@ -1139,8 +1141,23 @@ int main(int argc, char **argv, char **envp)
 	ret = load_file(argv[1], (unsigned long*)&__initramfs_start, (unsigned long*)&__initramfs_end);
 	if (ret)
 		return ret;
+#if 10
+	/*
+	chroot changes the root directory of the calling process to that specified in path, which will be used for pathname beginning
+	with /.
+	chroot doesnot change the current working directory, so that the call '.' can be outside the tree rooted at '/'.
+	In particular, the superuser can escape from "chroot jail" by doing:
+	mkdir foo;chroot foo;cd ..
+	chdir changes the current working directory; that is, the starting point for path searches for pathname not
+	beginning with '/'.
+	*/
+	if (mkdir(dir, 0755) || chroot(dir) || chdir(dir)) {
+		perror("fail to chroot/chdir");
+		goto EXIT;
+	}
+#endif
 	populate_rootfs();
-
+EXIT:
 	if (__initramfs_start)
 		free(__initramfs_start);
 	return 0;
