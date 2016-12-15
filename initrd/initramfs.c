@@ -9,6 +9,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#define offsetof(type, member) ((size_t)&((type*)0)->member)
+#define container_of(ptr, type, member) ({\
+		const typeof(((type*)0)->member) *_mptr = (ptr);\
+		(type*)((char*)_mptr - offsetof(type, member));})
 #define __initdata
 #define __init
 #define __user
@@ -18,7 +22,11 @@
 #define kstrdup(s, flags) strdup(s)
 #define __setup(s, func)
 #define KERN_INFO "<6>"
-void panic(const char *fmt, ...) __attribute__((format (printf, 1, 2)))
+#define printk(...) printf(__VA_ARGS__)
+typedef unsigned int u32;
+//attributes should be specified before the declarator in a function definition
+void panic(const char *fmt, ...) __attribute__((format (printf, 1, 2)));
+void panic(const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
@@ -34,14 +42,14 @@ struct list_head {
 #define LIST_HEAD_INIT(name) {&(name), &(name)}
 #define LIST_HEAD(name) \
 	struct list_head name = LIST_HEAD_INIT(name)
-
+#define list_entry(ptr, type, member) container_of(ptr, type, member)
 void INIT_LIST_HEAD(struct list_head *list)
 {
 	list->next = list;
 	list->prev = list;
 }
 
-static inline __list_add(struct list_head *new, struct list_head *prev, struct list_head *next)
+static inline void __list_add(struct list_head *new, struct list_head *prev, struct list_head *next)
 {
 	prev->next = new;
 	new->prev = prev;
@@ -49,7 +57,7 @@ static inline __list_add(struct list_head *new, struct list_head *prev, struct l
 	next->prev = new;
 }
 
-static inline list_add(struct list_head *new, struct list_head *head)
+static inline void list_add(struct list_head *new, struct list_head *head)
 {
 	__list_add(new, head, head->next);
 }
@@ -76,8 +84,8 @@ static inline void list_del(struct list_head *entry)
 		pos = n)
 
 #define debug(fmt, arg...) printf(fmt, ##arg)
-
-#ifdef 1//__KERNEL__
+#define simple_strtoul(nptr, endptr, base) strtoul(nptr, endptr, base)
+#if 1//def __KERNEL__
 #define MINORBITS	20
 #define MINORMASK	((1U << MINORBITS) - 1)
 
@@ -282,7 +290,7 @@ static void __init parse_header(char *s)
 	int i;
 	//
 	memcpy(buf, s, 6);
-	debug("header magic:%x\n", buf);
+	debug("header magic:%s\n", buf);
 	//
 	//buf[8] = '\0';
 	for (i = 0, s += 6; i < 12; i++, s += 8) {
@@ -300,8 +308,8 @@ static void __init parse_header(char *s)
 	minor = parsed[8];
 	rdev = new_encode_dev(MKDEV(parsed[9], parsed[10]));
 	name_len = parsed[11];//AL strlen+1
-	debug("ino %d, mode %o, uid %d, gid %d, nlink %d, mtime %d, "
-		"body_len %d, major %d, minor %d, rdev %d, name len %d\n", \
+	debug("ino %ld, mode %o, uid %d, gid %d, nlink %ld, mtime %ld, "
+		"body_len %ld, major %ld, minor %ld, rdev %d, name len %ld\n", \
 		ino, mode, uid, gid, nlink, mtime, \
 		body_len, major, minor, rdev, name_len);
 }
@@ -386,9 +394,9 @@ static int __init do_header(void)
 	}
 	parse_header(collected);
 	next_header = this_header + N_ALIGN(name_len) + body_len;
-	printf("%d+%d(%d)+%d=%d(0x%x)=>", this_header, N_ALIGN(name_len), name_len, body_len, next_header, next_header);
+	printf("%lld+%ld(%ld)+%ld=%lld(0x%llx)=>", this_header, N_ALIGN(name_len), name_len, body_len, next_header, next_header);
 	next_header = (next_header + 3) & ~3;
-	printf("%d(0x%x)\n", next_header, next_header);
+	printf("%lld(0x%llx)\n", next_header, next_header);
 	if (dry_run) {
 		read_into(name_buf, N_ALIGN(name_len), GotName);
 		return 0;
@@ -578,7 +586,7 @@ int __sys_ftruncate(int fd, off_t length)
 	*/
 	if (ret)
 		debug("***");
-	debug("ftruncate %d:%d\n", fd, length);
+	debug("ftruncate %d:%ld\n", fd, length);
 	return ret;
 }
 
@@ -791,8 +799,9 @@ static int __init write_buffer(char *buf, unsigned len)
 	return len - count;
 }
 
-static void __init flush_buffer(char *buf, unsigned len)
+static void __init flush_buffer(void *_buf, unsigned len)
 {
+	char *buf = _buf;
 	int written;
 	if (message)
 		return;
@@ -853,9 +862,11 @@ static void __init flush_window(void);
 static void __init error(char *m);
 
 #define NO_INFLATE_MALLOC
-
+#ifdef CONFIG_DEBUG_APP
+#include "./inflate.c"
+#else
 #include "../lib/inflate.c"
-
+#endif
 /* ===========================================================================
  * Write the output window window[0..outcnt-1] and update crc and bytes_out.
  * (Used for the decompressed data only.)
@@ -907,7 +918,7 @@ static char * __init unpack_to_rootfs(char *buf, unsigned len, int check_only)
 		}
 		this_header = 0;
 		insize = len;
-		inbuf = buf;
+		inbuf = (uch*)buf;
 		inptr = 0;
 		outcnt = 0;		/* bytes in output buffer */
 		bytes_out = 0;
@@ -944,8 +955,10 @@ drwxr-xr-x 6 root root 4096 Dec 14 23:58 initramfs
 }
 
 static int __initdata do_retain_initrd;
-
-static int __init retain_initrd_param(char *str)
+#ifndef CONFIG_DEBUG_APP
+static
+#endif
+int __init retain_initrd_param(char *str)
 {
 	if (*str)
 		return 0;
@@ -954,14 +967,16 @@ static int __init retain_initrd_param(char *str)
 }
 __setup("retain_initrd", retain_initrd_param);
 
-extern char __initramfs_start[], __initramfs_end[];
 #ifdef CONFIG_DEBUG_APP
+extern char *__initramfs_start, *__initramfs_end;
+extern unsigned long initrd_start, initrd_end;
 void free_initrd_mem(unsigned long start, unsigned long end)
 {
 	if (start)
 		free((char*)start);
 }
 #else
+extern char __initramfs_start[], __initramfs_end[];
 #include <linux/initrd.h>
 #include <linux/kexec.h>
 #endif
@@ -1045,7 +1060,7 @@ unsigned long initrd_start, initrd_end;
 int load_file(const char *filename, unsigned long * const start, unsigned long * const end)
 {
 	int fd, size, ret = -1;
-	stuct stat st;
+	struct stat st;
 	char *p;
 	fd = open(filename, O_RDONLY);
 	if (fd <0) {
@@ -1073,7 +1088,7 @@ int load_file(const char *filename, unsigned long * const start, unsigned long *
 	ret = 0;
 	*start = (unsigned long)p;
 	*end = *start + size;
-	printf("read %s:%x-%x\n", filename, *start, *end);
+	printf("read %s:%lx-%lx\n", filename, *start, *end);
 	goto EXIT2;
 EXIT1:
 	free(p);

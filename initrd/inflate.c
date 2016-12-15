@@ -102,8 +102,11 @@
       a repeat code (16, 17, or 18) to go across the boundary between
       the two sets of lengths.
  */
+#ifdef CONFIG_DEBUG_APP
+#define  noinline			__attribute__((noinline))
+#else
 #include <linux/compiler.h>
-
+#endif
 #ifdef RCSID
 static char rcsid[] = "#Id: inflate.c,v 0.14 1993/06/10 13:27:04 jloup Exp #";
 #endif
@@ -266,8 +269,10 @@ static void free(void *where)
 		malloc_ptr = free_mem_ptr;
 }
 #else
+#ifndef CONFIG_DEBUG_APP
 #define malloc(a) kmalloc(a, GFP_KERNEL)
 #define free(a) kfree(a)
+#endif
 #endif
 
 /*
