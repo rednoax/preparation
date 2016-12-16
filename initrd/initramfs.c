@@ -340,7 +340,31 @@ static void __init parse_header(char *s)
 	unsigned long parsed[12];
 	char buf[9] = {0};
 	int i;
-	//
+	/*
+	110B header is consists of the following, each is ascii string without '\0'
+	---header start----------------------
+	6B header magic,
+	---the following use 16 as the base:12x8--:
+	8B inode number,
+	8B mode,
+	8B uid,/etc/passwd record uid in decimal!cpio use heximal to record uid
+	8B gid,/etc/group record gid in decimal while cpio use hexumal to record gid
+	8B nlink, the same as inode's nlink
+	8B mtime(modification time),
+	8B body_len(file len of reg file/symbol link file)
+	8B major
+	8B minor,
+	8B rdev[0]
+	8B rdev[1],
+	8B name_len(one '\0' is included in name_len)
+	---usefull fields fin-----------------
+	8B '0', seem useless
+	---110B header end--------------------
+	name:name ascii string with one \0//sizeof==name_len
+		name padding \0:can be 0B, sizeof==(N_ALIGN(name_len) - name_len)
+	body(only exists when body_len!=0):sizeof==body_len
+		body padding \0:can be 0B, sizeof:see do_header's calculation
+	*/
 	memcpy(buf, s, 6);
 	debug("header magic:%s\n", buf);
 	//
@@ -360,8 +384,10 @@ static void __init parse_header(char *s)
 	minor = parsed[8];
 	rdev = new_encode_dev(MKDEV(parsed[9], parsed[10]));
 	name_len = parsed[11];//AL strlen+1
+	if (nlink >= 2 && !S_ISDIR(mode))
+		debug("!!!");
 	debug("ino %ld, mode %o, uid %d, gid %d, nlink %ld, mtime %ld, "
-		"body_len %ld, major %ld, minor %ld, rdev %d, name len %ld\n", \
+		"body_len %ld, major %ld, minor %ld, rdev %d, name_len %ld\n", \
 		ino, mode, uid, gid, nlink, mtime, \
 		body_len, major, minor, rdev, name_len);
 }
@@ -436,6 +462,7 @@ static int __init do_collect(void)
 
 static int __init do_header(void)
 {
+	loff_t old;
 	if (memcmp(collected, "070707", 6)==0) {
 		error("incorrect cpio method used: use -H newc option");
 		return 1;
@@ -446,9 +473,15 @@ static int __init do_header(void)
 	}
 	parse_header(collected);
 	next_header = this_header + N_ALIGN(name_len) + body_len;
-	printf("%lld+%ld(%ld)+%ld=%lld(0x%llx)=>", this_header, N_ALIGN(name_len), name_len, body_len, next_header, next_header);
+	old = next_header;
 	next_header = (next_header + 3) & ~3;
-	printf("%lld(0x%llx)\n", next_header, next_header);
+	debug("%lld+%ld(%ld)+%ld=>%lld(0x%llx);", this_header, N_ALIGN(name_len),
+		name_len, body_len, next_header, old);
+	if (N_ALIGN(name_len) > name_len)
+		debug("name:+%ldB;", N_ALIGN(name_len) - name_len);
+	if (next_header > old)
+		debug("body:+%lldB", next_header - old);
+	debug("\n");
 	if (dry_run) {
 		read_into(name_buf, N_ALIGN(name_len), GotName);
 		return 0;
@@ -676,7 +709,7 @@ int __sys_mknod(const char *pathname, mode_t mode, dev_t dev)
 	-1 and errno is set to indicate the error
 	*/
 	show_error(ret);
-	debug("mknod %s %o %d %d\n", pathname, mode, MAJOR(dev), MINOR(dev));
+	debug("mknod %s %o %04llx\n", pathname, mode, dev);
 	return ret;
 }
 
@@ -715,12 +748,13 @@ static void __init clean_path(char *path, mode_t mode)
 	int ret;
 	//even the @path of reg file exists and its mode is the same as @mode, it will be later truncated???
 	if (!(ret = __sys_newlstat(path, &st)) && (st.st_mode^mode) & S_IFMT) {
+		debug("!!!conflicted %s %o!=%o\n", path, st.st_mode, mode);
 		if (S_ISDIR(st.st_mode))
 			__sys_rmdir(path);
 		else
 			__sys_unlink(path);
 	} else if (!ret)
-		debug("hit %s %o\n", path, mode);
+		debug("!!!hit %s %o\n", path, mode);
 }
 
 static __initdata int wfd;
@@ -810,9 +844,16 @@ the2nd '\0' above is N_ALIGN's extra 1B
 static int __init do_symlink(void)
 {
 	collected[N_ALIGN(name_len) + body_len] = '\0';
-	clean_path(collected, 0);
+	clean_path(collected, 0);//0 to unlink existed symbol link file unconditionally
 	__sys_symlink(collected + N_ALIGN(name_len), collected);
 	__sys_lchown(collected, uid, gid);
+	/*
+	no mode changing???
+	chmod  never changes the permissions of symbolic links; the chmod system call cannot change their permissions.	This is not
+	a problem since the permissions of symbolic links are never used.  However, for each symbolic link listed  on  the	command
+	line,  chmod  changes the permissions of the pointed-to file.  In contrast, chmod ignores symbolic links encountered during
+	recursive directory traversals.
+	*/
 	do_utime(collected, mtime);
 	state = SkipIt;
 	next_state = Reset;
