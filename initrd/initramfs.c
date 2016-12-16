@@ -591,7 +591,7 @@ int __sys_open(const char *pathname, int flags, mode_t mode)
 	>=0:success
 	-1 and errno is set to indicate the error
 	*/
-	show_error(ret);
+	show_error(ret < 0);
 	debug("open %s %x %o\n", pathname, flags, mode);
 	return ret;
 }
@@ -712,13 +712,15 @@ int __sys_lchown(const char *path, uid_t owner, gid_t group)
 static void __init clean_path(char *path, mode_t mode)
 {
 	struct stat st;
+	int ret;
 	//even the @path of reg file exists and its mode is the same as @mode, it will be later truncated???
-	if (!__sys_newlstat(path, &st) && (st.st_mode^mode) & S_IFMT) {
+	if (!(ret = __sys_newlstat(path, &st)) && (st.st_mode^mode) & S_IFMT) {
 		if (S_ISDIR(st.st_mode))
 			__sys_rmdir(path);
 		else
 			__sys_unlink(path);
-	}
+	} else if (!ret)
+		debug("hit %s %o\n", path, mode);
 }
 
 static __initdata int wfd;
@@ -1221,7 +1223,8 @@ PATH
 [root@localhost qemu]# chroot chroot initramfs.out
 usage:./initramfs cpio|cpio.gz [cpio|cpio.gz]
 	*/
-	if (mkdir(dir, 0755) || chroot(dir) || chdir(dir)) {
+	mkdir(dir, 0755);//will return -1 when dir has exists, errno is EEXIST
+	if (chroot(dir) || chdir(dir)) {
 		perror("fail to chroot/chdir");
 		goto EXIT;
 	}
