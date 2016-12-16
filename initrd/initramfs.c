@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <errno.h>
 
 #define offsetof(type, member) ((size_t)&((type*)0)->member)
 #define container_of(ptr, type, member) ({\
@@ -119,6 +120,58 @@ int __sys_close(int fd);
 int __sys_mknod(const char *pathname, mode_t mode, dev_t dev);
 int __sys_symlink(const char *old, const char *new);
 int __sys_lchown(const char *path, uid_t owner, gid_t group);
+
+int fmt_char(const char *filename)
+{
+	struct stat st;
+	int ret = lstat(filename, &st);
+	if (!ret) {
+		mode_t mode = st.st_mode;
+		switch(S_IFMT & mode)
+		{
+		case S_IFSOCK:
+			ret = 's';
+			break;
+		case S_IFLNK:
+			ret = 'l';
+			break;
+		case S_IFREG:
+			ret = '-';
+			break;
+		case S_IFBLK:
+			ret = 'b';
+			break;
+		case S_IFDIR:
+			ret = 'r';
+			break;
+		case S_IFCHR:
+			ret = 'c';
+			break;
+		case S_IFIFO:
+			ret = 'f';
+			break;
+		default:
+			ret = '?';
+			break;
+		}
+	} else
+		ret = '?';
+	return ret;
+}
+
+static inline void show_error(int ret)
+{
+	/*
+	There are two rules to be aware of with respect to errno. First, its value is never cleared by
+	a routine if an error does not occur. Therefore, we should examine its value only when the return
+	value from a function indicates that an error occurred. Second, the value of errno is never set
+	to 0 by any of the functions, and none of the constants defined in <errno.h> has a value of 0.
+	*/
+	extern int errno;
+	if (ret)
+		debug("***%d(%s):", errno, strerror(errno));
+}
+
 #else
 #include <linux/init.h>
 #include <linux/fs.h>
@@ -233,9 +286,8 @@ static long __init do_utime(char __user *filename, time_t mtime)
 		0:successful
 		-1 and errno is set to indicate the error
 		*/
-		if (ret)
-			debug("***");
-		debug("utimensat:%s %ld\n", filename, mtime);
+		show_error(ret);
+		debug("utimensat(%c):%s %ld\n", fmt_char(filename), filename, mtime);
 		return ret;
 	}
 #else
@@ -363,7 +415,7 @@ static __initdata char *header_buf, *symlink_buf, *name_buf;
 
 static int __init do_start(void)
 {
-	debug("%s:110B header\n", __func__);
+	debug("%s:110B header, ", __func__);
 	read_into(header_buf, 110, GotHeader);
 	return 0;
 }
@@ -467,9 +519,8 @@ int __sys_newlstat(const char *pathname, struct stat *st)
 	0:successful
 	-1 and errno is set to indicate the error
 	*/
-	if (ret)
-		debug("***");
-	debug("lstat %s:%o\n", pathname, st->st_mode);
+	show_error(ret);
+	debug("lstat %s %o\n", pathname, st->st_mode);
 	return ret;
 }
 
@@ -480,8 +531,7 @@ int __sys_rmdir(const char *pathname)
 	0:success
 	-1 and errno is set to indicate the error
 	*/
-	if (ret)
-		debug("***");
+	show_error(ret);
 	debug("rmdir %s\n", pathname);
 	return ret;
 }
@@ -493,8 +543,7 @@ int __sys_unlink(const char *pathname)
 	0:success
 	-1 and errno is set to indicate the error
 	*/
-	if (ret)
-		debug("***");
+	show_error(ret);
 	debug("unlink %s\n", pathname);
 	return ret;
 }
@@ -506,9 +555,8 @@ int __sys_mkdir(const char *pathname, mode_t mode)
 	0:success
 	-1 and errno is set to indicate the error
 	*/
-	if (ret)
-		debug("***");
-	debug("mkdir %s:%o\n", pathname, mode);
+	show_error(ret);
+	debug("mkdir %s %o\n", pathname, mode);
 	return ret;
 }
 
@@ -519,9 +567,8 @@ int __sys_chown(const char *pathname, uid_t owner, gid_t group)
 	0:success
 	-1 and errno is set to indicate the error
 	*/
-	if (ret)
-		debug("***");
-	debug("chown %s:%d %d\n", pathname, owner, group);
+	show_error(ret);
+	debug("chown %s %d %d\n", pathname, owner, group);
 	return ret;
 }
 
@@ -532,9 +579,8 @@ int __sys_chmod(const char *pathname, mode_t mode)
 	0:success
 	-1 and errno is set to indicate the error
 	*/
-	if (ret)
-		debug("***");
-	debug("chmod %s:%o\n", pathname, mode);
+	show_error(ret);
+	debug("chmod %s %o\n", pathname, mode);
 	return ret;
 }
 
@@ -545,9 +591,8 @@ int __sys_open(const char *pathname, int flags, mode_t mode)
 	>=0:success
 	-1 and errno is set to indicate the error
 	*/
-	if (ret < 0)
-		debug("***");
-	debug("open %s:%x %o\n", pathname, flags, mode);
+	show_error(ret);
+	debug("open %s %x %o\n", pathname, flags, mode);
 	return ret;
 }
 
@@ -558,9 +603,8 @@ int __sys_fchown(int fd, uid_t owner, gid_t group)
 	0:success
 	-1 and errno is set to indicate the error
 	*/
-	if (ret)
-		debug("***");
-	debug("fchown %d:%d %d\n", fd, owner, group);
+	show_error(ret);
+	debug("fchown %d %d %d\n", fd, owner, group);
 	return ret;
 }
 
@@ -571,9 +615,8 @@ int __sys_fchmod(int fd, mode_t mode)
 	0:success
 	-1 and errno is set to indicate the error
 	*/
-	if (ret)
-		debug("***");
-	debug("fchmod %d:%o\n", fd, mode);
+	show_error(ret);
+	debug("fchmod %d %o\n", fd, mode);
 	return ret;
 }
 
@@ -584,9 +627,8 @@ int __sys_ftruncate(int fd, off_t length)
 	0:success
 	-1 and errno is set to indicate the error
 	*/
-	if (ret)
-		debug("***");
-	debug("ftruncate %d:%ld\n", fd, length);
+	show_error(ret);
+	debug("ftruncate %d %ld\n", fd, length);
 	return ret;
 }
 
@@ -597,9 +639,8 @@ int __sys_link(const char *oldpath, const char *newpath)
 	0:success
 	-1 and errno is set to indicate the error
 	*/
-	if (ret)
-		debug("***");
-	debug("link %s:%s\n", oldpath, newpath);
+	show_error(ret);
+	debug("link %s %s\n", oldpath, newpath);
 	return ret;
 }
 
@@ -607,8 +648,10 @@ ssize_t __sys_write(int fd, const void *buf, size_t count)
 {
 	int ret = write(fd, buf, count);
 	//On error, -1 is returned, and errno is set appropriately.
-	if (ret == -1 || ret != count)
-		debug("***");
+	if (ret == -1)
+		show_error(ret);
+	else if (ret != count)
+		debug("***%d:", ret);
 	debug("write %d:%dB\n", fd, count);
 	return ret;
 }
@@ -620,8 +663,7 @@ int __sys_close(int fd)
 	0:success
 	-1 and errno is set to indicate the error
 	*/
-	if (ret)
-		debug("***");
+	show_error(ret);
 	debug("close %d\n", fd);
 	return ret;
 }
@@ -633,8 +675,7 @@ int __sys_mknod(const char *pathname, mode_t mode, dev_t dev)
 	0:success
 	-1 and errno is set to indicate the error
 	*/
-	if (ret)
-		debug("***");
+	show_error(ret);
 	debug("mknod %s %o %d %d\n", pathname, mode, MAJOR(dev), MINOR(dev));
 	return ret;
 }
@@ -646,8 +687,7 @@ int __sys_symlink(const char *old, const char *new)
 	0:success
 	-1 and errno is set to indicate the error
 	*/
-	if (ret)
-		debug("***");
+	show_error(ret);
 	debug("symlink %s %s\n", old, new);
 	return ret;
 }
@@ -663,9 +703,8 @@ int __sys_lchown(const char *path, uid_t owner, gid_t group)
 	0:success
 	-1 and errno is set to indicate the error
 	*/
-	if (ret)
-		debug("***");
-	debug("lchown %s:%d %d\n", path, owner, group);
+	show_error(ret);
+	debug("lchown %s %d %d\n", path, owner, group);
 	return ret;
 }
 
@@ -930,6 +969,7 @@ static char * __init unpack_to_rootfs(char *buf, unsigned len, int check_only)
 		this_header = saved_offset + inptr;
 		buf += inptr;
 		len -= inptr;
+		debug("%s:%d, crc %lx\n", __func__, len, crc);
 	}
 	/*
 [root@localhost apue]# ls -l
@@ -1057,12 +1097,14 @@ static int __init populate_rootfs(void)
 char *__initramfs_start, *__initramfs_end;
 unsigned long initrd_start, initrd_end;
 
-int load_file(const char *filename, unsigned long * const start, unsigned long * const end)
+int load_file(const char *filename, void * const _start, void * const _end)
 {
 	int fd, size, ret = -1;
 	struct stat st;
 	char *p;
 	fd = open(filename, O_RDONLY);
+	unsigned long *const start = _start;
+	unsigned long *const end = _end;
 	if (fd <0) {
 		perror("open file error:");
 		goto EXIT3;
@@ -1138,11 +1180,12 @@ int main(int argc, char **argv, char **envp)
 	}
 	if (argc >= 3)
 		load_file(argv[2], &initrd_start, &initrd_end);
-	ret = load_file(argv[1], (unsigned long*)&__initramfs_start, (unsigned long*)&__initramfs_end);
+	ret = load_file(argv[1], &__initramfs_start, &__initramfs_end);
 	if (ret)
 		return ret;
 #if 10
 	/*
+	1. the following is extracted from syscall manual, not command manual:
 	chroot changes the root directory of the calling process to that specified in path, which will be used for pathname beginning
 	with /.
 	chroot doesnot change the current working directory, so that the call '.' can be outside the tree rooted at '/'.
@@ -1150,6 +1193,33 @@ int main(int argc, char **argv, char **envp)
 	mkdir foo;chroot foo;cd ..
 	chdir changes the current working directory; that is, the starting point for path searches for pathname not
 	beginning with '/'.
+	2. command line's chroot manual:
+	--skip-chdir donot change working directory to '/'
+	So "chroot chroot/ ./initramfs.out" will:
+	a. chroot and chdir to chroot directory
+	b. run chroot/initramfs.out rather than "./initramfs.out" under current directory where the chroot command line runs
+	test procedure:
+[root@localhost qemu]# rm -rf chroot/
+[root@localhost qemu]# mkdir chroot
+[root@localhost qemu]# chroot chroot initramfs.out
+chroot: failed to run command 'initramfs.out': No such file or directory
+[root@localhost qemu]# chroot chroot ./initramfs.out
+chroot: failed to run command './initramfs.out': No such file or directory
+[root@localhost qemu]# chroot chroot ../initramfs.out
+chroot: failed to run command '../initramfs.out': No such file or directory
+[root@localhost qemu]# mv initramfs.out chroot
+[root@localhost qemu]# chroot chroot ./initramfs.out
+usage:./initramfs cpio|cpio.gz [cpio|cpio.gz]
+[root@localhost qemu]# chroot chroot ../initramfs.out
+usage:./initramfs cpio|cpio.gz [cpio|cpio.gz]
+[root@localhost qemu]# echo PATH
+PATH
+[root@localhost qemu]# echo $PATH
+/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/root/cross
+[root@localhost qemu]# mkdir -p chroot/root/cross
+[root@localhost qemu]# cp chroot/initramfs.out chroot/root/cross/
+[root@localhost qemu]# chroot chroot initramfs.out
+usage:./initramfs cpio|cpio.gz [cpio|cpio.gz]
 	*/
 	if (mkdir(dir, 0755) || chroot(dir) || chdir(dir)) {
 		perror("fail to chroot/chdir");
