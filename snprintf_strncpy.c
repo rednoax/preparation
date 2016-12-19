@@ -71,7 +71,13 @@ size_t strlcpy(char *dest, const char *src, size_t size)
 	}
 	return ret;
 }
-
+/*
+suppose most common examples:
+len = strlen(src); len > 0 && n >0
+1.len < n:	completely strcpy
+2.len == n:	a non null-terminated src, but no missing, will be put in dest
+3.len > n:	[0, n-1] of src will be put in dest and dest is not null-terminated
+*/
 char *__strncpy(char *dest, const char *src, size_t n)
 {
 	int i;
