@@ -73,10 +73,36 @@ size_t strlcpy(char *dest, const char *src, size_t size)
 }
 /*
 suppose most common examples:
-len = strlen(src); len > 0 && n >0
-1.len < n:	completely strcpy
+len = strlen(src); len > 0 && n > 0
+1.len < n(at most len == (n - 1)):completely strcpy('\0' is included);
 2.len == n:	a non null-terminated src, but no missing, will be put in dest
-3.len > n:	[0, n-1] of src will be put in dest and dest is not null-terminated
+3.len > n:	[0, n - 1] of src will be put in dest and dest is not null-terminated
+special case:
+n == 0, then no strcpy and return dest directly;
+n == 1 && len == 0, then dest will be copied with one byte '\0';
+n == 1 && len == 1, then dest will be copied with one non-null byte only and then stops;
+n == 1 && len > 1, then dest will be copied with one non-null byte only and then stops;
+*/
+/*
+for common case:len = strlen(src);len > 0 && n > 0
+1. len < n:(at most len == (n-1))completely copy('\0' included), return len;
+2. len == n, a non null-terminated src, but no missing, will be put in dest, return len;
+3. len > n, [0, n - 1] of src will be put in dest and dest is not null-terminated, return len;
+arm 's assembly __strncpy_from_user(dst, src, n):
+	ip = r1;
+S:	r2 -= 1;
+	if (r2 >= 0) {
+		r3 = [r1];//only byte[0] is copied, byte[1],byte[2],byte[3] is filled with 0
+		r1 += 1;
+	} else
+		goto E;
+	[r0] = r3;//only byte[0] is copied
+	r0 += 1;
+	if (r3 != 0)//(r3^0)!=0
+		goto S;
+	r1 -= 1;
+E:	r0 = r1 - ip;
+	pc = lr;
 */
 char *__strncpy(char *dest, const char *src, size_t n)
 {
