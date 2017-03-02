@@ -1,9 +1,12 @@
-
 # To build modules outside of the kernel tree, we run "make"
 # in the kernel source tree; the Makefile these then includes this
 # Makefile once again.
 # This conditional selects whether we are being included from the
 # kernel Makefile or not.
+
+# O=XX seems no effect
+# make O=~/O_versatile/ ARCH=arm CROSS_COMPILE=arm-linux- KERNELDIR=~/kernel/ V=[0|1|2]
+
 ifeq ($(KERNELRELEASE),)
 
     # Assume the source tree is where the running kernel was built

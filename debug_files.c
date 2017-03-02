@@ -21,15 +21,23 @@
 #include <linux/kthread.h>
 #include <asm/atomic.h>
 #include <asm/bitops.h>
+#include <linux/version.h>
 
 #define SYSRQ_HARDIRQ_TRIGGER_CHAR 'x'
 
 MODULE_LICENSE("Dual BSD/GPL");
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 39)
 static void sysrq_handle_dbg(int key)
 {
 	printk("%s:%d\n", __func__, __LINE__);
 }
+#else
+static void sysrq_handle_dbg(int key, struct tty_struct *tty)
+{
+	printk("%s:%d\n", __func__, __LINE__);
+}
+#endif
 
 static struct sysrq_key_op sysrq_dbg_op = {
 	.handler	= sysrq_handle_dbg,
@@ -64,7 +72,15 @@ struct dentry *debug_create_file(const char *name,
 	if (!ret)
 		printk("Could not create debugfs '%s' entry\n", name);
 	return ret;
-}			
+}
+
+__attribute__((weak)) int debugfs_initialized(void)//bool return
+{
+	struct file_system_type *fs = get_fs_type("debugfs");
+	if (fs != NULL)
+		return 1;
+	return 0;
+}
 
 struct dentry *debug_init_dentry(void)
 {
@@ -103,7 +119,36 @@ debug_rb_read(struct file *filep, char __user *ubuf,
 	printk("\nTotal %d\n", nr);
 	spin_unlock(&cfs_rq->lock);
 	return 0;//FIXME?
-}		
+}
+
+/*
+return:
+0   - no error
+<=0 - error
+*/
+__attribute__((weak)) int kstrtoul_from_user(const char __user *s, size_t count, unsigned int base, unsigned long *res)
+{
+#if 0
+	char buf[1 + sizeof(unsigned long) * 8 + 1 + 1];
+	count = min(count, sizeof(buf) - 1);
+	if (copy_from_user(buf, s, count))
+		return -EFAULT;
+	buf[count] = '\0';
+	return kstrtoul(buf, base, res);
+#else
+	//tracing_ctrl_write
+	char buf[64];
+	int ret;
+	if (count >= sizeof(buf))
+		return -EINVAL;
+	if (copy_from_user(&buf, s, count))
+		return -EFAULT;
+	buf[count] = 0;
+	ret = strict_strtoul(buf, base, res);//can only be 0 or minus(error occur)
+	printk("__user %p:count %d, base %d, %lx(%ld)\n", s, count, base, res[0], res[0]);
+	return ret;
+#endif
+}
 
 static ssize_t
 debug_rb_insert(struct file *filp, const char __user *ubuf, 
@@ -749,9 +794,10 @@ void init_mem_barr_test(struct mem_barrier_test *p, long val)
 
 static ssize_t debug_wq_test_write(struct file *filep, const char __user *ubuf, size_t cnt, loff_t *ppos)
 {
-	char buf[64];
 	long val;
-
+	int ret;
+#if 0
+	char buf[64];
 	if (cnt >= sizeof(buf))
 		return -EINVAL;
 
@@ -760,6 +806,12 @@ static ssize_t debug_wq_test_write(struct file *filep, const char __user *ubuf, 
 
 	buf[cnt] = 0;
 	val = simple_strtol(buf, NULL, 0);
+#else
+	if ((ret = kstrtoul_from_user(ubuf, cnt, 0, &val))) {
+		printk("***strtoul from user:%d\n", ret);
+		return ret;
+	}
+#endif
 	switch(val)
 	{
 	case 0://shutdown
@@ -773,13 +825,24 @@ static ssize_t debug_wq_test_write(struct file *filep, const char __user *ubuf, 
 			wqp = create_wq("wq_test");
 		break;
 	default:
-		if (val > 0 && wqp) {
-			struct mem_barrier_test *p = &barr_test;
-			int i;
-			
-			init_mem_barr_test(p, val);
-			for (i = 0; i < __NR_CPUS; i++)
-				queue_wk_on(i, wqp, p->work + i);
+		if (wqp) {
+			if ( val > 0) {
+				struct mem_barrier_test *p = &barr_test;
+				int i;
+				init_mem_barr_test(p, val);
+				for (i = 0; i < __NR_CPUS; i++)
+					queue_wk_on(i, wqp, p->work + i);
+			}
+		} else {
+#if 0
+c000defc <__kuser_helper_version>:
+c000defc:       00000003        andeq   r0, r0, r3
+#endif
+			char buf[8];
+			int ret;
+			ret = __strncpy_from_user(buf, (char*)val, sizeof(buf));
+			//echo 0xffff1000 >/sys/kernel/debug/debug/wq to generate a _dabt_svc
+			printk("strncpy from user %lx:%d\n", val, ret);
 		}
 		break;
 	}
