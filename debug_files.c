@@ -144,13 +144,15 @@ void show_rb(struct cfs_rq *cfs_rq)
 		se = rb_entry(node, struct __sched_entity, run_node);
 		list_add(&se->group_node, &cfs_rq->tasks);
 	}
+	printk("----%s---\n", __func__);
 	for (; !list_empty(&cfs_rq->tasks); ) {
 		//old need not to be initialized
 		struct list_head old;
 		list_replace_init(&cfs_rq->tasks, &old);
 		list_for_each_entry(se, &old, group_node) {
 			struct rb_node *e = &se->run_node;
-			printk("%lx(%p%s) ", se->val, rb_parent(e), rb_is_red(e)? "*": "");
+			printk("%lx(%lx%s) ", se->val, rb_entry(rb_parent(e), struct __sched_entity, run_node)->val,
+				rb_is_red(e)? "*": "");
 			if (e->rb_left)
 				list_add_tail(&rb_entry(e->rb_left, struct __sched_entity, run_node)->group_node,
 					&cfs_rq->tasks);
