@@ -152,8 +152,16 @@ void show_rb(struct cfs_rq *cfs_rq)
 		list_for_each_entry(se, &old, group_node) {
 			struct rb_node *e = &se->run_node;
 			struct rb_node *p = rb_parent(e);
-			printk("%ld(%ld%s) ", se->val, p? rb_entry(p, struct __sched_entity, run_node)->val: -1,
-				rb_is_red(e)? "*": "");
+			const char *desc[] = {"R", "L", "X"};
+			int index = 2;
+			if (p) {
+				if (p->rb_left == e)
+					index = 0;
+				else
+					index = 1;
+			}
+			printk("%ld(%ld %s %s) ", se->val, p? rb_entry(p, struct __sched_entity, run_node)->val: -1,
+				desc[index], rb_is_red(e)? "*": "");
 			if (e->rb_left)
 				list_add_tail(&rb_entry(e->rb_left, struct __sched_entity, run_node)->group_node,
 					&cfs_rq->tasks);
