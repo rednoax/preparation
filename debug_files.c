@@ -152,7 +152,7 @@ void show_rb(struct cfs_rq *cfs_rq)
 		list_for_each_entry(se, &old, group_node) {
 			struct rb_node *e = &se->run_node;
 			struct rb_node *p = rb_parent(e);
-			const char *desc[] = {"R", "L", "X"};
+			const char *desc[] = {"L", "R", "X"};
 			int index = 2;
 			if (p) {
 				if (p->rb_left == e)
