@@ -27,16 +27,56 @@
 
 MODULE_LICENSE("Dual BSD/GPL");
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 39)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 29)
+#include <linux/rbtree_augmented.h>
 static void sysrq_handle_dbg(int key)
 {
 	printk("%s:%d\n", __func__, __LINE__);
 }
+#define __strncpy_from_user copy_from_user
 #else
 static void sysrq_handle_dbg(int key, struct tty_struct *tty)
 {
 	printk("%s:%d\n", __func__, __LINE__);
 }
+
+__attribute__((weak)) int debugfs_initialized(void)//bool return
+{
+	struct file_system_type *fs = get_fs_type("debugfs");
+	if (fs != NULL)
+		return 1;
+	return 0;
+}
+
+/*
+return:
+0   - no error
+<=0 - error
+*/
+__attribute__((weak)) int kstrtoul_from_user(const char __user *s, size_t count, unsigned int base, unsigned long *res)
+{
+#if 0
+	char buf[1 + sizeof(unsigned long) * 8 + 1 + 1];
+	count = min(count, sizeof(buf) - 1);
+	if (copy_from_user(buf, s, count))
+		return -EFAULT;
+	buf[count] = '\0';
+	return kstrtoul(buf, base, res);
+#else
+	//tracing_ctrl_write
+	char buf[64];
+	int ret;
+	if (count >= sizeof(buf))
+		return -EINVAL;
+	if (copy_from_user(&buf, s, count))
+		return -EFAULT;
+	buf[count] = 0;
+	ret = strict_strtoul(buf, base, res);//can only be 0 or minus(error occur)
+	printk("__user %p:count %d, base %d, %lx(%ld)\n", s, count, base, res[0], res[0]);
+	return ret;
+#endif
+}
+
 #endif
 
 static struct sysrq_key_op sysrq_dbg_op = {
@@ -74,14 +114,6 @@ struct dentry *debug_create_file(const char *name,
 	return ret;
 }
 
-__attribute__((weak)) int debugfs_initialized(void)//bool return
-{
-	struct file_system_type *fs = get_fs_type("debugfs");
-	if (fs != NULL)
-		return 1;
-	return 0;
-}
-
 struct dentry *debug_init_dentry(void)
 {
 	if (d_debug)
@@ -103,6 +135,33 @@ int debug_open_generic(struct inode *inode, struct file *filep)
 	return 0;
 }
 
+void show_rb(struct cfs_rq *cfs_rq)
+{
+	struct rb_node *node = cfs_rq->tasks_timeline.rb_node;
+	struct __sched_entity *se;
+	assert_spin_locked(&cfs_rq->lock);
+	if (node) {
+		se = rb_entry(node, struct __sched_entity, run_node);
+		list_add(&se->group_node, &cfs_rq->tasks);
+	}
+	for (; !list_empty(&cfs_rq->tasks); ) {
+		//old need not to be initialized
+		struct list_head old;
+		list_replace_init(&cfs_rq->tasks, &old);
+		list_for_each_entry(se, &old, group_node) {
+			struct rb_node *e = &se->run_node;
+			printk("%lx(%p%s) ", se->val, rb_parent(e), rb_is_red(e)? "*": "");
+			if (e->rb_left)
+				list_add_tail(&rb_entry(e->rb_left, struct __sched_entity, run_node)->group_node,
+					&cfs_rq->tasks);
+			if (e->rb_right)
+				list_add_tail(&rb_entry(e->rb_right, struct __sched_entity, run_node)->group_node,
+					&cfs_rq->tasks);
+		}
+		printk("\n");
+	}
+}
+
 static ssize_t
 debug_rb_read(struct file *filep, char __user *ubuf,
 			size_t cnt, loff_t *ppos)
@@ -119,35 +178,6 @@ debug_rb_read(struct file *filep, char __user *ubuf,
 	printk("\nTotal %d\n", nr);
 	spin_unlock(&cfs_rq->lock);
 	return 0;//FIXME?
-}
-
-/*
-return:
-0   - no error
-<=0 - error
-*/
-__attribute__((weak)) int kstrtoul_from_user(const char __user *s, size_t count, unsigned int base, unsigned long *res)
-{
-#if 0
-	char buf[1 + sizeof(unsigned long) * 8 + 1 + 1];
-	count = min(count, sizeof(buf) - 1);
-	if (copy_from_user(buf, s, count))
-		return -EFAULT;
-	buf[count] = '\0';
-	return kstrtoul(buf, base, res);
-#else
-	//tracing_ctrl_write
-	char buf[64];
-	int ret;
-	if (count >= sizeof(buf))
-		return -EINVAL;
-	if (copy_from_user(&buf, s, count))
-		return -EFAULT;
-	buf[count] = 0;
-	ret = strict_strtoul(buf, base, res);//can only be 0 or minus(error occur)
-	printk("__user %p:count %d, base %d, %lx(%ld)\n", s, count, base, res[0], res[0]);
-	return ret;
-#endif
 }
 
 static ssize_t
@@ -180,6 +210,7 @@ debug_rb_insert(struct file *filp, const char __user *ubuf,
 	}
 	rb_link_node(&se->run_node, parent, link);
 	rb_insert_color(&se->run_node, &cfs_rq->tasks_timeline);
+	show_rb(cfs_rq);
 	spin_unlock(&cfs_rq->lock);		
 	*ppos += cnt;
 	return cnt;
@@ -842,7 +873,7 @@ c000defc:       00000003        andeq   r0, r0, r3
 			int ret;
 			ret = __strncpy_from_user(buf, (char*)val, sizeof(buf));
 			//echo 0xffff1000 >/sys/kernel/debug/debug/wq to generate a _dabt_svc
-			printk("strncpy from user %lx:%d\n", val, ret);
+			printk("%s from user %lx:%d\n", __stringify(__strncpy_from_user), val, ret);
 		}
 		break;
 	}
