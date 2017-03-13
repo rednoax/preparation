@@ -39,11 +39,11 @@ unsigned int test(unsigned long arg)
     8324:       3afffff9        bcc     8310 <start>
     8328:       e1a00001        mov     r0, r1
     832c:       e8bd800e        pop     {r1, r2, r3, pc}
-#endif	
+#endif
 	*/
 	atomic_add(&result, 0xff);
 	asm volatile("end:");
-#if 0//the above with -Os will generate: 
+#if 0//the above with -Os will generate:
 00008310 <start>:
     8310:       e5920000        ldr     r0, [r2]
     8314:       e3e03a0f        mvn     r3, #61440      ; 0xf000
@@ -55,9 +55,32 @@ unsigned int test(unsigned long arg)
 00008328 <end>:
     8328:       e1a00004        mov     r0, r4
     832c:       e8bd801c        pop     {r2, r3, r4, pc}
-#endif	
+#endif
 	return 0;
 }
+
+#define __range_ok(limit, addr, size) ({\
+	unsigned long flag, roksum;\
+	__asm__ __volatile__(\
+		"adds %1, %2, %3; sbcccs %1, %1, %0; movcc %0, #0" \
+		: "=&r" (flag), "=&r" (roksum) \
+		: "r" (addr), "Ir" (size), "0" (limit) \
+		: "cc"); \
+	flag; })
+/*
+CS/HS:c set, unsigned >=
+CC: c clear, unsigned <
+LS:lower or same, unsigned <=
+*/
+#define __range_ok2(limit, addr, size) ({\
+	unsigned long flag, roksum;\
+	__asm__ __volatile__(\
+		"adds %1, %2, %3; sbcccs %1, %1, %0; movls %0, #0" \
+		: "=&r" (flag), "=&r" (roksum) \
+		: "r" (addr), "Ir" (size), "0" (limit) \
+		: "cc"); \
+	flag; })
+
 int main(int argc, char **argv)
 {
 	/*
@@ -80,5 +103,9 @@ int main(int argc, char **argv)
 		printf("test %lx, %ld\n", arg, (long)arg);
 		test(arg);
 	}
+	printf("range ok:%ld\n", __range_ok(0xbf000000, 0, 0xbf000000));
+	printf("range ok:%lx\n", __range_ok(0xbf000000, 1, 0xbf000000));
+	printf("range ok:%ld\n", __range_ok2(0xbf000000, 1, ~0UL));
+	printf("range ok:%lx\n", __range_ok2(0xbf000000, 2, ~0UL));
 	return 0;
 }
