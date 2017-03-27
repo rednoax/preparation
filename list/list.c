@@ -243,7 +243,8 @@ static inline void list_splice_tail(const struct list_head *list,
 	for (pos = (head)->prev, n = pos->prev;\
 		pos != (head);\
 		pos = n, n = pos->prev)
-		
+
+//its condition is actually the same as list_for_each
 #define list_for_each_entry(pos, head, member) \
 	for (pos = list_entry((head)->next, typeof(*pos) ,member);\
 		 &pos->member != (head);\
@@ -270,6 +271,54 @@ deletion. So preserve the next pointer via n before "loop operations";
 		&pos->member != (head);\
 		pos = n, n = list_entry(n->member.prev,typeof(*n),member))
 
+/*
+RCU version
+*/
+/*
+v1 of mine
+#define list_for_each_entry_rcu(pos, head, member) \
+	for (pos = list_entry(head->next, typeof(*pos), member);\
+		&pos->member != head;\
+		pos = list_entry(pos->member.next, typeof(*pos), member))
+*/
+void typeof_test(void)
+{
+	struct list_head *p = NULL;
+	/*
+	the derefence used in typeof will not really use the pointer value?
+	*/
+	static typeof(*p) list;
+	list.next = &list;
+	printf("%s:%p, %p\n", __func__, list.prev, list.next);
+}
+
+#define rcu_dereference(p) (p)
+#define rcu_assign_pointer(p, v) ({(p) = (v);})
+
+static inline void __list_add_rcu(struct list_head *new, struct list_head *prev, struct list_head *next)
+{
+	new->next = next;
+	new->prev = prev;
+	rcu_assign_pointer(prev->next, new);
+	next->prev = new;
+}
+
+/*
+struct list_head's list.next is protected by RCU, and the rcu_dereference should be used!
+*/
+#define __list_for_each_rcu(pos, head) \
+	for (pos = rcu_dereference((head)->next); \
+		pos != (head); \
+		pos = rcu_dereference(pos->next))
+/*
+0. *pos is valid in typeof, regardless of whether pointer pos is valid
+1. if head has "&", use ()
+2. use rcu_dereference to protext .next
+*/
+#define list_for_each_entry_rcu(pos, head, member) \
+	for(pos = list_entry(rcu_dereference((head)->next), typeof(*pos), member); \
+	&pos->member != (head); \
+	pos = list_entry(rcu_dereference(pos->member.next), typeof(*pos), member))
 /////////////
 struct string {
 	char *name;
@@ -281,6 +330,11 @@ struct string g_str = {
 	.name = "red",
 	.list = LIST_HEAD_INIT(g_str.list),
 	.data = NULL,
+};
+
+struct obj{
+	int i;
+	struct list_head list;
 };
 ////////////
 static LIST_HEAD(unwind_tables);
@@ -325,6 +379,34 @@ void list_build(int argc, char **argv)
 	}
 	
 	printf("after :list empty %d\n", list_empty(&unwind_tables));
+}
+
+void list_using(void)
+{
+	int i;
+	struct obj obj[] = {
+		[0] = {0},
+		[1] = {1},
+		[2] = {2},
+		[3] = {3},
+	};
+	struct obj *p;
+
+	typeof_test();
+	for (i = 0; i < ARRAY_SIZE(obj) - 1; i++) {
+		list_add(&obj[i].list, &unwind_tables);
+	}
+	list_add(&obj[i].list, &unwind_tables);
+	list_for_each_entry(p, &unwind_tables, list) {
+		printf("%d,", p->i);
+	}
+	printf("\n");
+	list_del(&obj[i].list);
+	list_add_tail(&obj[i].list, &unwind_tables);
+	list_for_each_entry(p, &unwind_tables, list) {
+		printf("%d,", p->i);
+	}
+	printf("\n");
 }
 
 static LIST_HEAD(clocksource_list);
@@ -458,6 +540,7 @@ int main(int argc, char **argv)
 	printf("%p\n", list_entry(str.list.prev, struct string, list));
 	printf("%d %d\n", offsetof(struct string, list.prev), offsetof(struct string, list.next));
 	list_build(argc, argv);
+	list_using();
 	clocksource_list_build();
 	return 0;
 }
