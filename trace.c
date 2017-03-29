@@ -89,6 +89,7 @@ also check include/linux/ftrace.h:
 #define CALLER_ADDR1 ((unsigned long)__builtin_return_address(1))
 #include <stdio.h>
 
+//static
 inline unsigned long inline_func()
 {
 	return CALLER_ADDR0;
@@ -109,8 +110,18 @@ void func1()
 
 int main()
 {
+	int i, j = 4;
+
 	printf("%s:%p\n", __func__, main);
 	func1();
+
+	i = __builtin_constant_p(j);
+	j = __builtin_constant_p(0);
+	/*
+	-O:1 1 0 1 1
+	no -O and add static before inline_func::0 1 0 0 0
+	*/
+	printf("__builtin_constant_p %d %d %d %d %d\n", i, j, __builtin_constant_p(main), __builtin_constant_p(i), __builtin_constant_p(j));
 	return 0;
 }
 #if 0
