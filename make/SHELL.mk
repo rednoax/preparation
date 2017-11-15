@@ -49,6 +49,56 @@ javac_version_str:=$(shell javac -version 2>&1)
 java_version:=$(shell echo '$(java_version_str)'|grep '^java .*[ "]1\.7[\. "$$]')
 javac_version:=$(shell echo '$(javac_version_str)'|grep '[ "]1\.7[\. "$$]')
 $(warning $(java_version) $(javac_version))
-
+########################################################
+__MAKECMDGOALS=msm8952 $$1 $$2
+target:=$(firstword $(__MAKECMDGOALS))
+$(warning $(target) from "$(__MAKECMDGOALS)")
+#an unexist var's firstword is empty
+$(warning $(firstword $(__unexist_var)))
+#ifeq ($(FOO),), FOO can be undefined or empty
+ifeq ($(__unexist),)
+$(warning $(wildcard *.mk))
+endif
+__unexist2:=
+ifeq ($(__unexist2),)
+$(warning $(__unexist2) empty, '$(firstword $(__unexist2))')
+endif
+#ifneq is similar
+ifneq ($(__unexist),)
+else
+$(warning not defined:$(__unexist))
+endif
+ifneq ($(__unexist2),)
+else
+$(warning empty:$(__unexist2))
+endif
+###########################
+#use the following command line to test!
+#make -f SHELL.mk msm8952 DEBUG=0 BOOTLOADER_OUT=out/target/product/A10_32/obj/EMMC_BOOTLOADER_OBJ
 .PHONY:all
-all:;
+project-name:=$(firstword $(MAKECMDGOALS))
+ifneq ($(project-name),)
+ifneq ($(wildcard project/$(project-name).mk),)
+do-nothing:=1
+$(MAKECMDGOALS) all: make-make make-make-make
+make-make:
+	PRJECT=$(project-name) $(MAKE) -C project -f $(project-name).mk
+make-make-make:
+	PRJECT=$(project-name) $(MAKE) -f SHELL.mk emmc
+endif
+endif
+
+ifeq ($(do-nothing),)
+VARS=DEBUG BOOTLOADER_OUT
+$(call iterate, $(VARS))
+endif
+
+emmc_clean:
+	@echo $@
+emmc_obj:
+	@echo $@
+#$^ is different from "a|b" and "a b", but the sequence seems no different!
+emmc:emmc_clean | emmc_obj
+	@echo $@ [$^]
+emmc_2:emmc_clean emmc_obj
+	@echo $@ [$^]
