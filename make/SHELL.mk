@@ -102,3 +102,7 @@ emmc:emmc_clean | emmc_obj
 	@echo $@ [$^]
 emmc_2:emmc_clean emmc_obj
 	@echo $@ [$^]
+#######################
+undefined_with_prefix:=$(addprefix --second ,$(__undefined))
+empty_with_prefix:=$(addprefix --second, $(__unexist2))
+$(call iterate, undefined_with_prefix empty_with_prefix)
