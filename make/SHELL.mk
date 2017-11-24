@@ -106,3 +106,7 @@ emmc_2:emmc_clean emmc_obj
 undefined_with_prefix:=$(addprefix --second ,$(__undefined))
 empty_with_prefix:=$(addprefix --second, $(__unexist2))
 $(call iterate, undefined_with_prefix empty_with_prefix)
+file1:=/opt/o:p
+file2:=/opt
+$(warning $(subst :,[,$(file1)))
+$(warning $(subst :,[,$(file2)))
