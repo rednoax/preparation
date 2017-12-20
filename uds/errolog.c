@@ -25,7 +25,8 @@ int main(int argc, char *argv[])
 	@ident:label, program name(e.g. a.out) is used if it's NULL
 	@option(LOG_PID) controls the operation of openlog and subsequent calls to syslog().(if LOG_PID is used, then
 	 all subsequently syslog will record pid)
-	@facility:establishs a default to be used if none is specified in subsequently calls to syslog();
+	@facility:establishs a default to be used if none is specified in subsequently calls to syslog(); it specifies
+	 what type of program is logging the message.
 	*/
 	openlog("uds/server.c", LOG_PID, LOG_USER);
 	/*
