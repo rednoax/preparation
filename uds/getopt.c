@@ -37,6 +37,7 @@ int main(int argc, char *argv[])
 	./getopt -n -t 9 -z x -a 1 xx yy
 	./getopt -n -t 9 -z -a 1 xx
 	./getopt -n -t 9 -z -a 0 -b 4 -c file
+	./getopt -n -t 1 aa -x
 	*/
 	for (i = 0; i < argc; i++)
 		printf("%s[%d]  ", argv[i], i);
