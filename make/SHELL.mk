@@ -59,9 +59,15 @@ $(warning $(firstword $(__unexist_var)))
 ifeq ($(__unexist),)
 $(warning $(wildcard *.mk))
 endif
+ifndef __unexist
+$(warning non-defined "__unexist" conform to ifndef)
+endif
 __unexist2:=
 ifeq ($(__unexist2),)
-$(warning $(__unexist2) empty, '$(firstword $(__unexist2))')
+$(warning "__unexist2" empty, '$(firstword $(__unexist2))')
+endif
+ifndef __unexist2
+$(warning empty "__unexist2" conforms to ifndef)
 endif
 #ifneq is similar
 ifneq ($(__unexist),)
