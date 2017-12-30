@@ -35,6 +35,8 @@ pattern:=clean clobber dataclean
 text:=menuconfig all clean distclean
 $(warning $(filter $(pattern),$(text)))
 $(warning $(filter-out $(pattern),$(text)))
+mu_module_tag:=optional
+$(warning $(filter $(my_module_tag),user))
 
 #words will be 1
 path1=/root/linux_android_board_support_package_vla.br.1.2.7-01010-8x16.0-4/APQ8016_410C_LA.BR.1.2.7-01010-8x16.0_6.0.1_Marsh_Mallo_P2
