@@ -120,6 +120,14 @@ int serv_accept(int listenfd, uid_t *uidptr)
 	actual size of the peer address.
 	*/
 	len = sizeof(un);
+	/*
+	when client don't use bind:
+	1. un.sun_path[0] is not always '\0'. It can be full of rubbish.
+	2. len returned by accept is always 2
+	when client use bind
+	1. un.sun_path is a '\0' teminated string
+	2. len is (2 + strlen(.sun_path) + 1)
+	*/
 	if ((clifd = accept(listenfd, (struct sockaddr*)&un, &len)) == -1) {
 		rval = -2;
 		goto errout;
@@ -130,8 +138,8 @@ int serv_accept(int listenfd, uid_t *uidptr)
 	memcpy(name, un.sun_path, len);
 	name[len] = 0;
 #else
-	//un.sun_path[0] is '\0' when client don't use bind and len returned by accept will be 2 only.
-	strncpy(name, un.sun_path, sizeof(un.sun_path));
+	strncpy(name, un.sun_path, len);
+	name[len] = 0;//in case len is 0
 #endif
 	if (name[0]) {
 		if (stat(name, &statbuf) == -1) {
