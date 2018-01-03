@@ -172,7 +172,7 @@ errout:
 	if (name)
 		free(name);
 	errno = err;
-	printf("***%d\n", rval);
+	log_msg("***%d\n", rval);
 	return rval;
 }
 typedef struct{
