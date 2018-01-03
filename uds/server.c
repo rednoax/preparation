@@ -131,8 +131,11 @@ int serv_accept(int listenfd, uid_t *uidptr)
 	if ((clifd = accept(listenfd, (struct sockaddr*)&un, &len)) == -1) {
 		rval = -2;
 		goto errout;
-	} else
-		log_msg("new client %d, %dB:%d,%s", clifd, len, un.sun_family, un.sun_path);//len include trailing 1B '\0'
+	}
+	/*
+	else
+		log_msg("new client %d, %dB:%d,%s", clifd, len, un.sun_family, un.sun_path);//len includes trailing 1B '\0' if client use bind
+	*/
 	len -= offsetof(struct sockaddr_un, sun_path);
 #if 0	
 	memcpy(name, un.sun_path, len);
@@ -140,6 +143,7 @@ int serv_accept(int listenfd, uid_t *uidptr)
 #else
 	strncpy(name, un.sun_path, len);
 	name[len] = 0;//in case len is 0
+	log_msg("new client %d, %dB:%d[%s]", clifd, len + offsetof(struct sockaddr_un, sun_path), un.sun_family, name);
 #endif
 	if (name[0]) {
 		if (stat(name, &statbuf) == -1) {
