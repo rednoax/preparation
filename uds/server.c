@@ -106,6 +106,7 @@ int serv_accept(int listenfd, uid_t *uidptr)
 	socklen_t len;
 	struct sockaddr_un un;
 	struct stat statbuf;
+	uid_t uid = -1;
 	char *name = NULL;
 	if ((name = malloc(sizeof(un.sun_path))) == NULL) {//.sun_path is 108B
 		rval = -1;
@@ -129,23 +130,27 @@ int serv_accept(int listenfd, uid_t *uidptr)
 	memcpy(name, un.sun_path, len);
 	name[len] = 0;
 #else
+	//un.sun_path[0] is '\0' when client don't use bind and len returned by accept will be 2 only.
 	strncpy(name, un.sun_path, sizeof(un.sun_path));
 #endif
-	if (stat(name, &statbuf) == -1) {
-		rval = -3;
-		goto errout;
-	} 
-	/*
-	else
-		log_msg("client uid %d", statbuf.st_uid);
-	*/
-	if (!S_ISSOCK(statbuf.st_mode)) {
-		rval = -4;
-		goto errout;
+	if (name[0]) {
+		if (stat(name, &statbuf) == -1) {
+			rval = -3;
+			goto errout;
+		}
+		/*
+		else
+			log_msg("client uid %d", statbuf.st_uid);
+		*/
+		if (!S_ISSOCK(statbuf.st_mode)) {
+			rval = -4;
+			goto errout;
+		}
+		uid = statbuf.st_uid;
+		unlink(name);//FIXME?
 	}
 	if (uidptr)
-		uidptr[0] = statbuf.st_uid;
-	unlink(name);//FIXME?
+		uidptr[0] = uid;
 	free(name);
 	return clifd;
 errout:
@@ -155,6 +160,7 @@ errout:
 	if (name)
 		free(name);
 	errno = err;
+	printf("***%d\n", rval);
 	return rval;
 }
 typedef struct{

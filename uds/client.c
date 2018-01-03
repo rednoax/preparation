@@ -26,7 +26,7 @@ int cli_conn(const char *name)
 		rval = -1;
 		goto errout;
 	}
-#if 1	
+#ifdef CONFIG_NAMED_SOCKET
 	memset(&un, 0, sizeof(un));
 	un.sun_family = AF_UNIX;
 	sprintf(un.sun_path, "/tmp/%05d", getpid());
