@@ -37,7 +37,10 @@ int main(int argc, char *argv[])
 		line[n] = 0;
 		sprintf(buf, "[%04d:%s]", n, line);
 		syslog(LOG_INFO, buf);
-		//only one time's "0123456789abcdef" will consume 3 times:01234567 89abcdef '\n'
+		/*
+		only one time's "0123456789abcdef" will consume 3 times:01234567 89abcdef '\n';
+		it is the same as a regular file's reading, there will be no '\0' when reading
+		*/
 		if (++fd > 3)
 			break;
 	}
