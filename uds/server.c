@@ -74,15 +74,45 @@ int serv_listen(const char *name)
 	memset(&un, 0, sizeof(un));
 	un.sun_family = AF_UNIX;
 	strcpy(un.sun_path, name);
-	len = offsetof(struct sockaddr_un, sun_path) + strlen(name);
+	len = offsetof(struct sockaddr_un, sun_path) + strlen(name) + 1;
 	/*
 	int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
 	it is normally necessary to assign a local address using bind before a
 	SOCK_STREAM socket may receive connections.
 	addrlen specifies the size, in bytes, of the address structure pointed by addr
+	man 7 unix:
+	Various systems calls (for example, bind(2), connect(2), and sendto(2)) take a sockaddr_un argument as input.  Some  other  system  calls  (for
+	example, getsockname(2), getpeername(2), recvfrom(2), and accept(2)) return an argument of this type.
 
-	un.sun_path should hold trailing '\0' of path, but it should not be included in the bytes
-	length of struct sockaddr when handling struct sockaddr related syscall
+	Three types of address are distinguished in the sockaddr_un structure:
+
+	pathname:  a  UNIX domain socket can be bound to a null-terminated filesystem pathname using bind(2).  When the address of a pathname socket
+	is returned (by one of the system calls noted above), its length is
+	offsetof(struct sockaddr_un, sun_path) + strlen(sun_path) + 1
+	and sun_path contains the null-terminated pathname.
+	On Linux, the above offsetof() expression equates to the same value as  sizeof(sa_family_t).
+
+	unnamed: A stream socket that has not been bound to a pathname using bind(2) has no name.  Likewise, the  two  sockets  created  by  socket‐
+	pair(2)  are  unnamed.   When  the  address  of an unnamed socket is returned, its length is sizeof(sa_family_t), and sun_path should not be
+	inspected.
+
+	...
+	When binding a socket to a pathname, a few rules should be observed for maximum portability and ease of coding:
+	*  The pathname in sun_path should be null-terminated.
+
+	*  The length of the pathname, including the terminating null byte, should not exceed the size of sun_path.
+
+	*  The addrlen argument that describes the enclosing sockaddr_un structure should have a value of at least:
+
+		  offsetof(struct sockaddr_un, sun_path)+strlen(addr.sun_path)+1
+
+	  or, more simply, addrlen can be specified as sizeof(struct sockaddr_un).(see man 2 bind's EXAMPLE part)
+
+	...
+	Various system calls (accept(2), recvfrom(2), getsockname(2), getpeername(2)) return socket address structures.  When applied  to  UNIX  domain
+	sockets,  the  value-result addrlen argument supplied to the call should be initialized as above.  Upon return, the argument is set to indicate
+	the actual size of the address structure.  The caller should check the value returned in this argument: if the output value exceeds  the  input
+	value, then there is no guarantee that a null terminator is present in sun_path.  (See BUGS.)
 	*/
 	if (bind(fd, (struct sockaddr*)&un, len) == -1) {
 		rval = -3;
@@ -127,6 +157,7 @@ int serv_accept(int listenfd, uid_t *uidptr)
 	when client use bind
 	1. un.sun_path is a '\0' teminated string
 	2. len is (2 + strlen(.sun_path) + 1)
+	for more, see unix(7)
 	*/
 	if ((clifd = accept(listenfd, (struct sockaddr*)&un, &len)) == -1) {
 		rval = -2;

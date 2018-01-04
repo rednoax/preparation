@@ -31,7 +31,15 @@ int cli_conn(const char *name)
 	un.sun_family = AF_UNIX;
 	sprintf(un.sun_path, "/tmp/%05d", getpid());
 	printf("socket:%s\n", un.sun_path);
-	len = offsetof(struct sockaddr_un, sun_path) + strlen(un.sun_path);
+	/*
+	man 7 unix:
+	Pathname sockets:
+	when binding:
+	The addrlen argument that describes the enclosing sockaddr_un structure should have a value of at least:
+	offsetof(struct sockaddr_un, sun_path)+strlen(addr.sun_path)+1
+	or, more simply, addrlen can be specified as sizeof(struct sockaddr_un).
+	*/
+	len = offsetof(struct sockaddr_un, sun_path) + strlen(un.sun_path) + 1;
 	unlink(un.sun_path);
 	if (bind(fd, (struct sockaddr*)&un, len) == -1) {
 		rval = -2;
@@ -42,7 +50,7 @@ int cli_conn(const char *name)
 	memset(&sun, 0, sizeof(sun));
 	sun.sun_family = AF_UNIX;
 	strcpy(sun.sun_path, name);
-	len = offsetof(struct sockaddr_un, sun_path) + strlen(name);
+	len = offsetof(struct sockaddr_un, sun_path) + strlen(name) + 1;
 	if ((connect(fd, (struct sockaddr*)&sun, len)) == -1) {
 		rval = -4;
 		goto errout;
