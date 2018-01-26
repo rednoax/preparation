@@ -118,3 +118,7 @@ file1:=/opt/o:p
 file2:=/opt
 $(warning $(subst :,[,$(file1)))
 $(warning $(subst :,[,$(file2)))
+include file0
+include file1
+include file2
+$(call iterate, MAKEFILE_LIST)
