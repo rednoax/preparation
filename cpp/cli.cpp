@@ -24,7 +24,7 @@ struct prop_msg {
 
 typedef struct prop_msg prop_msg;
 
-static const char property_service_socket[] = "/dev/property_service";
+static const char property_service_socket[] = "./property_service";///dev/property_service";
 static int send_prop_msg(const prop_msg *msg)
 {
 	const int fd = socket(AF_UNIX, SOCK_STREAM/*|SOCK_CLOEXEC*/, 0);

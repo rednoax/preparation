@@ -11,7 +11,7 @@
 #include <sys/stat.h>
 #include <sys/epoll.h>
 #include <poll.h>
-#define ANDROID_SOCK_DIR "/dev"//socket/"
+#define ANDROID_SOCK_DIR "."///dev"//socket/"
 #define PROP_SERVICE_NAME "property_service"
 /*
 socket <name> <type> <perm> [ <user> [ <group> [ <seclabel> ] ] ]
@@ -83,8 +83,13 @@ int create_socket(const char *name, int type, mode_t perm, uid_t uid, gid_t gid,
 
 	*/
 	//addr.sun_path is absolute so AT_FWCWD is ignored. if /dev/socket/name is symlink, change the symlink's mode.
+#if 0
+	//Failed to fchmodat socket './property_service': 95, Operation not supported
 	if (fchmodat(AT_FDCWD, addr.sun_path, perm, AT_SYMLINK_NOFOLLOW)) {//on error, -1 is returned
-		printf("Failed to fchmodat socket '%s': %s\n", addr.sun_path, strerror(errno));
+#else
+	if (chmod(addr.sun_path, perm)) {
+#endif
+		printf("Failed to fchmodat socket '%s': %d, %s\n", addr.sun_path, errno, strerror(errno));
 		goto out_unlink;
 	}
 	printf("create socket '%s'(0x%x) with mode '%o', user '%d', group '%d'\n", addr.sun_path, type, perm, uid, gid);
