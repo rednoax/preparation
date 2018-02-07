@@ -110,7 +110,10 @@ struct prop_msg {
     char name[PROP_NAME_MAX];
     char value[PROP_VALUE_MAX];
 };
-//the client can be set non block or block, which has no relation to whether the server socket is blockable
+/*
+the client can be set non block or block, which has no relation to whether the server socket is blockable
+when server socket is non block, the new accepted client socket is block by default
+*/
 static int handle_property_set_fd(int cli_block)
 {
 	prop_msg msg;
