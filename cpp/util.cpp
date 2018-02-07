@@ -137,7 +137,7 @@ static int handle_property_set_fd(int cli_block)
 	on error -1 is returned and errno is set appropriately
 	*/
 	printf("server start accept, client %s\n", cli_block? "Block": "NONBlock");
-	s = accept(property_set_fd, (struct sockaddr*)&addr, &addr_size);	
+	s = accept(property_set_fd, (struct sockaddr*)&addr, &addr_size);
 	if (s < 0) {
 		printf("accept %d failed: %d, %s\n", property_set_fd, errno, strerror(errno));
 		ret = -1;
@@ -167,6 +167,7 @@ static int handle_property_set_fd(int cli_block)
 	ufds[0].events = POLLIN;
 	ufds[0].revents = 0;
 	nr = poll(ufds, 1, timeout_ms);
+	printf("poll %d: ", nr);
 	if (nr == 0) {
 		printf("timeout(%dms) waiting for uid=%d to send property message\n", timeout_ms, cr.uid);
 #if 0//go on to test recv with MSG_DONTWAIT
@@ -177,8 +178,7 @@ static int handle_property_set_fd(int cli_block)
 		printf("error waiting for uid=%d to send property message: %d %s\n", cr.uid, errno, strerror(errno));
 		ret = -1;
 		goto CLOSE;
-	} else
-		printf("poll %d\n", nr);
+	}
 	/*
 	#include <sys/socket.h>
 
@@ -208,9 +208,9 @@ static int handle_property_set_fd(int cli_block)
 	if (r != sizeof(prop_msg)) {
 		//l:long or ulong z:size_t or ssize_t
 		printf("mis-match msg size received: %d expected: %zu: %d\n", r, sizeof(prop_msg), errno);
+		ret = -1;
 		if (r == -1 && !cli_block)
 			goto SEND;
-		ret = -1;
 		goto CLOSE;
 	}
 SEND:

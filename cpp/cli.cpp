@@ -11,11 +11,12 @@ bionic/libc/bionic/system_property.cpp
 #include <poll.h>
 #include <stddef.h>
 #include <unistd.h>
+#include <signal.h>
 
 #define PROP_NAME_MAX   32
 #define PROP_VALUE_MAX  92
 #define PROP_MSG_SETPROP 1
-
+#define ARRAY_SIZE(x) (sizeof(x)/sizeof((x)[0]))
 struct prop_msg {
     unsigned cmd;
     char name[PROP_NAME_MAX];
@@ -52,10 +53,12 @@ static int send_prop_msg(const prop_msg *msg)
 	else
 		printf("send %d B\n", num_bytes);
 	int result = -1;
-	if (num_bytes == sizeof(prop_msg)) {
+	{//if (num_bytes == sizeof(prop_msg)) {
 		struct pollfd pollfd[1];
 		char buf[32];
 		int nr;
+		unsigned int i;
+		int events[2] = {0, POLL_IN};
 	/*
 	The field events is an input parameter, a bit mask specifying the events the application is interested in for the file descriptor fd.  This
 	field may be specified as zero, in which case the only events that can be returned in revents are POLLHUP, POLLERR, and POLLNVAL (see below).
@@ -68,11 +71,14 @@ static int send_prop_msg(const prop_msg *msg)
 	 this event merely indicates that the peer closed its end of the channel.  Subsequent reads from the channel will return 0 (end of
 	 file) only after all outstanding data in the channel has been consumed.
 	*/
-		pollfd->fd = fd;
-		pollfd->events = 0;
-		pollfd->revents = 0;
-		nr = poll(pollfd, 1, 250);
-		printf("poll %d, revents %x\n", nr, pollfd->revents);
+		for (i = 0; i < ARRAY_SIZE(events); i++) {
+			pollfd->fd = fd;
+			pollfd->events = events[i];
+			pollfd->revents = 0;
+			nr = poll(pollfd, 1, 250);
+			printf("poll %d, events %x=>revents %x\n", nr, pollfd->events, pollfd->revents);
+		}
+		//the unread data can be got successfully
 		nr = read(fd, buf, sizeof(buf));
 		buf[nr] = 0;
 		printf("read [%s]\n", buf);
@@ -92,6 +98,16 @@ int __system_property_set(const char *key, const char *value)
 	return send_prop_msg(&msg);
 }
 
+/*
+SIGPIPE:If we write to a pipeline but the reader has terminated, SIGPIPE is generated. We describe pipes in Section 15.2.
+This signal is also generated when a process writes to a socket of type SOCK_STREAM that is no longer connected. 
+We describe sockets in Chapter 16.
+*/
+void handle_SIGPIPE(int signal)
+{
+	printf("catch signal: %d\n", signal);
+}
+
 int main(int argc, char **argv)
 {
 	const char *key = "selinux.reload_policy";
@@ -108,6 +124,7 @@ int main(int argc, char **argv)
 		}
 
 	}
+	signal(SIGPIPE, handle_SIGPIPE);
 	__system_property_set(key, value);
 	return 0;
 }
