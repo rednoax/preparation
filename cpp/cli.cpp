@@ -23,7 +23,7 @@ struct prop_msg {
 };
 
 typedef struct prop_msg prop_msg;
-
+static int wait_input = 0;
 static const char property_service_socket[] = "./property_service";///dev/property_service";
 static int send_prop_msg(const prop_msg *msg)
 {
@@ -41,7 +41,16 @@ static int send_prop_msg(const prop_msg *msg)
 		close(fd);
 		return -1;
 	}
+	if (wait_input) {
+		int buf[32];
+		printf("Now %d waiting for input\n", getpid());
+		read(STDIN_FILENO, buf, sizeof(buf));
+	}
 	const int num_bytes = send(fd, msg, sizeof(prop_msg), 0);//write is also ok, send has flag option
+	if (num_bytes < 0)//on error -1 is returned and errno is set appropriately
+		perror("send error:");
+	else
+		printf("send %d B\n", num_bytes);
 	int result = -1;
 	if (num_bytes == sizeof(prop_msg)) {
 		struct pollfd pollfd[1];
@@ -87,6 +96,18 @@ int main(int argc, char **argv)
 {
 	const char *key = "selinux.reload_policy";
 	const char *value = "1";
+	int ret;
+	while ((ret = getopt(argc, argv, "w")) != -1) {
+		switch(ret) {
+		case 'w':
+			wait_input = 1;
+			break;
+		default:
+			printf("unknow option %c\n", optopt);
+			break;
+		}
+
+	}
 	__system_property_set(key, value);
 	return 0;
 }

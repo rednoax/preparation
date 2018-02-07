@@ -44,7 +44,7 @@ int create_socket(const char *name, int type, mode_t perm, uid_t uid, gid_t gid,
 	snprintf(addr.sun_path, sizeof(addr.sun_path), ANDROID_SOCK_DIR"/%s", name);
 	ret = unlink(addr.sun_path);
 	printf("unlink:%d, errno %d\n", ret, errno);
-	if (ret != 0 && errno != ENOENT) {
+	if (ret != 0 && errno != ENOENT) {//ENOENT==2
 		printf("Failed to unlink old socket '%s': %s\n", name, strerror(errno));
 		goto out_close;
 	}
@@ -115,7 +115,7 @@ static int handle_property_set_fd(int cli_block)
 {
 	prop_msg msg;
 	int s;
-	int r;
+	int r, ret = 0;
 	struct ucred cr;
 	struct sockaddr_un addr;
 	socklen_t addr_size = sizeof(addr);
@@ -123,6 +123,7 @@ static int handle_property_set_fd(int cli_block)
 	struct pollfd ufds[1];
 	const int timeout_ms = 2 * 1000;// 2sec
 	int nr;
+	const char str[] = "bye";
 	/*
 	int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
 	The addrlen argument is a value-result argument: the caller must initialize it to contain the size (in bytes) of the structure pointed to by
@@ -139,9 +140,10 @@ static int handle_property_set_fd(int cli_block)
 	s = accept(property_set_fd, (struct sockaddr*)&addr, &addr_size);	
 	if (s < 0) {
 		printf("accept %d failed: %d, %s\n", property_set_fd, errno, strerror(errno));
-		return -1;
+		ret = -1;
+		goto RETURN;
 	}
-	printf("new client: addrlen %d\n", addr_size);
+	printf("new client: addrlen %d\n", addr_size);//sizeof(.sun_family)==2
 	/*
     int getsockopt(int sockfd, int level, int optname, void *optval, socklen_t *optlen);
 	Options may exist at multiple protocol levels; they are always present at the uppermost socket level.    
@@ -157,8 +159,8 @@ static int handle_property_set_fd(int cli_block)
     */
 	if (getsockopt(s, SOL_SOCKET, SO_PEERCRED, &cr, &cr_size) < 0) {//on error, -1 is returned, and errno is set appropriately
 		printf("Unable to receive socket option: %s", strerror(errno));
-		close(s);
-		return -1;
+		ret = -1;
+		goto CLOSE;
 	}
 	printf("getsockopt return cred %d B:peer %d, uid %d, gid %d\n", cr_size, cr.pid, cr.uid, cr.gid);
 	ufds[0].fd = s;
@@ -166,13 +168,15 @@ static int handle_property_set_fd(int cli_block)
 	ufds[0].revents = 0;
 	nr = poll(ufds, 1, timeout_ms);
 	if (nr == 0) {
-		printf("timeout waiting for uid=%d to send property message\n", cr.uid);
+		printf("timeout(%dms) waiting for uid=%d to send property message\n", timeout_ms, cr.uid);
+#if 0//go on to test recv with MSG_DONTWAIT
 		close(s);
 		return -1;
+#endif
 	} else if (nr == -1) {
 		printf("error waiting for uid=%d to send property message: %d %s\n", cr.uid, errno, strerror(errno));
-		close(s);
-		return -1;
+		ret = -1;
+		goto CLOSE;
 	} else
 		printf("poll %d\n", nr);
 	/*
@@ -199,19 +203,24 @@ static int handle_property_set_fd(int cli_block)
 	/*
 	similat to read, the buf size can be large or small, where small means smaller than actual input amount and large means bigger than actual input
 	amount. And it can return even the really got bytes < requested.
-	*/
-	r = recv(s, &msg, sizeof(msg), cli_block? 0: MSG_DONTWAIT);
+	*///EBADF(9) can be returned if you recv from a socket that has been closed
+	r = recv(s, &msg, sizeof(msg), cli_block? 0: MSG_DONTWAIT);//both EAGAIN and EWOULDBLOCK 11
 	if (r != sizeof(prop_msg)) {
 		//l:long or ulong z:size_t or ssize_t
 		printf("mis-match msg size received: %d expected: %zu: %d\n", r, sizeof(prop_msg), errno);
-		close(s);
-		return -1;
-	} else {
-		const char *str = "bye";
-		send(s, str, strlen(str) + 1, 0);
+		if (r == -1 && !cli_block)
+			goto SEND;
+		ret = -1;
+		goto CLOSE;
 	}
+SEND:
+	//send even recv return EAGAIN
+	r = send(s, str, strlen(str) + 1, 0);
+	printf("send to cli %dB then close\n", r);
+CLOSE:
 	close(s);
-	return 0;
+RETURN:
+	return ret;
 }
 
 void register_epoll_handler(int fd, int (*fn)(int))
@@ -275,7 +284,7 @@ int main(int argc, char *argv[])
 			break;
 		}
 	}
-	printf("socket type: %d\n", flags);
+	printf("socket type: %d(%s)\n", flags, (flags & SOCK_NONBLOCK)? "NONBLOCK": "BLOCK");
 	if (test_mode) {
 		int cli_block = 0;
 		property_set_fd = create_socket(PROP_SERVICE_NAME, SOCK_STREAM | flags, //| SOCK_CLOEXEC, //| SOCK_NONBLOCK,
