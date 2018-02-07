@@ -172,7 +172,7 @@ static int handle_property_set_fd(int cli_block)
 	nr = poll(ufds, 1, timeout_ms);
 	printf("poll %d: ", nr);
 	if (nr == 0) {
-		printf("timeout(%dms) waiting for uid=%d to send property message\n", timeout_ms, cr.uid);
+		printf("timeout(%dms) waiting for pid=%d uid=%d to send property message\n", timeout_ms, cr.pid, cr.uid);
 #if 0//go on to test recv with MSG_DONTWAIT
 		close(s);
 		return -1;
@@ -220,7 +220,7 @@ static int handle_property_set_fd(int cli_block)
 SEND:
 	//send even recv return EAGAIN
 	r = send(s, str, strlen(str) + 1, 0);
-	printf("send to cli %dB(\"%s\") then close\n", r, str);
+	printf("send to cli %d %dB(\"%s\") then close\n", cr.pid, r, str);
 CLOSE:
 	close(s);
 RETURN:
@@ -263,7 +263,7 @@ void start_property_service(int flags)
 		printf("%s socket creation failed:%s\n", __func__, strerror(errno));
 		exit(1);
 	}
-	listen(property_set_fd, 8);
+	listen(property_set_fd, 4);
 	register_epoll_handler(property_set_fd, handle_property_set_fd);
 }
 
@@ -274,6 +274,7 @@ int main(int argc, char *argv[])
 	int timeout = -1;//wait indefinitely
 	int opt, count, ret;
 	int test_mode = 0;
+	int cli_block = 1;
 	while((opt = getopt(argc, argv, "nt")) != -1){
 		switch(opt) {
 		case 'n':
@@ -343,7 +344,8 @@ int main(int argc, char *argv[])
 			printf("epoll_wait failed: %s\n", strerror(errno));
 			//exit(1);
 		} else if (nr == 1) {
-			((int(*)(int))ev.data.ptr)(0);
+			((int(*)(int))ev.data.ptr)(cli_block);
+			cli_block = !cli_block;
 		}
 	}
 	return 0;

@@ -42,9 +42,10 @@ static int send_prop_msg(const prop_msg *msg)
 		close(fd);
 		return -1;
 	}
+	printf("pid %d: ", getpid());
 	if (wait_input) {
 		int buf[32];
-		printf("Now %d waiting for input\n", getpid());
+		printf("Now waiting for input\n");
 		read(STDIN_FILENO, buf, sizeof(buf));
 	}
 	const int num_bytes = send(fd, msg, sizeof(prop_msg), 0);//write is also ok, send has flag option
