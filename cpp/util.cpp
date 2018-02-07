@@ -143,7 +143,7 @@ static int handle_property_set_fd(int cli_block)
 		ret = -1;
 		goto RETURN;
 	}
-	printf("new client: addrlen %d\n", addr_size);//sizeof(.sun_family)==2
+	printf("new client [%d]: addrlen %d\n", s, addr_size);//sizeof(.sun_family)==2
 	/*
     int getsockopt(int sockfd, int level, int optname, void *optval, socklen_t *optlen);
 	Options may exist at multiple protocol levels; they are always present at the uppermost socket level.    
@@ -212,11 +212,12 @@ static int handle_property_set_fd(int cli_block)
 		if (r == -1 && !cli_block)
 			goto SEND;
 		goto CLOSE;
-	}
+	} else
+		printf("cmd %x:[%s][%s]\n", msg.cmd, msg.name, msg.value);
 SEND:
 	//send even recv return EAGAIN
 	r = send(s, str, strlen(str) + 1, 0);
-	printf("send to cli %dB then close\n", r);
+	printf("send to cli %dB(\"%s\") then close\n", r, str);
 CLOSE:
 	close(s);
 RETURN:
@@ -294,9 +295,11 @@ int main(int argc, char *argv[])
 			exit(1);
 		}
 		listen(property_set_fd, 8);
-		for (count = 0, ret = -1; ret && count < 12; count++) {
+		for (count = 0, ret = -1; count < 12; count++) {
 			ret = handle_property_set_fd(cli_block);
 			cli_block = !cli_block;
+			if (!ret)
+				break;
 			sleep(5);
 		}
 		close(property_set_fd);
