@@ -110,7 +110,7 @@ struct prop_msg {
     char name[PROP_NAME_MAX];
     char value[PROP_VALUE_MAX];
 };
-
+//the client can be set non block or block, which has no relation to whether the server socket is blockable
 static int handle_property_set_fd(int cli_block)
 {
 	prop_msg msg;
@@ -285,7 +285,7 @@ int main(int argc, char *argv[])
 			break;
 		}
 	}
-	printf("socket type: %d(%s)\n", flags, (flags & SOCK_NONBLOCK)? "NONBLOCK": "BLOCK");
+	printf("socket type: 0x%x(%s)\n", flags, (flags & SOCK_NONBLOCK)? "NONBLOCK": "BLOCK");
 	if (test_mode) {
 		int cli_block = 0;
 		property_set_fd = create_socket(PROP_SERVICE_NAME, SOCK_STREAM | flags, //| SOCK_CLOEXEC, //| SOCK_NONBLOCK,
@@ -300,7 +300,7 @@ int main(int argc, char *argv[])
 			cli_block = !cli_block;
 			if (!ret)
 				break;
-			sleep(5);
+			usleep(500*1000);//us
 		}
 		close(property_set_fd);
 		return 0;
