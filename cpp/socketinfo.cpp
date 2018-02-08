@@ -43,8 +43,75 @@ int test(const std::vector<SocketInfo>& sockinfo)
 	return 0;
 }
 
+struct info {
+	info()
+	{
+		printf("%s: %d, %p\n", __func__, __LINE__, this);
+	}
+	info(int i)
+	{
+		printf("%s: %d, %p %d\n", __func__, __LINE__, this, i);
+	}
+	info(const char *str)
+	{
+		printf("%s: %d, %p [%s]\n", __func__, __LINE__, this, str);
+	}
+	info(const info& src)
+	{
+		printf("%s: %d, %p=>%p\n", __func__, __LINE__, &src, this);
+	}
+	~info()
+	{
+		printf("%s: %d, %p\n", __func__, __LINE__, this);
+	}
+};
+
+void emplace_back_test(void)
+{
+	info obj;
+	printf("new:");
+	std::vector<info> *v = new std::vector<info>;
+	printf("%p\n", v);
+	//
+	printf("emplace_back src(stack obj %p)m const only 1 times\n", &obj);
+	v->emplace_back(obj);//typeof(obj) must be info
+	printf("emplace_back fin %p, then ease it\n", &(*(v->begin())));
+	v->erase(v->begin());
+	//
+	printf("emplace_back int obj(cons 1 times)\n");
+	v->emplace_back(1);//there is only one time constuction compared with push_back
+	printf("emplace_back fin %p, then ease it\n", &(*(v->begin())));
+	v->erase(v->begin());
+	//
+	printf("push_back src(stack obj %p), const only 1 times too\n", &obj);
+	v->push_back(obj);//typeof(obj) must be info, push_back use its reference so there is no copy constructor happen
+	printf("push_back fin %p, then ease it\n", &(*(v->begin())));
+	v->erase(v->begin());
+	//
+	printf("push_back int obj(cons twice, 1st temp obj then vector element cons)\n");
+	v->push_back(1);//
+	printf("push_back fin %p, then ease it(element will auto des)\n", &(*(v->begin())));
+	v->erase(v->begin());
+	v->push_back("");
+	//
+	printf("delete:");//It seems that delete will desctruct all its member!
+	delete v;
+	printf("%p\n", v);
+	std::vector<info> v2;
+	printf("push_back %p to local verctor<info>\n", &obj);
+	v2.push_back(obj);
+	v2.erase(v2.begin());
+	printf("emplace_back %p to local vector<info>\n", &obj);
+	v2.emplace_back(obj);
+	printf("begin desctructor\n");
+}
+
 int main()
 {
+	//sockets_.emplace_back();
+	printf("###emplace test start\n");
+	emplace_back_test();
+	printf("###emplace test end\n");
 	FN test2 = test;
 	test2(sockets_);
 	test_class::FN2 test3 = test;//test_class must be used!
