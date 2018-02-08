@@ -6,3 +6,4 @@ all:
 	g++ $(FLAGS) util.cpp -o util.out
 	g++ $(FLAGS) poll.c -o poll.out
 	g++ $(FLAGS) cli.cpp -o cli.out
+	g++ $(FLAGS) socketinfo.cpp -o socketinfo.out
