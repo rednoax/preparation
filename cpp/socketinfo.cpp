@@ -94,16 +94,22 @@ void emplace_back_test(void)
 	v->erase(v->begin());
 	v->push_back("");
 	//
-	printf("delete:");//It seems that delete will desctruct all its member!
+	printf("delete:");
+	//delete->class desctruct->release all vector elements->T(vector<T>) desctruct
 	delete v;
 	printf("%p\n", v);
 	std::vector<info> v2;
 	printf("push_back %p to local verctor<info>\n", &obj);
 	v2.push_back(obj);
-	v2.erase(v2.begin());
+	//v2.erase(v2.begin());
 	printf("emplace_back %p to local vector<info>\n", &obj);
 	v2.emplace_back(obj);
-	printf("begin desctructor\n");
+	std::vector<info>::iterator it;
+	int i;
+	for (i = 0, it = v2.begin(); it != v2.end(); i++, it++) {
+		printf("%d %p\n", i, &*it);
+	}
+	printf("begin desctructor\n");//vector will release its own element when it destucts
 }
 
 int main()
