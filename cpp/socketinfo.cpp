@@ -22,6 +22,8 @@ private:
 public:
 	using PUB_int = int;
 	using FN2 = int(*)(const std::vector<SocketInfo>& sockinfo);
+	PRI_int m_i;//ok
+	PUB_int m_i2;//ok
 };
 
 SocketInfo::SocketInfo():uid(0), gid(0), perm(0)
@@ -133,12 +135,13 @@ void range_based_for_test(void)
 	for (const auto& iter: v) {
 		printf("%p: %d\n", &iter, iter);
 	}
+	//multiple char[] of the following args can all be changed to string, amazing!
 	sockets_.emplace_back("logd", "stream", 0, 0, 0666, "");
 	sockets_.emplace_back("logdr", "seqpacket", 0, 0, 0666, "");
 	printf("%ld elements in vector<SocketInfo> sockets_\n", sockets_.size());
-	printf("[1]:%s\n", sockets_[1].name.c_str());
+	printf("[1]:%s; element@%p %p\n", sockets_[1].name.c_str(), &sockets_[0], &sockets_[1]);
 	for (const SocketInfo& si: sockets_) {
-		printf("%s:%s:%d:%d:%o:%s\n", si.name.c_str(), si.type.c_str(), si.uid, si.gid, si.perm, si.socketcon.c_str());
+		printf("%p: %s:%s:%d:%d:%o:%s\n", &si, si.name.c_str(), si.type.c_str(), si.uid, si.gid, si.perm, si.socketcon.c_str());
 	}
 	string_test();
 }
