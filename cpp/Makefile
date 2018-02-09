@@ -1,9 +1,7 @@
 FLAGS:=--std=c++11 -Wall
+CSRCS:=list.cpp main.cpp util.cpp poll.c cli.cpp socketinfo.cpp derived.cpp
+OUTS:=$(patsubst %.cpp, %.out, $(CSRCS))
 .PHONY:all
-all:
-	g++ $(FLAGS) list.cpp -o list.out -lpthread
-	g++ $(FLAGS) main.cpp -o main.out
-	g++ $(FLAGS) util.cpp -o util.out
-	g++ $(FLAGS) poll.c -o poll.out
-	g++ $(FLAGS) cli.cpp -o cli.out
-	g++ $(FLAGS) socketinfo.cpp -o socketinfo.out
+all:$(OUTS)
+%.out:%.cpp
+	g++ $(FLAGS) $< -o $@ -lpthread
