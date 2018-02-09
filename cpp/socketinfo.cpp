@@ -33,7 +33,7 @@ SocketInfo::SocketInfo(const string& name, const string& type, uid_t uid, gid_t 
 	:name(name), type(type), uid(uid), gid(gid), perm(perm), socketcon(socketcon)
 {
 
-	printf("%s: %d, %p", __func__, __LINE__, this);
+	printf("%s: %d, %p, %s\n", __func__, __LINE__, this, name.c_str());
 }
 
 std::vector<SocketInfo> sockets_;
@@ -112,12 +112,44 @@ void emplace_back_test(void)
 	printf("begin desctructor\n");//vector will release its own element when it destucts
 }
 
+void string_test()
+{
+	string str = "012";
+	string dst = str;//directly =
+	printf("string str:%s, bool(!=\"012\")%d\n", str.c_str(), str != "012");//directly != or ==
+	//the src/dst 's space holding char[] is different
+	printf("dst %s: %p, src: %p, %p==%p?\n", dst.c_str(), &dst, &str, dst.c_str(), str.c_str());
+}
+//http://zh.cppreference.com/w/cpp/language/range-for
+void range_based_for_test(void)
+{
+	int i;
+	using std::vector;
+	vector<int> v;
+	for (i = 0; i < 20; i ++) {
+		v.push_back(i++);
+		v.emplace_back(i);
+	}
+	for (const auto& iter: v) {
+		printf("%p: %d\n", &iter, iter);
+	}
+	sockets_.emplace_back("logd", "stream", 0, 0, 0666, "");
+	sockets_.emplace_back("logdr", "seqpacket", 0, 0, 0666, "");
+	printf("%ld elements in vector<SocketInfo> sockets_\n", sockets_.size());
+	printf("[1]:%s\n", sockets_[1].name.c_str());
+	for (const SocketInfo& si: sockets_) {
+		printf("%s:%s:%d:%d:%o:%s\n", si.name.c_str(), si.type.c_str(), si.uid, si.gid, si.perm, si.socketcon.c_str());
+	}
+	string_test();
+}
+
 int main()
 {
 	//sockets_.emplace_back();
 	printf("###emplace test start\n");
 	emplace_back_test();
 	printf("###emplace test end\n");
+	range_based_for_test();
 	FN test2 = test;
 	test2(sockets_);
 	test_class::FN2 test3 = test;//test_class must be used!
