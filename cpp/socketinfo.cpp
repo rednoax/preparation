@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string>
+#include <string.h>
 #include <vector>
 struct SocketInfo;
 using std::string;
@@ -124,6 +125,13 @@ void string_test()
 	printf("%s:empty %d\n", dst.c_str(), dst.empty());
 	dst = "";
 	printf("[%s]empty %d\n", dst.c_str(), dst.empty());
+	dst = "prefix:";
+	dst.append(str.c_str(), strlen(str.c_str()));
+	printf("appended dst[%s]\n", dst.c_str());
+	dst.append("suffix");
+	printf("appended dst[%s][%s]\n", dst.data(), dst.c_str());
+	string result;
+	printf("default string obj[%s][%s]:%ld\n", result.c_str(), result.data(), result.size());//.size is strlen
 }
 //http://zh.cppreference.com/w/cpp/language/range-for
 void range_based_for_test(void)
