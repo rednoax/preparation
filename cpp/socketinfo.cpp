@@ -121,6 +121,9 @@ void string_test()
 	printf("string str:%s, bool(!=\"012\")%d\n", str.c_str(), str != "012");//directly != or ==
 	//the src/dst 's space holding char[] is different
 	printf("dst %s: %p, src: %p, %p==%p?\n", dst.c_str(), &dst, &str, dst.c_str(), str.c_str());
+	printf("%s:empty %d\n", dst.c_str(), dst.empty());
+	dst = "";
+	printf("[%s]empty %d\n", dst.c_str(), dst.empty());
 }
 //http://zh.cppreference.com/w/cpp/language/range-for
 void range_based_for_test(void)
