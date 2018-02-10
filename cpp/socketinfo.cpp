@@ -2,6 +2,7 @@
 #include <string>
 #include <string.h>
 #include <vector>
+#include <unistd.h>
 struct SocketInfo;
 using std::string;
 using FN = int (*)(const std::vector<SocketInfo>& args);
@@ -182,5 +183,13 @@ int main()
 	test_class::PRI_int b = 3;
 	(void)b;
 #endif
+	printf("getpgid %d\n", getpgid(getpid()));//or getpgid(0) to get self pgid
+	system("ps -o pgid,pid,ppid,comm");
+	int ret = setpgid(0, getppid());
+	printf("setpgid %d=>%d, %d\n", getpid(), getppid(), ret);
+	system("ps -o pgid,pid,ppid,comm");
+	ret = setpgid(0, getpid());
+	printf("setpgid %d=>%d: %d\n", getpid(), getpid(), ret);
+	system("ps -o pgid,pid,ppid,comm");
 	return 0;
 }
