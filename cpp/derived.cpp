@@ -46,6 +46,11 @@ public:
 	}
 };
 
+class spid {
+public:
+	static const char name[32];// = "abc";
+};
+const char spid::name[32] = "spid";
 int main()
 {
 	d0 *pd0 = new d0;
