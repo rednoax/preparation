@@ -131,6 +131,9 @@ void string_test()
 	printf("appended dst[%s]\n", dst.c_str());
 	dst.append("suffix");
 	printf("appended dst[%s][%s]\n", dst.data(), dst.c_str());
+	dst.clear();
+	dst.append("suffix", 3);
+	printf("dst:%s\n", dst.data());
 	string result;
 	printf("default string obj[%s][%s]:%ld\n", result.c_str(), result.data(), result.size());//.size is strlen
 }
