@@ -50,23 +50,23 @@ int test(const std::vector<SocketInfo>& sockinfo)
 struct info {
 	info()
 	{
-		printf("%s: %d, %p\n", __func__, __LINE__, this);
+		printf("%s(), %p\n", __func__, this);
 	}
 	info(int i)
 	{
-		printf("%s: %d, %p %d\n", __func__, __LINE__, this, i);
+		printf("%s(int %d), %p\n", __func__, i, this);
 	}
 	info(const char *str)
 	{
-		printf("%s: %d, %p [%s]\n", __func__, __LINE__, this, str);
+		printf("%s(const char*), %p [%s]\n", __func__, this, str);
 	}
 	info(const info& src)
 	{
-		printf("%s: %d, %p=>%p\n", __func__, __LINE__, &src, this);
+		printf("%s(const info&), %p=>%p\n", __func__, &src, this);
 	}
 	~info()
 	{
-		printf("%s: %d, %p\n", __func__, __LINE__, this);
+		printf("%s: %p\n", __func__, this);
 	}
 };
 
@@ -74,29 +74,61 @@ void emplace_back_test(void)
 {
 	info obj;
 	printf("new:");
-	std::vector<info> *v = new std::vector<info>;
-	printf("%p\n", v);
-	//
-	printf("emplace_back src(stack obj %p)m const only 1 times\n", &obj);
+	std::vector<info> *v = new std::vector<info>;//no T construction during vector<T> instantiate
+	printf("%p, .size() %ld\n", v, v->size());
+	/*
+	.emplace_back(args...)Appends a copy of an element initialized with args at the end (returns nothing; since C++11)
+	its args is direclty given to T's overloaded constructor, that seems like make_unique<T>
+	template <typename T, typename... Args>
+	unique_ptr<T> make_unique(Args... args)
+	{
+		return unique_ptr<T>{ new T(args...) };
+	}
+	*/
+	printf("emplace_back stack obj %p, const only 1 time\n", &obj);
 	v->emplace_back(obj);//typeof(obj) must be info
-	printf("emplace_back fin %p, then ease it\n", &(*(v->begin())));
+	printf("emplace_back fin %p, then ease it\n", &*v->begin());
 	v->erase(v->begin());
 	//
-	printf("emplace_back int obj(cons 1 times)\n");
-	v->emplace_back(1);//there is only one time constuction compared with push_back
-	printf("emplace_back fin %p, then ease it\n", &(*(v->begin())));
-	v->erase(v->begin());
-	//
-	printf("push_back src(stack obj %p), const only 1 times too\n", &obj);
+	printf("push_back stack obj %p, const only 1 time too\n", &obj);
 	v->push_back(obj);//typeof(obj) must be info, push_back use its reference so there is no copy constructor happen
-	printf("push_back fin %p, then ease it\n", &(*(v->begin())));
+	printf("push_back fin %p, then ease it\n", &*v->begin());
 	v->erase(v->begin());
 	//
-	printf("push_back int obj(cons twice, 1st temp obj then vector element cons)\n");
-	v->push_back(1);//
-	printf("push_back fin %p, then ease it(element will auto des)\n", &(*(v->begin())));
+	printf("emplace_back int obj, cons 1 time\n");
+	v->emplace_back(1);//there is only one time constuction compared with push_back
+	printf("emplace_back fin %p, then ease it\n", &*v->begin());
 	v->erase(v->begin());
+	//
+	printf("push_back int obj, const 2 times, 1st temp obj then vector element cons\n");
+	v->push_back(1);
+	printf("push_back fin %p, then erase it(element will auto des)\n", &v->begin()[0]);
+	v->erase(v->begin());
+	//
+	printf("emplace_back empty obj, cons 1 time\n");
+	v->emplace_back();//there is only one time constuction compared with push_back
+	printf("emplace_back fin %p, then ease it\n", &*v->begin());
+	v->erase(v->begin());
+	//
+	printf("push_back empty obj, push_back() can not be used, just using temp obj, so const 2 times\n");
+#if 0
+	socketinfo.cpp:114:15: error: no matching function for call to ‘std::vector<info>::push_back()’
+	  v->push_back();
+	               ^
+#endif
+	v->push_back(info());
+	printf("push_back fin %p, then erase it\n", &v->begin()[0]);
+	v->erase(v->begin());
+	//
+	printf("emplace_back const char*, const 1 time\n");
+	v->emplace_back("");
+	printf("emplace_back fin %p, then erase it\n", &v->begin()[0]);
+	v->erase(v->begin());
+	//
+	printf("push_back const char*, const 2 time, 1st temp obj then copy cons\n");
 	v->push_back("");
+	printf("push_back fin %p, then erase it\n", &v->begin()[0]);
+	v->erase(v->begin());
 	//
 	printf("delete:");
 	//delete->class desctruct->release all vector elements->T(vector<T>) desctruct
