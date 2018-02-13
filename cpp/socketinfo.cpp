@@ -135,7 +135,14 @@ void string_test()
 	dst.append("suffix", 3);
 	printf("dst:%s\n", dst.data());
 	dst.push_back('!');
-	printf("after push_back, dst %s\n", dst.data());
+	printf("after push_back, dst '%s', .size() %ld, .begin() '%c', %p\n", dst.data(), dst.size(), dst.begin()[0], &*dst.begin());//, data.end());
+	printf(".end() %p[%x]\n", &*dst.end(), *dst.end());
+	printf("dst via iterator '%s'\n", &*dst.begin());
+	//vector<T> name(T iterator, T iterator);
+	std::vector<char> vec(dst.begin(), dst.end());
+	printf("vec[0]:'%c'. vec[%ld]:'%c'\n", vec[0], vec.size() - 1, vec[vec.size() - 1]);
+	std::vector<char> vec2;
+	printf("emptry std::vector<char> .size is %ld\n", vec2.size());
 	string result;
 	printf("default string obj[%s][%s]:%ld\n", result.c_str(), result.data(), result.size());//.size is strlen
 }
