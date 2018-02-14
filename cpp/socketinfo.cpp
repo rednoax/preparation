@@ -58,7 +58,7 @@ struct info {
 	}
 	info(const char *str)
 	{
-		printf("%s(const char*), %p [%s]\n", __func__, this, str);
+		printf("%s(\"%s\"), %p\n", __func__, str, this);
 	}
 	info(const info& src)
 	{
@@ -70,11 +70,93 @@ struct info {
 	}
 };
 
+class mystring {
+	//char *m_buf;
+public:
+	mystring(const char *s)
+	{
+		//m_buf = malloc(strlen(s) + 1);
+		printf("%s(\"%s\"): %p\n", __func__, s, this);//, m_buf);
+	}
+	mystring(const mystring &s)
+	{
+		printf("%s(const mystring&): %p=>%p\n", __func__, &s, this);
+	}
+	~mystring()
+	{
+		//free(m_buf);
+		printf("%s: %p\n", __func__, this);//, m_buf);
+	}
+};
+
+class combo {
+public:
+	combo(const info &info, const mystring &n1, const mystring &n2)
+	{
+		printf("%s(%p, %p, %p): %p\n", __func__, &info, &n1, &n2, this);
+	}
+	combo(const combo& s)
+	{
+		printf("%s(const combo&): %p=>%p\n", __func__, s, this);
+	}
+	~combo()
+	{
+		printf("%s: %p\n", __func__, this);
+	}
+};
+void emplace_back_typecast_test()
+{
+	/*
+	vector<T>::emplace_back(args...) is the same as "new T(args...)"
+	*/
+	std::vector<mystring> *vp = new std::vector<mystring>;
+	vp->emplace_back("test");//new mystring("test")
+	printf("erase %p: ", &*vp->begin());
+	vp->erase(vp->begin());
+	//push_back's only non-temp obj case is transfer T arg, all others will cons twice!!!
+	vp->push_back("test");//a temp mystring("test") is cons and is copied cons for vector element
+	printf("erase %p: ", &*vp->begin());
+	vp->erase(vp->begin());
+	delete vp;
+	printf("---multiple self-defined obj args test---\n"
+		"emplace_back's 3 args of (const char*)=>associated temp obj since their cons accept (const char*)\n");
+	std::vector<combo> *vp2 = new std::vector<combo>;
+	vp2->emplace_back("info", "n1", "n2");//equivalent: new combo("info", "n1", "n2")
+	printf("---there is 3 temp obj destructors above---\n");
+	printf("erase %p: ", &vp2->begin()[0]);
+	vp2->erase(vp2->begin());
+	printf("now try push_back\n");
+	info i;
+	mystring s1("s1"), s2("s2");
+	/*
+	there is only one form of push_back:	push_back(elem) that Appends a copy of elem at the end
+	1. its arg can be "T obj" then it will "new T(obj)", i.e. call T's copy cons. If the arg is not of type T, a temp T is
+	    tried to be instantiated from arg if there is associated T cons. Please noted in the whole process of temp T's construction
+	    there should only one argument for T's constructor, even T cons have been overloaded with more args. The following can fail:
+socketinfo.cpp:124:26: error: no matching function for call to ¡®std::vector<combo>::push_back(info&, mystring&, mystring&)¡¯
+  vp2->push_back(i, s1, s2);
+socketinfo.cpp:139:36: error: no matching function for call to ¡®std::vector<combo>::push_back(const char [6], const char [3], const char [3])¡¯
+  vp2->push_back("combo", "n1", "n2");
+	2. if 1 fails, it cannot accept arg of other type
+	*/
+	vp2->push_back(combo(i, s1, s2));
+	printf("erase %p: ", &vp2->begin()[0]);
+	vp2->erase(vp2->begin());
+	printf("push_back a temp obj, obj cons will typecast args, that's why"
+		" emplace_back transfering args to obj cons can work, let obj cons to typecast these args...\n");
+	printf("4 temp objs:3 via args, 1 via combo\n");
+	vp2->push_back(combo("combo", "n1", "n2"));
+	printf("erase %p: ", &vp2->begin()[0]);
+	vp2->erase(vp2->begin());
+	delete vp2;
+	printf("auto des:\n");
+}
+
 void emplace_back_test(void)
 {
 	info obj;
-	printf("new:");
-	std::vector<info> *v = new std::vector<info>;//no T construction during vector<T> instantiate
+	printf("new std::vector<info>:");
+	std::vector<info> *v = new std::vector<info>;//no T construction called during vector<T> instantiation
 	printf("%p, .size() %ld\n", v, v->size());
 	/*
 	.emplace_back(args...)Appends a copy of an element initialized with args at the end (returns nothing; since C++11)
@@ -87,58 +169,60 @@ void emplace_back_test(void)
 	*/
 	printf("emplace_back stack obj %p, const only 1 time\n", &obj);
 	v->emplace_back(obj);//typeof(obj) must be info
-	printf("emplace_back fin %p, then ease it\n", &*v->begin());
+	printf("emplace_back fin %p, then erase it: ", &*v->begin());
 	v->erase(v->begin());
 	//
 	printf("push_back stack obj %p, const only 1 time too\n", &obj);
 	v->push_back(obj);//typeof(obj) must be info, push_back use its reference so there is no copy constructor happen
-	printf("push_back fin %p, then ease it\n", &*v->begin());
+	printf("push_back fin %p, then erase it: ", &*v->begin());
 	v->erase(v->begin());
 	//
-	printf("emplace_back int obj, cons 1 time\n");
-	v->emplace_back(1);//there is only one time constuction compared with push_back
-	printf("emplace_back fin %p, then ease it\n", &*v->begin());
-	v->erase(v->begin());
+	printf("emplace_back(int), cons 1 time\n");
+	v->emplace_back(1);//there is only one time constuction compared with push_back, new T(args...)
+	printf("emplace_back fin %p, then erase it: ", &*v->begin());
+	v->erase(v->begin());//vector will erase its obj constructed via new T(1), we should not worry about it.
 	//
-	printf("push_back int obj, const 2 times, 1st temp obj then vector element cons\n");
+	printf("push_back(int), const 2 times, 1st temp obj then vector element cons\n");
 	v->push_back(1);
-	printf("push_back fin %p, then erase it(element will auto des)\n", &v->begin()[0]);
+	printf("push_back fin %p, then erase it(element will auto des): ", &v->begin()[0]);
 	v->erase(v->begin());
 	//
-	printf("emplace_back empty obj, cons 1 time\n");
+	printf("emplace_back empty arg, cons 1 time\n");
 	v->emplace_back();//there is only one time constuction compared with push_back
-	printf("emplace_back fin %p, then ease it\n", &*v->begin());
+	printf("emplace_back fin %p, then erase it: ", &*v->begin());
 	v->erase(v->begin());
 	//
-	printf("push_back empty obj, push_back() can not be used, just using temp obj, so const 2 times\n");
+	printf("push_back empty arg, push_back() can not be used, just using temp obj, so const 2 times\n");
 #if 0
 	socketinfo.cpp:114:15: error: no matching function for call to â€˜std::vector<info>::push_back()â€™
 	  v->push_back();
 	               ^
 #endif
-	v->push_back(info());
-	printf("push_back fin %p, then erase it\n", &v->begin()[0]);
+	v->push_back(info());//arg is a temp obj
+	printf("push_back fin %p, then erase it: ", &v->begin()[0]);
 	v->erase(v->begin());
 	//
-	printf("emplace_back const char*, const 1 time\n");
+	printf("emplace_back(\"\"), cons 1 time\n");
 	v->emplace_back("");
-	printf("emplace_back fin %p, then erase it\n", &v->begin()[0]);
+	printf("emplace_back fin %p, then erase it: ", &v->begin()[0]);
 	v->erase(v->begin());
 	//
-	printf("push_back const char*, const 2 time, 1st temp obj then copy cons\n");
+	printf("push_back(\"\"), cons 2 times, 1st temp obj then copy cons\n");
 	v->push_back("");
-	printf("push_back fin %p, then erase it\n", &v->begin()[0]);
+	printf("push_back fin %p, then erase it: ", &v->begin()[0]);
 	v->erase(v->begin());
 	//
-	printf("delete:");
-	//delete->class desctruct->release all vector elements->T(vector<T>) desctruct
+	v->emplace_back("only");
+	printf("start delete:");
+	//delete->class desctruct->release all vector elements->T desctruct(what's T? vector<T>)
 	delete v;
-	printf("%p\n", v);
+	printf("fin to delete %p\n", v);
 	std::vector<info> v2;
 	printf("push_back %p to local verctor<info>\n", &obj);
 	v2.push_back(obj);
 	//v2.erase(v2.begin());
-	printf("emplace_back %p to local vector<info>\n", &obj);
+	printf("emplace_back %p to local vector<info>, the vector<info>[0] is copied to be continued with vector<info>[1]"
+			" then deleted\n", &obj);
 	v2.emplace_back(obj);
 	std::vector<info>::iterator it;
 	int i;
@@ -235,5 +319,6 @@ int main()
 	ret = setpgid(0, getpid());
 	printf("setpgid %d=>%d: %d\n", getpid(), getpid(), ret);
 	system("ps -o pgid,pid,ppid,comm");
+	emplace_back_typecast_test();
 	return 0;
 }
