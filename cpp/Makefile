@@ -1,6 +1,6 @@
 FLAGS:=--std=c++11 -Wall
 CSRCS:=list.cpp main.cpp util.cpp poll.c cli.cpp socketinfo.cpp derived.cpp fd_trans.cpp \
-		sp.cpp
+		sp.cpp unique.cpp
 OUTS:=$(patsubst %.cpp, %.out, $(CSRCS))
 .PHONY:all
 all:$(OUTS)
