@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string>
 #include <string.h>
-#if 0
+#if 10
 #define USE_STD_UNIQUE
 #else
 # if 0
@@ -149,6 +149,9 @@ int main(int argc, char **argv)
 	MyClass o0(MyClass("test1", 1));//temp obj call related cons, then no copy cons
 	MyClass o1 = MyClass("test2", 2);//exactly equal to the above
 	printf("###these 2 equivalents really call copy cons\n");
+	/*
+	only a non temp obj in cons will call copy-cons!!!
+	*/
 	MyClass o2 = o0;
 	MyClass o3(o0);//absolutely equal to the above
 	printf("###stack obj from \"temp obj\" fin\n");
@@ -160,7 +163,9 @@ int main(int argc, char **argv)
 	unique_ptr<MyClass> uniquePointer3(make_unique<MyClass>("MyClass1", 10));
 	printf("%s: %d\n", uniquePointer3->GetName().c_str(), uniquePointer3->GetValue());
 	unique_ptr<MyClass> uniquePointer4 = make_unique<MyClass>("MyClass2", 20);//exactly the same as before
+#if !defined(USE_STD_UNIQUE)
 	uniquePointer4 = 3;//make_unique<MyClass>("MyClass2", 20);
+#endif
 	unique_ptr<MyClass> uniquePointer5(unique_ptr<MyClass>(new MyClass("MyClass3", 30)));//the 3rd quivalent
 	printf("uniquePointer2/3/4/5 @%p/%p/%p/%p\n", &uniquePointer2, &uniquePointer3, &uniquePointer4, &uniquePointer5);
 #if 0
@@ -174,6 +179,28 @@ unique.cpp:120:39: error: invalid conversion from ‘int’ to ‘MyClass*’ [-
   unique_ptr<MyClass> uniquePointer5 = 3;//make_unique<MyClass>("MyClass2", 20);
                                        ^                                        
 #endif
+	printf("###move test, unique_ptr<T> 's copy cons(NOT deep copy) is called??\n");
+	/*
+	unique_ptr<T> move(unique_ptr<T>);
+	*/
+	unique_ptr<MyClass> uniquePointer6 = move(uniquePointer5);//equal to uniquePointer6(move(...))
+	if (uniquePointer5 == nullptr) {
+		printf("*uniquePointer5: %p\n"
+			"*uniquePointer6: %p, uniquePointer6 @%p=>\"%s:%d\"\n",
+			*uniquePointer5, *uniquePointer6, &uniquePointer6, uniquePointer6->GetName().data(), uniquePointer6->GetValue());
+	}
+#if 0
+unique.cpp:188:70: error: no match for ‘operator[]’ (operand types are ‘std::unique_ptr<MyClass>’ and ‘int’)
+   printf("*uniquePointer6: %p, *uniquePointer7: %p\n", uniquePointer6[0], uniquePointer7[0]);
+                                                                      ^
+unique.cpp:188:89: error: no match for ‘operator[]’ (operand types are ‘std::unique_ptr<MyClass>’ and ‘int’)
+   printf("*uniquePointer6: %p, *uniquePointer7: %p\n", uniquePointer6[0], uniquePointer7[0]);
+                                                                                         ^
+#endif	
+	unique_ptr<MyClass> uniquePointer7(move(uniquePointer6));//equal to uniquePointer7 = move(...)
+	if (uniquePointer6 == nullptr) {
+		printf("*uniquePointer6: %p, *uniquePointer7: %p\n", *uniquePointer6, *uniquePointer7);
+	}
 	printf("auto des of stack variable:\n");
 	return 0;
 }
