@@ -154,14 +154,15 @@ int main(int argc, char **argv)
 	printf("###stack obj from \"temp obj\" fin\n");
 	//printf("%d\n", (o0, o1));
 	//
-	printf("###these 3 quivalent instantiation");
-	unique_ptr<MyClass> uniquePointer(make_unique<MyClass>("MyClass", 10));
-	printf("__cplusplus: %ld; unique_ptr instance %p\n", __cplusplus, &uniquePointer);//201103
-	printf("%s: %d\n", uniquePointer->GetName().c_str(), uniquePointer->GetValue());
+	printf("###these 4 quivalent instantiation, no copy cons during obj instantiation\n");
+	unique_ptr<MyClass> uniquePointer2(new MyClass("MyClass0", 10));
+	printf("__cplusplus: %ld\n", __cplusplus);//201103
+	unique_ptr<MyClass> uniquePointer3(make_unique<MyClass>("MyClass1", 10));
+	printf("%s: %d\n", uniquePointer3->GetName().c_str(), uniquePointer3->GetValue());
 	unique_ptr<MyClass> uniquePointer4 = make_unique<MyClass>("MyClass2", 20);//exactly the same as before
 	uniquePointer4 = 3;//make_unique<MyClass>("MyClass2", 20);
-	printf("uniquePointer4 @%p\n", &uniquePointer4);
 	unique_ptr<MyClass> uniquePointer5(unique_ptr<MyClass>(new MyClass("MyClass3", 30)));//the 3rd quivalent
+	printf("uniquePointer2/3/4/5 @%p/%p/%p/%p\n", &uniquePointer2, &uniquePointer3, &uniquePointer4, &uniquePointer5);
 #if 0
 unique.cpp:88:50: error: use of deleted function ‘std::unique_ptr<_Tp, _Dp>::unique_ptr(const std::unique_ptr<_Tp, _Dp>&) [with _Tp = MyClass; _Dp = std::default_delete<MyClass>]’
   unique_ptr<MyClass> uniquePointer2(uniquePointer);
