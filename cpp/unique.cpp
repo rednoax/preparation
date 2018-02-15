@@ -158,6 +158,8 @@ int main(int argc, char **argv)
 	//printf("%d\n", (o0, o1));
 	//
 	printf("###these 4 quivalent instantiation, no copy cons during obj instantiation\n");
+	unique_ptr<MyClass> uniquePointer1(nullptr);
+	printf("uniquePointer1 %p, point to %p\n", &uniquePointer1, *uniquePointer1);
 	unique_ptr<MyClass> uniquePointer2(new MyClass("MyClass0", 10));
 	printf("__cplusplus: %ld\n", __cplusplus);//201103
 	unique_ptr<MyClass> uniquePointer3(make_unique<MyClass>("MyClass1", 10));
