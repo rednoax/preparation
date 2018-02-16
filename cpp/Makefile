@@ -6,4 +6,4 @@ OUTS:=$(patsubst %.cpp, %.out, $(CSRCS))
 all:$(OUTS)
 %.out:%.cpp
 	g++ $(FLAGS) $< -o $@ -lpthread
-unique2.out:FLAGS=--std=c++14 -Wall
+auto_des.out unique2.out:FLAGS=--std=c++14 -Wall
