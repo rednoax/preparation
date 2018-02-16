@@ -144,11 +144,17 @@ int main(int argc, char **argv)
 	MyClass("test0", 0);
 	printf("###stack temp obj des fin\n");
 	printf("###these 2 equivalents are NOT temp obj copy cons!!!!!!!!\n");
-	printf("push_back(temp obj) will call cons twice: first temp obj cons then copy cons, which "\
-			"is not like the following \"obj instantiate using copy cons\"\n");
+	/*
+	T obj(T(args...)) will not call copy cons:
+	FLASE: temp obj with T cons=>copy cons from temp obj to obj	<---------actually not so!!!!!!!!!!
+	true:obj is instantiated with T cons directly.				<---------actually so!!!!!!!!!!!!!!
+	*/
 	MyClass o0(MyClass("test1", 1));//temp obj call related cons, then no copy cons
 	MyClass o1 = MyClass("test2", 2);//exactly equal to the above
+	printf("o0/1 @ %p/%p\n", &o0, &o1);
 	printf("###these 2 equivalents really call copy cons\n");
+	printf("push_back(temp obj) will call cons twice: first temp obj cons then copy cons, which "\
+			"is not like the following \"obj instantiate using copy cons\"\n");
 	/*
 	only a non temp obj in cons will call copy-cons!!!
 	*/
