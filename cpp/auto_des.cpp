@@ -95,7 +95,7 @@ void map_test()
 	delete g_map;
 	printf("###using []= to add: key: 1 time copy cons; value:default cons to instantiate=>operator=\n");
 	printf("###default operator= is used here, for no user defined operator=\n");
-	g_map = new std::map<MyClass, test>;
+	g_map = new std::map<MyClass, test>();//is equal to new T()
 	(*g_map)[index] = val;
 	printf("###delete map=>all element des, value has been changed via =\n");
 	delete g_map;
@@ -129,10 +129,18 @@ using MyMap = std::map<MyClass, value>;
 void map_test2()
 {
 	printf("###2 stack obj cons\n");
-	MyClass c;//TODO:MyClass c() will be error, don't know why!
+	/*
+	TODO:MyClass c() will be error, don't know why! Because it is a function named c and return MyClass
+	while the following are right:
+	new T();
+	new T;
+	both call T non-argument des
+	*/
+	MyClass c;
 	value v(1);
 	printf("###[]= will call operator =\n");
 	MyMap *p = new MyMap;
+	//(*p)[c];
 	(*p)[c] = v;
 	printf("###delete map instance\n");
 	delete p;
