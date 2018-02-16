@@ -121,6 +121,10 @@ void emplace_back_typecast_test()
 	printf("---multiple self-defined obj args test---\n"
 		"emplace_back's 3 args of (const char*)=>associated temp obj since their cons accept (const char*)\n");
 	std::vector<combo> *vp2 = new std::vector<combo>;
+	/*
+	comparing with unique.cpp's T obj(T(args...)): obj defination with a temp obj, there is no copy cons in such case, while
+	combo's cons args is obj reference rather than obj. So it is not the former case.
+	*/
 	vp2->emplace_back("info", "n1", "n2");//equivalent: new combo("info", "n1", "n2")
 	printf("---there is 3 temp obj destructors above---\n");
 	printf("erase %p: ", &vp2->begin()[0]);
