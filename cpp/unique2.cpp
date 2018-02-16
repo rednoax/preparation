@@ -88,6 +88,10 @@ private:
 	{
 		printf("%s(): %p\n", __func__, this);		
 	}
+	/*
+	class Parser des=>its member des=>map delete all its element pair=>string des, smart pointer unique_ptr<T> des;
+	the unique_ptr<T> des will delete the obj T it pointers=>T des,i.e. SectionParser des
+	*/
 	std::map<mystring, std::unique_ptr<SectionParser>> section_parsers_;
 };
 
