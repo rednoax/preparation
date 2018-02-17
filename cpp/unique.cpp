@@ -136,6 +136,11 @@ public:
 	*/
 };
 
+unique_ptr<MyClass> PassUnquePtr(unique_ptr<MyClass> obj)
+{
+	printf("%s: stack temp obj %p(%p)\n", __func__, &obj, &*obj);
+	return obj;
+}
 
 int main(int argc, char **argv)
 {
@@ -212,6 +217,15 @@ unique.cpp:188:89: error: no match for ‘operator[]’ (operand types are ‘st
 	if (uniquePointer6 == nullptr) {
 		printf("*uniquePointer6: %p, *uniquePointer7: %p\n", *uniquePointer6, *uniquePointer7);
 	}
+	/*
+	special case that there is no copy cons(please note:= is equivalent to ()):
+	1. left must be a unique_ptr<T> instantiation
+	2. right must be a temp obj of unique_ptr<T>, it can be
+	   a. stack var returned by func like make_unique<T> or PassUnquePtr
+	   b. T(args...)
+	*/
+	unique_ptr<MyClass> uniquePointer8 = PassUnquePtr(move(uniquePointer7));
+	printf("uniquePointer8 %p points to %p(%p)\n", &uniquePointer8, uniquePointer8.get(), &*uniquePointer8);
 	printf("auto des of stack variable:\n");
 	return 0;
 }
