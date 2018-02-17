@@ -2,7 +2,8 @@
 #include <vector>
 #include <string>
 #include <map>
-using std::string;
+
+using namespace std;
 class MyClass {
 public:
 	MyClass(const MyClass& src)
@@ -158,6 +159,20 @@ void map_test3()
 	printf("%s: %ld, '%s', '%p'\n", __func__, m.count(0), m[0].c_str(), &m[0]);
 }
 
+void vector_test()
+{
+	printf("###%s\n", __func__);
+	using vt = vector<test>;
+	vector<test> *v0 = new vt;
+	v0->emplace_back(9);
+	printf("###start vector assign using element copy cons!\n");
+	vector<test> *v1 = new vt;
+	*v1 = *v0;
+	printf("###%s: delete v0\n", __func__);
+	delete(v0);
+	printf("###%s: delete v1\n", __func__);
+	delete(v1);
+}
 int main()
 {
 	printf("member is class:\n");
@@ -169,6 +184,7 @@ int main()
 	map_test();
 	map_test2();
 	map_test3();
+	vector_test();
 	printf("before return:\n");
 	return 0;
 }
