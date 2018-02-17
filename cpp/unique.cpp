@@ -142,9 +142,8 @@ unique_ptr<MyClass> PassUnquePtr(unique_ptr<MyClass> obj)
 	return obj;
 }
 
-int main(int argc, char **argv)
+void copy_elision_test()
 {
-	//template unique_ptr<MyClass>;
 	printf("###stack temp obj start:\n");
 	MyClass("test0", 0);
 	printf("###stack temp obj des fin\n");
@@ -166,6 +165,11 @@ int main(int argc, char **argv)
 	MyClass o2 = o0;
 	MyClass o3(o0);//absolutely equal to the above
 	printf("###stack obj from \"temp obj\" fin\n");
+}
+
+int main(int argc, char **argv)
+{
+	//template unique_ptr<MyClass>;
 	//printf("%d\n", (o0, o1));
 	//
 	printf("###these 4 quivalent instantiation, no copy cons during obj instantiation\n");
