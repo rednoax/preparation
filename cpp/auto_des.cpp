@@ -2,7 +2,7 @@
 #include <vector>
 #include <string>
 #include <map>
-
+#include <string.h>
 using namespace std;
 class MyClass {
 public:
@@ -168,14 +168,23 @@ void InitSingleTrigger(const test& trigger)//temp obj cons
 {
 	printf("###%s: trigger @%p\n", __func__, &trigger);
 	vector<test> name_vector{trigger};//copy cons twice from input's temp obj
-	printf("###%s: fin\n", __func__);
+	printf("###%s: fin, name_vector [0]@%p\n", __func__, &name_vector[0]);
 }
 
 void InitSingleTrigger2(const test trigger)//obj instantiate with a temp obj cons will not call copy cons!!!
 {
 	printf("###%s: trigger @%p\n", __func__, &trigger);
 	vector<test> name_vector{trigger};//copy cons twice from input's temp obj
-	printf("###%s: fin\n", __func__);
+	printf("###%s: fin, name_vector's [0]@%p\n", __func__, &name_vector[0]);
+}
+
+void string_test()
+{
+	string s1 = __func__;
+	string s2 = s1;
+	if (!s2.compare(0, s1.length(), s1)) {
+		printf("%s: s1.length() %ld==strlen %ld\n", __func__, s1.length(), strlen(s1.data()));
+	}
 }
 
 void vector_test()
@@ -210,6 +219,7 @@ int main()
 	map_test2();
 	map_test3();
 	vector_test();
+	string_test();
 	printf("before return:\n");
 	return 0;
 }
