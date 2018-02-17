@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include <map>
+using std::string;
 class MyClass {
 public:
 	MyClass(const MyClass& src)
@@ -142,10 +143,21 @@ void map_test2()
 	MyMap *p = new MyMap;
 	//(*p)[c];
 	(*p)[c] = v;
+	printf("value @%p\n", &(*p)[c]);
 	printf("###delete map instance\n");
 	delete p;
 	printf("###2 stack obj des\n");
 }
+
+void map_test3()
+{
+	std::map<int, string> m;
+	m[0] = "0";
+	printf("%s: %ld, '%s'\n", __func__, m.count(0), m[0].c_str());
+	m[0] = "1";
+	printf("%s: %ld, '%s', '%p'\n", __func__, m.count(0), m[0].c_str(), &m[0]);
+}
+
 int main()
 {
 	printf("member is class:\n");
@@ -156,6 +168,7 @@ int main()
 	MyClass3 obj2;
 	map_test();
 	map_test2();
+	map_test3();
 	printf("before return:\n");
 	return 0;
 }
