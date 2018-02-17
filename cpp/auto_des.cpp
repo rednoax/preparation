@@ -33,6 +33,11 @@ public:
 		m_i = i;
 		printf("%s(%d): %p\n", __func__, i, this);
 	}
+	test(const char *s)
+	{
+		m_i = s[0];
+		printf("%s(\"%s\"): %p\n", __func__, s, this);
+	}
 	~test()
 	{
 		printf("%s: %p, %d\n", __func__, this, m_i);
@@ -159,6 +164,20 @@ void map_test3()
 	printf("%s: %ld, '%s', '%p'\n", __func__, m.count(0), m[0].c_str(), &m[0]);
 }
 
+void InitSingleTrigger(const test& trigger)//temp obj cons
+{
+	printf("###%s: trigger @%p\n", __func__, &trigger);
+	vector<test> name_vector{trigger};//copy cons twice from input's temp obj
+	printf("###%s: fin\n", __func__);
+}
+
+void InitSingleTrigger2(const test trigger)//obj instantiate with a temp obj cons will not call copy cons!!!
+{
+	printf("###%s: trigger @%p\n", __func__, &trigger);
+	vector<test> name_vector{trigger};//copy cons twice from input's temp obj
+	printf("###%s: fin\n", __func__);
+}
+
 void vector_test()
 {
 	printf("###%s\n", __func__);
@@ -172,6 +191,12 @@ void vector_test()
 	delete(v0);
 	printf("###%s: delete v1\n", __func__);
 	delete(v1);
+	printf("###vector<T> var(T&), T& is via input arg: temp obj cons=>copy cons twice from temp obj\n");
+	InitSingleTrigger("onrestart");//temp obj cons
+	printf("###%s fin1\n", __func__);
+	printf("###vector<T> var(T), T is via input arg: temp obj cons=>copy cons twice from temp obj\n");
+	InitSingleTrigger2("onrestart");//temp obj cons
+	printf("###%s fin\n", __func__);
 }
 int main()
 {
