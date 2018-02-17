@@ -198,8 +198,10 @@ void vector_test()
 	*v1 = *v0;
 	printf("###%s: delete v0\n", __func__);
 	delete(v0);
-	printf("###%s: delete v1\n", __func__);
-	delete(v1);
+	printf("###%s: clear v1 will delete all its elements, formmer size %ld\n", __func__, v1->size());
+	//delete(v1);
+	v1->clear();
+	printf("after clear: size %ld, empty %d\n", v1->size(), v1->empty());
 	printf("###vector<T> var(T&), T& is via input arg: temp obj cons=>copy cons twice from temp obj\n");
 	InitSingleTrigger("onrestart");//temp obj cons
 	printf("###%s fin1\n", __func__);
