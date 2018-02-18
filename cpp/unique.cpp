@@ -4,6 +4,7 @@
 #include <string>
 #include <string.h>
 #include <unistd.h>
+#include <vector>
 #if 10
 #define USE_STD_UNIQUE
 #else
@@ -270,6 +271,43 @@ void copy_elision_func_return_test()
 	printf("o5 @%p\n", o5);
 }
 
+void emplace_back_test()
+{
+	/*
+	new and vector emplace_back behave differently.
+	Actually we need not care if the temp obj is generated, for it will des if it really has been consed.
+	We just need to care the final element on heap.
+	The emplace_back will forward args to T's cons. The cons can be copy cons or rvalue reference cons, or other valid T cons:
+	1. you can use move to enforce rvalue reference cons is called
+	2. when emplace_back is called with a temp obj, the temp obj is used as rvalue reference so the rvalue reference cons is called
+	*/
+	printf("new, cons only once, no copy/move from stack to heap\n");
+	MyClass *o0 = new MyClass();
+	printf("o0 @%p\n", o0);
+	MyClass *o1 = new MyClass(*o0);
+	printf("o1 @%p\n", o1);
+	std::vector<NewClass> v;
+	printf("emplace temp obj(on stack): temp obj cons=>T&& cons, the final element is on heap\n");
+	v.emplace_back(NewClass());
+	v.erase(v.begin());
+	printf("emplace temp obj via copy: temp obj(on stack) cons via copy=>T&& cons, final element is on heap\n");
+	v.emplace_back(NewClass(v[0]));
+	v.erase(v.begin());
+	printf("emplace non temp obj, copy cons is used dafaultly but move can be used to enforce move\n");
+	NewClass c;
+	v.emplace_back(c);
+	v.erase(v.begin());
+	printf("move enforcement\n");
+	v.emplace_back(std::move(c));
+	v.erase(v.begin());
+	printf("emplace temp obj while it has no move, so only copy cons for final element:\n");
+	std::vector<MyClass> v2;
+	v2.emplace_back(MyClass());
+	v2.pop_back();
+	MyClass o;
+	v2.emplace_back(o);//v2.emplace_back(std::move(o)); will be right
+	printf("%s auto des\n", __func__);
+}
 void copy_elision_test()
 {
 	printf("###stack temp obj start:\n");
@@ -280,6 +318,14 @@ void copy_elision_test()
 	T obj(T(args...)) will not call copy cons:
 	FLASE: temp obj with T cons=>copy cons from temp obj to obj	<---------actually not so!!!!!!!!!!
 	true:obj is instantiated with T cons directly.				<---------actually so!!!!!!!!!!!!!!
+	*/
+	/*
+	http://en.cppreference.com/w/cpp/language/copy_elision
+	When a nameless temporary, not bound to any references, would be copied or moved (since C++11) into an
+	object of the same type (ignoring top-level cv-qualification), the copy/move (since C++11) is omitted.
+	When that temporary is constructed, it is constructed directly in the storage where it would otherwise
+	be copied or moved (since C++11) to. When the nameless temporary is the argument of a return statement,
+	this variant of copy elision is known as RVO, "return value optimization".
 	*/
 	MyClass o0(MyClass("test1", 1));//temp obj call related cons, then no copy cons
 	MyClass o1 = MyClass("test2", 2);//exactly equal to the above
@@ -292,6 +338,7 @@ void copy_elision_test()
 	*/
 	MyClass o2 = o0;
 	MyClass o3(o0);//absolutely equal to the above
+	emplace_back_test();
 	printf("###stack obj from \"temp obj\" fin\n");
 	copy_elision_func_return_test();
 }
