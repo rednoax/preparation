@@ -163,6 +163,54 @@ MyClass __make_unique2()
 	return MyClass("stack1", 1);
 }
 
+#if 1
+class NewClass {
+private:
+	std::string m_Name;
+	int m_value;
+public:
+	NewClass(const NewClass& src)//lvalue reference
+	{
+		m_Name = src.m_Name;
+		m_value = src.m_value;
+		printf("%s copy %p=>%p\n", __func__, &src, this);
+	}
+	NewClass()
+	{
+		printf("%s(): %p\n", __func__, this);
+	}
+	NewClass(const std::string& name, int value)
+		:m_Name(name)
+		,m_value(value)
+	{
+		printf("%s(\"%s\", %d): %p\n", __func__, name.data(), value, this);
+	}
+	NewClass(NewClass&& rvalue)//rvalue reference
+	{
+		m_value = rvalue.m_value + 1;
+		m_Name = rvalue.m_Name;
+		printf("%s(&&): %p=>%p\n", __func__, &rvalue, this);
+	}
+	~NewClass()
+	{
+		printf("%s:\"%s\" %p\n", __func__, m_Name.c_str(), this);
+	}
+	NewClass& operator=(const NewClass &src)
+	{
+		m_Name = src.m_Name;
+		m_value = src.m_value;
+		printf("%s: %p<=%p\n", __func__, this, &src);
+		return *this;
+	}
+};
+
+NewClass __make_unique(NewClass arg)
+{
+	printf("%s(@%p)\n", __func__, &arg);
+	return arg;
+}
+
+#endif
 /*
 https://en.wikipedia.org/wiki/Copy_elision
 http://en.cppreference.com/w/cpp/language/copy_elision
@@ -184,6 +232,10 @@ void copy_elision_func_return_test()
 	printf("o4 @%p\n", o4);
 	MyClass o5 = __make_unique(__make_unique2());
 	printf("o5 @%p\n", o5);
+	NewClass src2("src2", 10);
+	printf("src2 @%p, 'src2=>func(arg)' via copy cons=>'dst2 = retuened stack arg' via NewClass(&&):\n", &src2);
+	NewClass dst2 = __make_unique(src2);
+	printf("src2/dst2 @%p/%p\n", &src2, &dst2);
 	printf("###%s, begin des\n", __func__);
 }
 
