@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string>
 #include <string.h>
+#include <unistd.h>
 #if 10
 #define USE_STD_UNIQUE
 #else
@@ -94,7 +95,7 @@ public:
 	{
 		m_Name = src.m_Name;
 		m_value = src.m_value;
-		printf("%s(const MyClass& %p): %p<=%p\n", __func__, &src, this, &src);
+		printf("%s copy %p=>%p\n", __func__, &src, this);
 	}
 	MyClass()
 	{
@@ -104,7 +105,7 @@ public:
 		:m_Name(name)
 		,m_value(value)
 	{
-		printf("%s(const string& \"%s\", %d): %p\n", __func__, name.data(), value, this);
+		printf("%s(\"%s\", %d): %p\n", __func__, name.data(), value, this);
 	}
 	~MyClass()
 	{
@@ -136,10 +137,54 @@ public:
 	*/
 };
 
+//TODO:Why no move in the func body?
 unique_ptr<MyClass> PassUnquePtr(unique_ptr<MyClass> obj)
 {
 	printf("%s: stack temp obj %p(%p)\n", __func__, &obj, &*obj);
 	return obj;
+}
+
+MyClass __make_unique()
+{
+	MyClass stack("stack0", 0);
+	printf("%s(): %p\n", __func__, &stack);
+	return stack;
+}
+
+//when return arg is used as assignment, i.e. "class obj = __make_unique;" obj will instantiate with copy cons
+MyClass __make_unique(MyClass arg)
+{
+	printf("%s(@%p)\n", __func__, &arg);
+	return arg;
+}
+
+MyClass __make_unique2()
+{
+	return MyClass("stack1", 1);
+}
+
+/*
+https://en.wikipedia.org/wiki/Copy_elision
+http://en.cppreference.com/w/cpp/language/copy_elision
+*/
+void copy_elision_func_return_test()
+{
+	printf("###%s.....\n", __func__);
+	MyClass o0 = __make_unique();
+	printf("o0 @%p\n", o0);
+	MyClass o1(__make_unique());
+	printf("o1 @%p\n", o1);
+	MyClass src("src", 9);
+	printf("start =, src @%p\n", &src);
+	MyClass o2 = __make_unique((src));
+	printf("src/o2 @%p/%p\n", &src, &o2);
+	MyClass o3 = __make_unique2();
+	printf("o3 @%p\n", o3);
+	MyClass o4 = __make_unique(MyClass("o4", 4));
+	printf("o4 @%p\n", o4);
+	MyClass o5 = __make_unique(__make_unique2());
+	printf("o5 @%p\n", o5);
+	printf("###%s, begin des\n", __func__);
 }
 
 void copy_elision_test()
@@ -165,6 +210,18 @@ void copy_elision_test()
 	MyClass o2 = o0;
 	MyClass o3(o0);//absolutely equal to the above
 	printf("###stack obj from \"temp obj\" fin\n");
+	copy_elision_func_return_test();
+}
+
+void move_test()
+{
+	MyClass *p = new MyClass("st", 1);
+	unique_ptr<MyClass> o1(p);
+#if 0//core dump
+	unique_ptr<MyClass> o2(p);
+	printf("%s: %p==%p?\n", __func__, &*o1, &*o2);
+	sleep(5);
+#endif
 }
 
 int main(int argc, char **argv)
@@ -230,6 +287,8 @@ unique.cpp:188:89: error: no match for ‘operator[]’ (operand types are ‘st
 	*/
 	unique_ptr<MyClass> uniquePointer8 = PassUnquePtr(move(uniquePointer7));
 	printf("uniquePointer8 %p points to %p(%p)\n", &uniquePointer8, uniquePointer8.get(), &*uniquePointer8);
+	copy_elision_test();
+	move_test();
 	printf("auto des of stack variable:\n");
 	return 0;
 }
