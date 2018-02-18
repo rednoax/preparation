@@ -163,7 +163,12 @@ MyClass __make_unique2()
 	return MyClass("stack1", 1);
 }
 
-#if 1
+/*
+"The C++ Standard Library":
+3.1.5 Move Semantics and Rvalue References
+Finally, note the following two remarks about this feature: (1) overloading rules for rvalue and
+lvalue references and (2) returning rvalue references.
+*/
 class NewClass {
 private:
 	std::string m_Name;
@@ -204,13 +209,44 @@ public:
 	}
 };
 
+//NRVO:no move or copy const, the stack var address is the same as the rvalue address in assignment
+NewClass __make_unique(int unused)
+{
+	NewClass stack("stack1", 1);
+	printf("%s(): %p\n", __func__, &stack);
+	return stack;
+}
+
+//when return arg is used as assignment, i.e. "class obj = __make_unique;" obj will instantiate with move or copy cons
 NewClass __make_unique(NewClass arg)
 {
 	printf("%s(@%p)\n", __func__, &arg);
 	return arg;
 }
 
-#endif
+/*
+NRVO:no move or copy const, the stack var address is the same as the rvalue address in assignment
+so __make_unique2 is the equivalent to __make_unique(int)
+*/
+NewClass __make_unique2(int unused)
+{
+	return NewClass("stack2", 2);
+}
+
+void copy_elision_func_return_test2()
+{
+	printf("###%s: when return an obj from called func's stack, either copy cons elision or NewClass(NewClass&&) is used!!\n", __func__);
+	NewClass src("src", 10);
+	printf("src @%p, 'src=>func(arg)' via copy cons=>'dst = retuened stack arg' via NewClass(&&):\n", &src);
+	NewClass dst = __make_unique(src);
+	printf("src/dst @%p/%p\n", &src, &dst);
+	NewClass o0 = __make_unique(-1);
+	printf("o0 @%p\n", &o0);
+	NewClass o1 = __make_unique2(-1);
+	printf("o1 @%p\n", &o1);
+	printf("###%s, begin des\n", __func__);
+}
+
 /*
 https://en.wikipedia.org/wiki/Copy_elision
 http://en.cppreference.com/w/cpp/language/copy_elision
@@ -232,11 +268,6 @@ void copy_elision_func_return_test()
 	printf("o4 @%p\n", o4);
 	MyClass o5 = __make_unique(__make_unique2());
 	printf("o5 @%p\n", o5);
-	NewClass src2("src2", 10);
-	printf("src2 @%p, 'src2=>func(arg)' via copy cons=>'dst2 = retuened stack arg' via NewClass(&&):\n", &src2);
-	NewClass dst2 = __make_unique(src2);
-	printf("src2/dst2 @%p/%p\n", &src2, &dst2);
-	printf("###%s, begin des\n", __func__);
 }
 
 void copy_elision_test()
@@ -341,6 +372,7 @@ unique.cpp:188:89: error: no match for ‘operator[]’ (operand types are ‘st
 	printf("uniquePointer8 %p points to %p(%p)\n", &uniquePointer8, uniquePointer8.get(), &*uniquePointer8);
 	copy_elision_test();
 	move_test();
+	copy_elision_func_return_test2();
 	printf("auto des of stack variable:\n");
 	return 0;
 }
