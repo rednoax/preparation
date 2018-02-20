@@ -114,10 +114,18 @@ int serv_listen(const char *name)
 	the actual size of the address structure.  The caller should check the value returned in this argument: if the output value exceeds  the  input
 	value, then there is no guarantee that a null terminator is present in sun_path.  (See BUGS.)
 	*/
+#if 0
+	printf("before bind, check if there is socket file\n");
+	sleep(5);
+#endif
 	if (bind(fd, (struct sockaddr*)&un, len) == -1) {
 		rval = -3;
 		goto errout;
 	}
+#if 0
+	printf("after bind, check if there is socket file\n");
+	sleep(5);
+#endif
 	if (listen(fd, QLEN) == -1) {
 		rval = -4;
 		goto errout;
