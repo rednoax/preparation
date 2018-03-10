@@ -72,4 +72,6 @@ int main()
 	deepcopy_smart_ptr<Tuna> marineFish2(new Tuna());
 	MakeFishSwim(marineFish2);
 	*/
+	char *p = new char[4096];
+	delete []p;
 }
