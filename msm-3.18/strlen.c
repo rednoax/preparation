@@ -32,5 +32,6 @@ int main()
 #endif
 		printf("total len %d(0x%x)=>%d(0x%x)\n", len, len, len_aligned, len_aligned);
 	}
+	printf("(uint)~0ULL is %x\n", (unsigned int)~0ULL);
 	return 0;
 }
