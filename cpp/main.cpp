@@ -77,6 +77,10 @@ void func()
 	char property[32] = {0};
 	char *endptr;
 	unsigned long value;
+	/*
+	kernel:	long simple_strtol(const char *cp, char **endp, unsigned int base)
+	c:		long int strtol(const char *nptr, char **endptr, int base);
+	*/
 	value = strtoul(property, &endptr, 10);
 	printf("%ld, %ld\n", value, endptr - property);
 	strcpy(property, "192m");

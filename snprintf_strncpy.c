@@ -139,6 +139,8 @@ int snprintf_test(const char *str)
 int main(int argc, char *argv[], char *envp[])
 {
 	/*
+	size_t is unsigned long, 32bits on arch32 and 64bits on arch64
+	ssize_t is SIGNED long!
 	int snprintf(char *buf, size_t size, const char *fmt, ...);
 	int vsnprintf(char *str, size_t size, const char *format, va_list ap);
 	The functions snprintf() and vsnprintf() write at most size bytes (including the terminating null byte ('\0')) 
