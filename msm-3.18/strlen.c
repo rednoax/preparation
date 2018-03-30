@@ -15,6 +15,14 @@ struct array tags[] = {
 struct array tags2[] = {
 	{}, {}, {},
 };
+struct platform_object {
+	int i;
+	char name[];
+};
+struct platform_object2 {
+	int i;
+	char name[0];
+};
 #define FDT_ALIGN(x, a) (((x) + (a) -1) & ~((a) - 1))
 int main()
 {
@@ -40,5 +48,6 @@ int main()
 	}
 	printf("(uint)~0ULL is %x\n", (unsigned int)~0ULL);
 	printf("%ld, %ld, each %ld\n", ARRAY_SIZE(tags2), sizeof(tags2), sizeof(struct array));
+	printf("%ld %ld\n", sizeof(struct platform_object), sizeof(struct platform_object2));
 	return 0;
 }
