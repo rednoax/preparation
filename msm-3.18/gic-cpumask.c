@@ -39,11 +39,11 @@ int main()
 	printf("%08x\n", cpumask);
 	for (i = 0; i < ARRAY_SIZE(gic_map); i += 2) {
 		int hw = i + 1;
-		printf("pin %02x, hwirq %04x", gic_map[i], gic_map[hw]);
+		printf("pin %02d(%02x), hwirq %04d(%04x)", gic_map[i], gic_map[i], gic_map[hw], gic_map[hw]);
 		for (j = 1; j < ARRAY_SIZE(gic_map);j += 2) {
 			if (j == hw)
 				continue;
-			else if (gic_map[j] == gic_map[hw])
+			else if (gic_map[j] == gic_map[hw])//if there are 2 pairs with the same hwirq, *** will be appended
 				printf("***");
 		}
 		printf("\n");
