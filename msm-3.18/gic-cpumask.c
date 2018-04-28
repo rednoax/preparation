@@ -39,6 +39,10 @@ void dump_array(u32 *gic_map, u32 size)
 		printf("\n");
 	}	
 }
+struct devres {//sizeof==4 when gcc -m32; ==8 when no -m32
+	int i;//if no the following, sizeof(devres) is 4
+	unsigned long long data[];
+};
 int main()
 {
 	int i;
@@ -57,5 +61,6 @@ int main()
 	printf("%08x\n", cpumask);
 	dump_array(gic_map, ARRAY_SIZE(gic_map));
 	dump_array(gpio_map, ARRAY_SIZE(gpio_map));
+	printf("sizeof devres==%d\n", sizeof(struct devres));
 	return 0;
 }
