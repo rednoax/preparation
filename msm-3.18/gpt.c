@@ -102,9 +102,11 @@ void dump_gpt_header(const char *name)
 	dump("CRC32/zlib of header (offset +0 up to header size) in little endian, with this field zeroed during calculation:", p->crc32_header);
 	dump("Reserved 4B(SBZ):", p->reserved_SBZ);
 	printf("This GPT head's LBA(SB 1?):%ld\n", p->header_LBA);
+	//fixed in patch0.xml
 	printf("BK GPT head's LBA(usu 0?):%ld\n", p->backup_LBA);
 	printf("First usable LBA for partitions (primary partition table last LBA + 1):%ld\n", p->patition_start_LBA);
 	printf("\t*512=%ld, ==file size %d?\n", p->patition_start_LBA * 512, buf_size);
+	//fixed in patch0.xml
 	printf("Last usable LBA (secondary partition table first LBA - 1)(usu 0?):%ld\n", p->last_usable_LBA);
 	dump("disk GUID:", p->disk_guid);
 	printf("Starting LBA of array of partition entries (AL 2 in primary copy): %ld\n", p->patition_entries_LBA);
@@ -147,6 +149,7 @@ void dump_gpt_header(const char *name)
 		sectors = pe->last_LBA + 1 - pe->first_LBA;
 		printf("%d, KB %d, start bytes hex %lx, [%ld, %ld]\n", sectors, sectors * 512 / 1024, pe->first_LBA * 512, \
 			pe->first_LBA, pe->last_LBA);
+		//PLZ note both primary/secondary GPT partition entry's userdata's sectors number is 0, which will be patched with actual number in patch0.xml;
 		printf("%s:%08lx %08lx ", label, pe->first_LBA, pe->last_LBA + 1 - pe->first_LBA);
 		//
 		sprintf(tmp + strlen(tmp),
