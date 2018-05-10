@@ -145,8 +145,9 @@ void dump_gpt_header(const char *name)
 		}
 		printf("%s\":", label);
 		sectors = pe->last_LBA + 1 - pe->first_LBA;
-		printf("%d, KB %d, start bytes hex %lx, [%ld, %ld]", sectors, sectors * 512 / 1024, pe->first_LBA * 512, \
+		printf("%d, KB %d, start bytes hex %lx, [%ld, %ld]\n", sectors, sectors * 512 / 1024, pe->first_LBA * 512, \
 			pe->first_LBA, pe->last_LBA);
+		printf("%s:%08lx %08lx ", label, pe->first_LBA, pe->last_LBA + 1 - pe->first_LBA);
 		//
 		sprintf(tmp + strlen(tmp),
 			"<program SECTOR_SIZE_IN_BYTES=\"512\" file_sector_offset=\"0\" filename=\"\" label=\"%s\" "
