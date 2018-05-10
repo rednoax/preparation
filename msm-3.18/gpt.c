@@ -55,6 +55,7 @@ struct gpt_partition_entry {
 
 char buf[10<<20];//10M
 uint buf_size;
+char tmp[10<<20];
 void dump_mbr()
 {
 	struct classical_generic_mbr *pmbr = (struct classical_generic_mbr *)buf;
@@ -88,11 +89,12 @@ void __dump(const char *fmt, void *addr, uint size)
 	printf("\n");
 }
 
-void dump_gpt_header()
+void dump_gpt_header(const char *name)
 {
 	struct patition_table_header *p = (struct patition_table_header*)(buf + sizeof(struct classical_generic_mbr));
 	int ret = strncmp("EFI PART", p->signature, sizeof(p->signature));
-	int i, j;
+	int i, j, fd;
+	uint sectors;
 	struct gpt_partition_entry *pe = (struct gpt_partition_entry*)(p + 1);
 	printf("Signature [%s]\n", ret? "***wrong": "OK");
 	dump("Revision(v1.0 SB 00 00 01 00):", p->version);
@@ -116,7 +118,15 @@ void dump_gpt_header()
 		}
 	}
 	printf("Remaing reserved 420 bytes area SB all 0:[%s]\n", i == sizeof(p->reserved)? "OK": "Fail");
+	sprintf(tmp, "%s.xml", name);
+	fd = open(tmp, O_RDWR|O_CREAT, 0644);
+	if (fd < 0) {
+		perror("open file err");
+		return;
+	}
+	tmp[0] = 0;
 	for (i = 0;;i++) {
+		char label[72] = {0};
 		for (j = 0; j < sizeof(pe->partition_type_GUID); j++) {
 			if (pe->partition_type_GUID[j])
 				break;
@@ -128,12 +138,22 @@ void dump_gpt_header()
 		printf("------------\"");
 		for (j = 0; j < sizeof pe->partition_name; j += 2) {
 			if (pe->partition_name[j])
-				printf("%c", pe->partition_name[j]);
+				snprintf(label + strlen(label), sizeof(label) - strlen(label), \
+					"%c", pe->partition_name[j]);
 			else
 				break;
 		}
-		printf("\":");
-		printf("[%ld, %ld]  ", pe->first_LBA, pe->last_LBA);
+		printf("%s\":", label);
+		sectors = pe->last_LBA + 1 - pe->first_LBA;
+		printf("%d, KB %d, start bytes hex %lx, [%ld, %ld]", sectors, sectors * 512 / 1024, pe->first_LBA * 512, \
+			pe->first_LBA, pe->last_LBA);
+		//
+		sprintf(tmp + strlen(tmp),
+			"<program SECTOR_SIZE_IN_BYTES=\"512\" file_sector_offset=\"0\" filename=\"\" label=\"%s\" "
+			"num_partition_sectors=\"%d\" physical_partition_number=\"0\" size_in_KB=\"%d.0\" sparse=\"false\" "
+			"start_byte_hex=\"0x%lx\" start_sector=\"%ld\"/>\n", \
+			label, sectors, sectors * 512 / 1024, pe->first_LBA * 512, pe->first_LBA);
+		//
 		if (pe->attr) {
 			printf("%lx(BIT ", pe->attr);
 			int k;
@@ -146,6 +166,11 @@ void dump_gpt_header()
 		printf("\n\n");
 		pe++;
 	}
+	ret = write(fd, tmp, strlen(tmp));
+	if (ret != strlen(tmp))
+		printf("***");
+	printf("write %d bytes\n", ret);
+	close(fd);
 	printf("total %d gpt partition entries found, ==%d in gpt header?\n", i, p->partition_entries_nr);
 }
 
@@ -169,6 +194,6 @@ int main(int argc, char **argv)
 	close(fd);
 	printf("%s is %d bytes\n", argv[1], buf_size);
 	dump_mbr();
-	dump_gpt_header();
+	dump_gpt_header(argv[1]);
 	return 0;
 }
