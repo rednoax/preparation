@@ -150,7 +150,7 @@ void dump_gpt_header(const char *name)
 		printf("%d, KB %d, start bytes hex %lx, [%ld, %ld]\n", sectors, sectors * 512 / 1024, pe->first_LBA * 512, \
 			pe->first_LBA, pe->last_LBA);
 		//PLZ note both primary/secondary GPT partition entry's userdata's sectors number is 0, which will be patched with actual number in patch0.xml;
-		printf("%s:%08lx %08lx ", label, pe->first_LBA, pe->last_LBA + 1 - pe->first_LBA);
+		printf("%s:\t0x%08lx 0x%08lx ", label, pe->first_LBA, pe->last_LBA + 1 - pe->first_LBA);
 		//
 		sprintf(tmp + strlen(tmp),
 			"<program SECTOR_SIZE_IN_BYTES=\"512\" file_sector_offset=\"0\" filename=\"\" label=\"%s\" "
