@@ -11,6 +11,35 @@
 typedef unsigned long ulong;
 typedef unsigned int uint;
 
+struct file_label {
+	const char filename[128];
+	const char labelname[128];
+	uint size;
+};
+/*
+1. SC800-V7C.B1.01.032-totiandirong/update.bat 's list is all included by the following
+2. SC800-V7C.B1.01.032-totiandirong/erase_update_SC806_CN00_NLP.bat
+*/
+const struct file_label rawprogram0[] = {
+	{"sbl1.mbn", "sbl1", 0x00000400},
+	{"emmc_appsboot.mbn", "aboot", 0x00000800},
+	{"rpm.mbn", "rpm", 0x00000400},
+	{"tz.mbn", "tz", 0x00000600},
+	//the above bak partition is of the same size of org partition
+	{"sec.dat", "sec", 0x00000020},
+	{"fs_image-SC806-CN00-v0.12.img", "fsg", 0x00000c00},
+	{"zero.bin", "modemst1", 0x00000c00},//"modemst2" partition is of the same size_in_KB
+	{"splash.img", "splash", 0x00032000},
+	{"NON-HLOS.bin", "modem", 0x00020000},
+	{"boot.img", "boot", 0x00010000},
+	{"system.img", "system", 0x00266668},
+	{"persist.img", "persist", 0x00010000},
+	{"cache.img", "cache", 0x00080000},
+	{"recovery.img", "recovery", 0x00010000},
+	{"privdata1.img", "privdata2", 0x00032000},//privdata1 and privdata2 partition is of the same size!
+	{"userdata.img", "userdata", 0x00000000},
+};
+
 struct partition_entry {
 	char physical_driver_status;//0x0 means inactive
 	char start_CHS[3];//1B header, 1B sector, 1B cylinder
