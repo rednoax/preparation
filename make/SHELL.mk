@@ -13,6 +13,7 @@ VAR2=$(findstring part, partial end)
 VAR3=$(findstring partial, part end)
 vars=VAR0 VAR1 VAR2 VAR3
 $(call iterate, $(vars))
+export vars
 
 #MAKE_VERSION is 4.2.1
 $(warning MAKE_VERSION='$(MAKE_VERSION)')
@@ -83,6 +84,7 @@ endif
 ###########################
 #use the following command line to test!
 #make -f SHELL.mk msm8952 DEBUG=0 BOOTLOADER_OUT=out/target/product/A10_32/obj/EMMC_BOOTLOADER_OBJ
+$(warning SHELL.mk:$(shell echo $$PPID))
 .PHONY:all
 project-name:=$(firstword $(MAKECMDGOALS))
 ifneq ($(project-name),)
@@ -97,7 +99,7 @@ endif
 endif
 
 ifeq ($(do-nothing),)
-VARS=DEBUG BOOTLOADER_OUT
+VARS=DEBUG BOOTLOADER_OUT PRJECT
 $(call iterate, $(VARS))
 endif
 
