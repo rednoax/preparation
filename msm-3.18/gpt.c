@@ -47,39 +47,39 @@ struct partition_entry {
 	char last_CHS[3];//CHS address of last absolute sector in partition. The format is described by 3 bytes, see the above
 	uint partition_first_abs_sector_LBA;//LBA of first absolute sector in the partition
 	uint partition_sectors;//number of sectors in partition
-} __attribute__((packed));
+} __attribute__((packed));//sizeof==16B
 
 struct classical_generic_mbr {
 	char bootstap_code[0x1be];
 	struct partition_entry entries[4];
-	short boot_signatrue;//SB 0x55 0xaa
+	short boot_signatrue;//SB 0x55 0xaa, offset +0x1fe
 } __attribute__((packed));
 
 struct patition_table_header {
 	char signature[8];
 	int version;
-	int header_size;
-	int crc32_header;
+	int header_size;//+12
+	int crc32_header;//+16
 	int reserved_SBZ;
-	ulong header_LBA;
-	ulong backup_LBA;
-	ulong patition_start_LBA;//primary partition table last LBA + 1
-	ulong last_usable_LBA;//secondary patition table first LBA - 1
+	ulong header_LBA;//+24
+	ulong backup_LBA;//+32
+	ulong patition_start_LBA;//primary partition table last LBA + 1, offset +40
+	ulong last_usable_LBA;//secondary patition table first LBA - 1, offset +48
 	char disk_guid[16];
-	ulong patition_entries_LBA;//AL 2 in primary copy
-	int partition_entries_nr;
-	int partition_entry_size;
-	int crc32_partition_array;
+	ulong patition_entries_LBA;//AL 2 in primary copy, offset +72
+	int partition_entries_nr;//+80
+	int partition_entry_size;//+84
+	int crc32_partition_array;//+88
 	char reserved[420];
 } __attribute__((packed));
 
 struct gpt_partition_entry {
 	char partition_type_GUID[16];
 	char partition_GUID[16];
-	ulong first_LBA;
-	ulong last_LBA;
-	ulong attr;
-	char partition_name[72];
+	ulong first_LBA;//+32
+	ulong last_LBA;//+40
+	ulong attr;//+48
+	char partition_name[72];//+56
 } __attribute__((packed));//128B
 
 char buf[10<<20];//10M
