@@ -6,7 +6,8 @@
 
 # O=XX seems no effect
 # make O=~/O_versatile/ ARCH=arm CROSS_COMPILE=arm-linux- KERNELDIR=~/kernel/ V=[0|1|2]
-
+#make O=~/A10M/out/target/product/A10_32/obj/kernel/msm-3.18 KERNELDIR=~/A10M/kernel/msm-3.18 \
+	ARCH=arm CROSS_COMPILE=~/A10M/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi-
 ifeq ($(KERNELRELEASE),)
 
     # Assume the source tree is where the running kernel was built
