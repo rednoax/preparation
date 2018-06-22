@@ -120,7 +120,7 @@ struct dentry *debug_init_dentry(void)
 		return d_debug;
 	if (!debugfs_initialized())
 		return NULL;
-	d_debug = debugfs_create_dir("debug", NULL);
+	d_debug = debugfs_create_dir("__debug", NULL);
 	if (!d_debug) {
 		printk("Could not create debugfs directory 'debug'\n");
 		return NULL;
@@ -744,7 +744,7 @@ void supervisor(struct wk_struct *work)
 	int i, loop = p->loop;
 	int cnt = 0;
 
-	printk("--%s %d--\n", __func__, loop);
+	printk(KERN_ALERT "--%s %d--\n", __func__, loop);
 	for (i = 0; i < loop; i++) {
 		p->x = 0;
 		p->y = 0;
@@ -753,9 +753,9 @@ void supervisor(struct wk_struct *work)
 		wait_for_completion(end + ENUM_READ);
 		wait_for_completion(end + ENUM_WRITE);
 		if (p->r1 == 0 && p->r2 == 0)
-			printk("%d reorders in %d\n", ++cnt, i + 1);
+			printk(KERN_ALERT "%d reorders in %d\n", ++cnt, i + 1);
 	}
-	printk("----\n");
+	printk(KERN_ALERT "----%d\n", cnt);
 }
 
 void dummy(struct wk_struct *work)
