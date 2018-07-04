@@ -41,6 +41,7 @@ int main(int argc, char **argv)
 	ssize_t len;
 	unsigned int i, j, k, index, cur;
 	unsigned int blk_sz = 4096;
+	unsigned long long sparse_image_sum;
 	const char *p;
 	struct sparse_image *img;	
 	struct chunk_header *head;
@@ -85,6 +86,7 @@ int main(int argc, char **argv)
 				switch(type)
 				{
 				case CHUNK_TYPE_RAW:
+					head->size = head->entry[1];
 				case CHUNK_TYPE_DONT_CARE:
 					head->base = total_blocks;
 					total_blocks += head->entry[1];
@@ -96,6 +98,7 @@ int main(int argc, char **argv)
 			}
 		}
 	}
+	sparse_image_sum = 0;
 	for (i = 0; i < index; i++) {
 		img = images + i;
 		printf("[%d] has %d chunks\n", i, img->total_chunks);
@@ -110,10 +113,15 @@ int main(int argc, char **argv)
 			if (type == CHUNK_TYPE_DONT_CARE)
 				printf(")<--------------");
 			printf("\n");
+			sparse_image_sum += head->size;
 		}
 		if (type == CHUNK_TYPE_RAW) {
 			unsigned long long last = head->base + head->entry[1] - 1;
-			printf("%lld %lld] END\n", last, last * blk_sz);
+			/*JUST save ~71.5 KB!
+			(gdb) p (566902308 - 566829056)/1024.0
+			$3 = 71.53515625
+			*/
+			printf("%lld %lld] total %lld\n", last, last * blk_sz, sparse_image_sum * blk_sz);
 			last += 1;
 			printf("%lld %lld) END\n", last, last * blk_sz);
 		}
