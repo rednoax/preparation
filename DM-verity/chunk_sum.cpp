@@ -114,6 +114,8 @@ int main(int argc, char **argv)
 		if (type == CHUNK_TYPE_RAW) {
 			unsigned long long last = head->base + head->entry[1] - 1;
 			printf("%lld %lld] END\n", last, last * blk_sz);
+			last += 1;
+			printf("%lld %lld) END\n", last, last * blk_sz);
 		}
 	}
 	free(line);
