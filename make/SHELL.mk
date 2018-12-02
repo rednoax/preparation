@@ -1,4 +1,4 @@
-iterate=$(foreach v, $1, $(warning $v='$($v)'))
+iterator=$(foreach v, $1, $(warning $v='$($v)'))
 
 #SHELL default value is /bin/sh, not the environment's SHELL=/bin/bash 
 $(warning $(SHELL))
@@ -12,8 +12,8 @@ VAR1=$(findstring a,ab)
 VAR2=$(findstring part, partial end)
 VAR3=$(findstring partial, part end)
 vars=VAR0 VAR1 VAR2 VAR3
-$(call iterate, $(vars))
-export vars
+$(call iterator, $(vars))
+export vars OVER_ENV=caller
 
 #MAKE_VERSION is 4.2.1
 $(warning MAKE_VERSION='$(MAKE_VERSION)')
@@ -83,8 +83,11 @@ $(warning empty:$(__unexist2))
 endif
 ###########################
 #use the following command line to test!
-#make -f SHELL.mk msm8952 DEBUG=0 BOOTLOADER_OUT=out/target/product/A10_32/obj/EMMC_BOOTLOADER_OBJ
+#make -f SHELL.mk msm8952 DEBUG=0 BOOTLOADER_OUT=out/target/product/A10_32/obj/EMMC_BOOTLOADER_OBJ both=cmdline all
+makepid=$(shell ps|grep make) #it is the same as $$PID
+$(call iterator, makepid)
 $(warning SHELL.mk:$(shell echo $$PPID))
+#$(shell sleep 10)
 .PHONY:all
 project-name:=$(firstword $(MAKECMDGOALS))
 ifneq ($(project-name),)
@@ -92,15 +95,15 @@ ifneq ($(wildcard project/$(project-name).mk),)
 do-nothing:=1
 $(MAKECMDGOALS) all: make-make make-make-make
 make-make:
-	PRJECT=$(project-name) $(MAKE) -C project -f $(project-name).mk
+	PRJECT=$(project-name) OVER_ENV=calling both=env $(MAKE) -C project -f $(project-name).mk
 make-make-make:
 	PRJECT=$(project-name) $(MAKE) -f SHELL.mk emmc
 endif
 endif
-
+$(call iterator, do-nothing)
 ifeq ($(do-nothing),)
 VARS=DEBUG BOOTLOADER_OUT PRJECT
-$(call iterate, $(VARS))
+$(call iterator, $(VARS))
 endif
 
 emmc_clean:
@@ -115,7 +118,7 @@ emmc_2:emmc_clean emmc_obj
 #######################
 undefined_with_prefix:=$(addprefix --second ,$(__undefined))
 empty_with_prefix:=$(addprefix --second, $(__unexist2))
-$(call iterate, undefined_with_prefix empty_with_prefix)
+$(call iterator, undefined_with_prefix empty_with_prefix)
 file1:=/opt/o:p
 file2:=/opt
 $(warning $(subst :,[,$(file1)))
@@ -123,4 +126,4 @@ $(warning $(subst :,[,$(file2)))
 include file0
 include file1
 include file2
-$(call iterate, MAKEFILE_LIST)
+$(call iterator, MAKEFILE_LIST)

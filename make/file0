@@ -1,1 +1,1 @@
-$(call iterate,MAKEFILES MAKEFILE_LIST)
+$(call iterator, MAKEFILES MAKEFILE_LIST)
