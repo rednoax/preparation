@@ -12,7 +12,7 @@ VAR1=$(findstring a,ab)
 VAR2=$(findstring part, partial end)
 VAR3=$(findstring partial, part end)
 vars=VAR0 VAR1 VAR2 VAR3
-$(call iterator, $(vars))
+$(call iterator, $(vars) MAKEFLAGS MFLAGS)
 export vars OVER_ENV=caller
 
 #MAKE_VERSION is 4.2.1

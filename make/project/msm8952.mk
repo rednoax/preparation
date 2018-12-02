@@ -16,7 +16,7 @@ iter=$(foreach v, $1, $(warning $v='$($v)'))
 #both: defined in caller make's env and upper make's cmdline, uses the latter
 
 VARS:=DEBUG BOOTLOADER_OUT __MAKECMDGOALS project-name PRJECT pattern vars OVER_ENV both MAKECMDGOALS
-$(call iter, $(VARS))
+$(call iter, $(VARS) MAKEFLAGS MFLAGS)
 makepid=$(shell ps | grep make)
 $(warning $(makepid))
 .PHONY:all
