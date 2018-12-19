@@ -95,7 +95,7 @@ ifneq ($(wildcard project/$(project-name).mk),)
 do-nothing:=1
 $(MAKECMDGOALS) all: make-make make-make-make
 make-make:
-	PRJECT=$(project-name) OVER_ENV=calling both=env $(MAKE) -C project -f $(project-name).mk
+	PRJECT=$(project-name) OVER_ENV=calling both=env $(MAKE) -C project -f $(project-name).mk CHLD_NAME=small
 make-make-make:
 	PRJECT=$(project-name) $(MAKE) -f SHELL.mk emmc
 endif
