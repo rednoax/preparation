@@ -16,9 +16,15 @@ $(call showargs, project/, *.mk)
 $(call rwildcard, project/,*.mk)
 $(call rwildcard,project/, *.mk)
 $(call rwildcard,,$(strip $(MAKEFILE_LIST)))
+#the sub0/* will get the files or dirs under sub0, but not the more deeper things
 $(warning $(wildcard sub0/*))
 #* means 0 or more chars
 $(warning $(wildcard sub0/*c))
+#test what a non dir's / & /* will return?
+$(warning $(foreach fd,$(wildcard sub0/*c),$(wildcard $(fd)/)))
+$(warning $(foreach fd,$(wildcard sub0/*c),$(wildcard $(fd)/*)))
+#% is max match
+$(warning $(filter %.mk,a.mk.mk a.mk.))
 platform=plat/rockchip/rk3368/platform.mk \
 plat/rockchip/rk3399/platform.mk \
 plat/rockchip/rk3328/platform.mk \
