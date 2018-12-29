@@ -1,5 +1,3 @@
-
-
    1 
    2 build/qemu/debug/bl1/bl1.elf:     file format elf32-littlearm
    3 build/qemu/debug/bl1/bl1.elf
@@ -379,10 +377,22 @@
  377 
  378 
  379 Disassembly of section .text:
- 380 
+ 380
+;here cpu is in secure state PL1(svc), the initial state of which is specified in DDI0406B B1.6.10 reset 
+;cpsr:0x400001d3:
+;J.T:0.0-ISETSTATE(instruction set state) arm
+;E:0-LE, A:1-async abort disabled, I:1-interrupt disabled, F:1-fiq disabled, mode:0x13-svc
+;NZCVQ/IT/GE is trival fields
  381 00000000 <bl1_entrypoint>:
+;SCR: 1.can only be r/w in Secure PL1;2.default reset value is 0;3.only visiable in secure state
  382        0:   ee110f11    mrc 15, 0, r0, cr1, cr1, {0}
  383        4:   e3100001    tst r0, #1
+;info reg r0:0x0
+;NS,bit[0]	now cpu is in svc, so it's in SS(secure state)
+;IRQ,bit[1]	0	IRQ mode entered when IRQ is taken(run)
+;			1	monitor mode entered when IRQ is taken
+;FIQ,bit[2]	0	FIQ mode entered when FIQ is taken
+;			1	monitor mode entered when IRQ is taken
  384        8:   0a000002    beq 18 <CPU_OPS_SIZE+0xc>
  385        c:   e59f0198    ldr r0, [pc, #408]  ; 1ac <skip_mmu_off+0x98>
  386       10:   e3a010a2    mov r1, #162    ; 0xa2
@@ -4393,8 +4403,8 @@
 4391     3a94:   e1b0f00e    movs    pc, lr
 4392 
 4393 00003a98 <reset_handler>:
-4394     3a98:   e1a0a00e    mov sl, lr
-4395     3a9c:   eb0000b1    bl  3d68 <plat_reset_handler>
+4394     3a98:   e1a0a00e    mov sl, lr;sl==r10
+4395     3a9c:   eb0000b1    bl  3d68 <plat_reset_handler>;dummy:bx lr
 4396     3aa0:   eb00000a    bl  3ad0 <get_cpu_ops_ptr>
 4397     3aa4:   e3500000    cmp r0, #0
 4398     3aa8:   1a000002    bne 3ab8 <reset_handler+0x20>
@@ -4409,7 +4419,7 @@
 4407     3acc:   0000577f    .word   0x0000577f
 4408 
 4409 00003ad0 <get_cpu_ops_ptr>:
-4410     3ad0:   e59f4030    ldr r4, [pc, #48]   ; 3b08 <error_exit+0x4>
+4410     3ad0:   e59f4030    ldr r4, [pc, #48]   ; 3b08 <error_exit+0x4>;info reg pc
 4411     3ad4:   e59f5030    ldr r5, [pc, #48]   ; 3b0c <error_exit+0x8>
 4412     3ad8:   e3a00000    mov r0, #0
 4413     3adc:   ee102f10    mrc 15, 0, r2, cr0, cr0, {0}
