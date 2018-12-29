@@ -115,7 +115,9 @@ Expect 1 on thead 139728456488704:CPU 1
 	for (i = 0; i < CONFIG_THREAD_NR; i++) {
 		s = pthread_join(t[i], NULL);
 		if (s != 0)
-			err_exit(s, "***join %d", i);		
+			err_exit(s, "***join %d", i);
+		else
+			printf("join %ld\n", t[i]);
 	}
 	/*
 	printf("t%ld sleep\n", thread);
