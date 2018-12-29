@@ -100,7 +100,7 @@ Expect 1 on thead 139728456488704:CPU 1
 
 	if (argc > 1)
 		loops = atoi(argv[1]);
-	printf("%d loop %d\n", getpid(), loops);
+	printf("pid%d tid%ld loop %d\n", getpid(), thread, loops);
 	sleep(10);
 	for (i = 0; i < CONFIG_THREAD_NR; i++) {
 		struct arg * argp = arg + i;
