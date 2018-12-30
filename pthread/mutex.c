@@ -98,10 +98,17 @@ https://stackoverflow.com/questions/8032372/how-can-i-see-which-cpu-core-a-threa
 	*/
 	pause();
 #else
+/*
+android ver:
+https://stackoverflow.com/questions/9287315/finding-usage-of-resources-cpu-and-memory-by-threads-of-a-process-in-android
+ps -p -t -c 7624
+x86 ver:
+https://stackoverflow.com/questions/8032372/how-can-i-see-which-cpu-core-a-thread-is-running-in
+*/
 	for (i = 0; i < loops; i++) {
-		//pthread_mutex_lock(lock);
+		pthread_mutex_lock(lock);
 		glob++;
-		//pthread_mutex_unlock(lock);
+		pthread_mutex_unlock(lock);
 	}
 #endif
 	return (void*)cpu;
