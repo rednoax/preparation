@@ -1,4 +1,6 @@
+//~/OP-TEE/toolchains/aarch32/bin/arm-linux-gnueabihf-gcc -Wall -static -pthread mutex.c
 #define _GNU_SOURCE
+#define __USE_GNU//actually seem useless at all!
 #include <pthread.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -28,6 +30,14 @@ void err_exit(int error, const char *fmt, ...)
 	exit(1);
 }
 
+void err_cont(int error, const char *fmt, ...)
+{
+	va_list ap;
+	va_start(ap, fmt);
+	err_doit(1, error, fmt, ap);
+	va_end(ap);
+}
+
 static int glob = 0;
 
 struct arg {
@@ -49,21 +59,34 @@ static void *threadFunc(void *_arg)
 	pthread_t thread = pthread_self();
 	pthread_mutex_t *lock = argp->lock;
 	cpu_set_t cpuset;
+	int cnt = 1;
 	CPU_ZERO(&cpuset);
 	CPU_SET(cpu, &cpuset);
-#if 0
-	s = pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
-	if (s != 0)
-		err_exit(s, "***pthread_setaffinity_np for %lu on CPU %d", thread, cpu);
-	s = pthread_getaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
-	if (s != 0)
-		err_exit(s, "***pthread_getaffinity_np for %lu on CPU %d", thread, cpu);
-#endif
-	printf("Expect %d on thead %lu:", cpu, thread);
-	for (i = 0; i < CONFIG_THREAD_NR; i++) {
-		if (CPU_ISSET(i, &cpuset))
-			printf("CPU %d\n", i);
+#if 10
+reset:
+	//pthread_mutex_lock(lock);//no improvament, only many times trying can acchive successful binding
+	s = pthread_setaffinity_np(thread, sizeof(size_t), &cpuset);
+	if (s != 0) {
+		//err_cont(s, "***pthread_setaffinity_np for %lu on CPU %d", thread, cpu);
+		cnt++;
+		goto reset;
+	} else {
+		//printf("tid %lu on %d:", thread, cpu);
+		cpu_set_t real;
+		s = pthread_getaffinity_np(thread, sizeof(cpu_set_t), &real);
+		if (s != 0)
+			err_cont(s, "***pthread_getaffinity_np for %lu on CPU %d", thread, cpu);
+		else {
+			if (real != cpuset)
+				printf("***expect %d, but", cpu);
+			for (i = 0; i < CONFIG_THREAD_NR; i++) {
+				if (CPU_ISSET(i, &real))
+					printf("[%04d]t %lu runs on CPU %d\n", cnt, thread, i);
+			}
+		}
 	}
+	//pthread_mutex_unlock(lock);
+#endif
 #if 0
 	printf("==t%lu sleep\n", thread);
 	/*
@@ -73,9 +96,9 @@ https://stackoverflow.com/questions/8032372/how-can-i-see-which-cpu-core-a-threa
 	pause();
 #else
 	for (i = 0; i < loops; i++) {
-		pthread_mutex_lock(lock);
+		//pthread_mutex_lock(lock);
 		glob++;
-		pthread_mutex_unlock(lock);
+		//pthread_mutex_unlock(lock);
 	}
 #endif
 	return (void*)cpu;
