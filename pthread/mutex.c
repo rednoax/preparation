@@ -77,7 +77,10 @@ reset:
 		if (s != 0)
 			err_cont(s, "***pthread_getaffinity_np for %lu on CPU %d", thread, cpu);
 		else {
-			if (real != cpuset)
+			/*man 3 CPU_SET
+			if (real != cpuset)//wrong!
+			*/
+			if (!CPU_EQUAL(&real, &cpuset))
 				printf("***expect %d, but", cpu);
 			for (i = 0; i < CONFIG_THREAD_NR; i++) {
 				if (CPU_ISSET(i, &real))
