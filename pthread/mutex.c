@@ -51,19 +51,21 @@ static void *threadFunc(void *_arg)
 	cpu_set_t cpuset;
 	CPU_ZERO(&cpuset);
 	CPU_SET(cpu, &cpuset);
+#if 0
 	s = pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
 	if (s != 0)
-		err_exit(s, "***pthread_setaffinity_np for %ld on CPU %d", thread, cpu);
+		err_exit(s, "***pthread_setaffinity_np for %lu on CPU %d", thread, cpu);
 	s = pthread_getaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
 	if (s != 0)
-		err_exit(s, "***pthread_getaffinity_np for %ld on CPU %d", thread, cpu);
-	printf("Expect %d on thead %ld:", cpu, thread);
+		err_exit(s, "***pthread_getaffinity_np for %lu on CPU %d", thread, cpu);
+#endif
+	printf("Expect %d on thead %lu:", cpu, thread);
 	for (i = 0; i < CONFIG_THREAD_NR; i++) {
 		if (CPU_ISSET(i, &cpuset))
 			printf("CPU %d\n", i);
 	}
 #if 0
-	printf("==t%ld sleep\n", thread);
+	printf("==t%lu sleep\n", thread);
 	/*
 https://stackoverflow.com/questions/8032372/how-can-i-see-which-cpu-core-a-thread-is-running-in
 	f to select last CPU field to make sure 4 threads are on expected CPU;
@@ -106,8 +108,8 @@ Expect 1 on thead 139728456488704:CPU 1
 
 	if (argc > 1)
 		loops = atoi(argv[1]);
-	printf("pid%d tid%ld loop %d\n", getpid(), thread, loops);
-	sleep(10);
+	printf("pid%d tid%lu loop %d\n", getpid(), thread, loops);
+	//sleep(10);
 	for (i = 0; i < CONFIG_THREAD_NR; i++) {
 		struct arg * argp = arg + i;
 		argp->loops = loops;
@@ -117,17 +119,17 @@ Expect 1 on thead 139728456488704:CPU 1
 		if (s != 0)
 			err_exit(s, "***cannot create thread %d", i);
 		else
-			printf("create %ld, expect on CPU %d\n", t[i], i);
+			printf("create %lu, expect on CPU %d\n", t[i], i);
 	}
 	for (i = 0; i < CONFIG_THREAD_NR; i++) {
 		s = pthread_join(t[i], &rval_ptr);
 		if (s != 0)
 			err_exit(s, "***join %d", i);
 		else
-			printf("join %ld get %d\n", t[i], (int)rval_ptr);
+			printf("join %lu get %d\n", t[i], (int)rval_ptr);
 	}
 	/*
-	printf("t%ld sleep\n", thread);
+	printf("t%lu sleep\n", thread);
 	pause();
 	*/
 	printf("Final %d\n", glob);
