@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
+typedef unsigned long long uint64_t;
 
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof((x)[0]))
 
@@ -98,6 +100,9 @@ void broken_unlock_v0(struct arg *argp)
 	my_lock = UNLOCKED;
 }
 
+/*
+ldrex/strex test result on x86 is right!(You can run arm's ./a.out on ubuntu x86 directly)
+*/
 void broken_lock_v1(struct arg *argp)
 {
 	volatile int val, ret;
@@ -196,6 +201,12 @@ https://stackoverflow.com/questions/8032372/how-can-i-see-which-cpu-core-a-threa
 	return (void*)cpu;
 }
 
+uint64_t gettime_ns() {
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    return now.tv_sec * 1000000000ULL + now.tv_nsec;
+}
+
 int main(int argc, char **argv)
 {
 	pthread_t t[CONFIG_THREAD_NR];
@@ -220,6 +231,8 @@ Expect 1 on thead 139728456488704:CPU 1
 ==t139728456488704 sleep
 	*/
 	struct arg arg[CONFIG_THREAD_NR];
+	uint64_t start;
+	double duration;
 	int j = 0;
 
 	if (argc > 1)
@@ -232,6 +245,7 @@ next:
 	mutex_lock = mutexes[j][0];
 	mutex_unlock = mutexes[j][1];
 	printf("---%d---\n", j);
+	start = gettime_ns();
 	//
 	for (i = 0; i < CONFIG_THREAD_NR; i++) {
 		struct arg * argp = arg + i;
@@ -255,7 +269,9 @@ next:
 	printf("t%lu sleep\n", thread);
 	pause();
 	*/
-	printf("Final %d\n", glob);
+	duration = (gettime_ns() - start) / 1000000000.0;
+
+	printf("Final %d took %.2fs\n", glob, duration);
 	//
 	j++;
 	glob = 0;
