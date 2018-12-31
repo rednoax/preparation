@@ -47,7 +47,13 @@ struct arg {
 	int loops;
 	int cpu;
 	pthread_mutex_t *lock;
+	//int *my_lock;
 };
+
+//0:unlock 1:locked
+#define LOCKED 1
+#define UNLOCKED 0
+volatile int my_lock = 0;
 
 typedef void (*mutex)(struct arg*);
 void (*mutex_lock)(struct arg*);
@@ -71,9 +77,29 @@ void std_unlock(struct arg *argp)
 	pthread_mutex_unlock(argp->lock);
 }
 
+void broken_lock_v0(struct arg *argp)
+{
+	volatile int val;
+	__asm__ __volatile__(
+"1:	ldr %0, [%1]\n"
+"	cmp %0, %2\n"
+"	beq 1b\n"
+"	mov %0, %2\n"
+"	str %0, [%1]\n"
+	: "=&r" (val)
+	: "r" (&my_lock), "I"(LOCKED)
+	: "cc");
+}
+
+void broken_unlock_v0(struct arg *argp)
+{
+	my_lock = UNLOCKED;
+}
+
 mutex mutexes[][2] = {
 	{dummy_lock, dummy_unlock},
 	{std_lock, std_unlock},
+	{broken_lock_v0, broken_unlock_v0},
 };
 
 /*
