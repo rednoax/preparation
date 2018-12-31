@@ -53,7 +53,7 @@ struct arg {
 //0:unlock 1:locked
 #define LOCKED 1
 #define UNLOCKED 0
-volatile int my_lock = 0;
+volatile int my_lock = UNLOCKED;
 
 typedef void (*mutex)(struct arg*);
 void (*mutex_lock)(struct arg*);
@@ -80,6 +80,7 @@ void std_unlock(struct arg *argp)
 void broken_lock_v0(struct arg *argp)
 {
 	volatile int val;
+	__asm__ __volatile("11:");//mark the range in .s
 	__asm__ __volatile__(
 "1:	ldr %0, [%1]\n"
 "	cmp %0, %2\n"
@@ -89,6 +90,7 @@ void broken_lock_v0(struct arg *argp)
 	: "=&r" (val)
 	: "r" (&my_lock), "I"(LOCKED)
 	: "cc");
+	__asm__ __volatile("22:");
 }
 
 void broken_unlock_v0(struct arg *argp)
