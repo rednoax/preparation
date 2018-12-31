@@ -98,10 +98,34 @@ void broken_unlock_v0(struct arg *argp)
 	my_lock = UNLOCKED;
 }
 
+void broken_lock_v1(struct arg *argp)
+{
+	volatile int val, ret;
+	__asm__ __volatile("11:");//mark the range in .s
+	__asm__ __volatile__(
+"1:	ldrex %0, [%2]\n"
+"	cmp %0, %3\n"
+"	beq 1b\n"
+"	mov %0, %3\n"
+"	strex %1, %0, [%2]\n"
+"	cmp %1, #0\n"
+"	bne	1b\n"
+	: "=&r" (val), "=&r" (ret)
+	: "r" (&my_lock), "I"(LOCKED)
+	: "cc");
+	__asm__ __volatile("22:");
+}
+
+void broken_unlock_v1(struct arg *argp)
+{
+	my_lock = UNLOCKED;
+}
+
 mutex mutexes[][2] = {
 	{dummy_lock, dummy_unlock},
 	{std_lock, std_unlock},
 	{broken_lock_v0, broken_unlock_v0},
+	{broken_lock_v1, broken_unlock_v1},
 };
 
 /*
