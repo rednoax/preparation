@@ -74,7 +74,7 @@ volatile int my_lock = UNLOCKED;
 
 typedef int (*mutex)(struct arg*);
 int (*mutex_lock)(struct arg*);
-void (*mutex_unlock)(struct arg*);
+int (*mutex_unlock)(struct arg*);
 
 void dummy_lock(struct arg *argp)
 {
@@ -152,15 +152,16 @@ int broken_lock_v2(struct arg *argp)//try_lock
 "	strex %0, %3, [%1]\n"
 "2:\n"
 	: "=&r" (ret)
-	: "r" (&my_lock), "I"(UNLOCKED), "I"(LOCKED)
+	: "r" (&my_lock), "I"(UNLOCKED), "r"(LOCKED)
 	: "cc");
 	__asm__ __volatile("22:");
 	return !ret;
 }
 
-void broken_unlock_v2(struct arg *argp)
+int broken_unlock_v2(struct arg *argp)
 {
 	my_lock = UNLOCKED;
+	return 0;
 }
 
 mutex mutexes[][2] = {
@@ -247,7 +248,7 @@ uint64_t gettime_ns() {
 int main(int argc, char **argv)
 {
 	pthread_t t[CONFIG_THREAD_NR];
-	int loops = 10000000, s, i;
+	int loops = 10000000, s, i, j = 0;
 	void *rval_ptr;
 	pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 	pthread_t thread = pthread_self();
@@ -312,7 +313,7 @@ next:
 	printf("Final %d took %.2fs\n", glob, duration);
 	//
 	glob = 0;
-	if (j < ARRAY_SIZE(mutexes))
+	if (j++ < CONFIG_THREAD_NR)
 		goto next;
 	//
 	return 0;
