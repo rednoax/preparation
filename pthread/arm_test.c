@@ -270,7 +270,9 @@ next:
 	pause();
 	*/
 	duration = (gettime_ns() - start) / 1000000000.0;
-
+	if (glob != CONFIG_THREAD_NR * loops) {
+		fputs("***", stderr);
+	}
 	printf("Final %d took %.2fs\n", glob, duration);
 	//
 	j++;
