@@ -51,6 +51,7 @@ void err_cont(int error, const char *fmt, ...)
 double cpu_consumer(void)
 {
 	static double r = 10.0;
+#if 10
 	long int val = random();
 	val--;
 	val |= val >> 1;
@@ -60,6 +61,7 @@ double cpu_consumer(void)
 	val |= val >> 16;
 	val++;
 	r += val * 3.1415;
+#endif
 	return r;
 }
 
@@ -476,7 +478,7 @@ mutex mutexes[][2] = {
 	{broken_lock_v2, broken_unlock_v2_near},//try lock way with a much near unlock: ***9/(10^8):Final 39999991 took 19.02s
 #else
 	//{broken_lock_v5, broken_unlock_v5p7},//Final 40000000 took 4278.33s
-	//{broken_lock_v5, broken_unlock_v5p8},//***1345/(10^8):Final 39998655 took 17.97s
+	{broken_lock_v5, broken_unlock_v5p8},//***1345/(10^8):Final 39998655 took 17.97s, if cpu_consumer removed:***98934/(10^8):Final 39901066 took 4.55s
 	{broken_lock_v1p1, broken_unlock_v5p8},//alter spin way:Final 40000000 took 13.41s
 #endif
 };
