@@ -336,8 +336,46 @@ int broken_unlock_v5p6(struct arg *argp)
 	return 0;
 }
 
+int broken_unlock_v2_near(struct arg *argp)
+{
+	my_lock = UNLOCKED;
+	return 0;
+}
+
+int broken_unlock_v5p7(struct arg *argp)
+{
+	DIR *dp;
+	struct dirent *dirp;
+	char buf[4096];
+	int pos = 0, ret;
+	if ((dp = opendir(".")) == NULL)
+		err_cont(errno, "can't open .",);
+	while((dirp = readdir(dp)) != NULL) {
+		ret = snprintf(buf + pos, sizeof(buf) - pos, "%s", dirp->name);
+		if (ret >= sizeof(buf) - pos)
+			break;
+		else
+			pos += ret;
+	}
+	__asm__ __volatile__(
+"	str %1, [%0]\n"
+	:
+	: "r" (&my_lock), "r"(UNLOCKED)
+	: "cc");
+	while((dirp = readdir(dp)) != NULL) {
+		ret = snprintf(buf + pos, sizeof(buf) - pos, "%s", dirp->name);
+		if (ret >= sizeof(buf) - pos)
+			break;
+		else
+			pos += ret;
+	}
+	memset(buf, 0, sizeof(buf));
+	closedir(dp);
+	return 0;
+}
+
 mutex mutexes[][2] = {
-#if 10
+#if 0
 	{broken_lock_v1, broken_unlock_v1},//spin way:no error
 	{broken_lock_v2, broken_unlock_v2},//try lock way: ***596/(10^8):Final 39999404 took 18.41s
 	{broken_lock_v3, broken_unlock_v3},//wfe-spin:no error
@@ -346,6 +384,9 @@ mutex mutexes[][2] = {
 	{broken_lock_v5, broken_unlock_v5p5},//AL no error:Final 100000000 took 182.82s
 	{broken_lock_v5, broken_unlock_v5p6},//Final 40000000 took 34.66s
 	{broken_lock_v5, broken_unlock_v2},//***668/(10^8):Final 39999332 took 18.82s
+	{broken_lock_v2, broken_unlock_v2_near},//try lock way with a much near unlock: ***9/(10^8):Final 39999991 took 19.02s
+#else
+	{broken_lock_v5, broken_unlock_v5p7},
 #endif
 };
 
