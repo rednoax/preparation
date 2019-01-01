@@ -6,3 +6,4 @@ all:$(C_OUT)
 
 %.out:%.c
 	$(GCC) -pthread -static -Wall $< -o $@
+	$(GCC) -pthread -static -Wall $< -S

@@ -225,12 +225,17 @@ int broken_lock_v3(struct arg *argp)//spin way
 
 int broken_unlock_v3(struct arg *argp)
 {
+	__asm__ __volatile("11:");
 	__asm__ __volatile__(
+"\n"
+"1:\n"
 "	str %1, [%0]\n"
 "	sev\n"
+"2:\n"
 	:
 	: "r" (&my_lock), "r"(UNLOCKED)
 	: "cc");
+	__asm__ __volatile("22:");
 	return 0;
 }
 
