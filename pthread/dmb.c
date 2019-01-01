@@ -204,7 +204,7 @@ int broken_unlock_v2(struct arg *argp)
 	return 0;
 }
 
-int broken_lock_v3(struct arg *argp)//spin way
+int broken_lock_v3(struct arg *argp)
 {
 	volatile int val, ret;
 	__asm__ __volatile("11:");//mark the range in .s
@@ -240,11 +240,45 @@ int broken_unlock_v3(struct arg *argp)
 	return 0;
 }
 
+int broken_lock_v4(struct arg *argp)//Add mem barrier to test
+{
+	int ret;
+	__asm__ __volatile("11:");//mark the range in .s
+	__asm__ __volatile__(
+"1: ldrex %0, [%1]\n"
+"	cmp %0, %2\n"
+"	bne 2f\n"
+"	strex %0, %3, [%1]\n"
+"2:\n"
+	: "=&r" (ret)
+	: "r" (&my_lock), "I"(UNLOCKED), "r"(LOCKED)
+	: "cc");
+	__asm__ __volatile("22:");
+	return !ret;
+}
+
+int broken_unlock_v4(struct arg *argp)
+{
+	__asm__ __volatile("11:");
+	__asm__ __volatile__(
+"\n"
+"1:\n"
+"	str %1, [%0]\n"
+"2:\n"
+	:
+	: "r" (&my_lock), "r"(UNLOCKED)
+	: "cc");
+	__asm__ __volatile("22:");
+	return 0;
+}
 
 mutex mutexes[][2] = {
+#if 0
 	{broken_lock_v1, broken_unlock_v1},
 	{broken_lock_v2, broken_unlock_v2},
 	{broken_lock_v3, broken_unlock_v3},
+#endif
+	{broken_lock_v4, broken_unlock_v4},
 };
 
 /*
