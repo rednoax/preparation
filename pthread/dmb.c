@@ -14,6 +14,7 @@ typedef unsigned long long uint64_t;
 
 #define CONFIG_THREAD_NR 4
 #define CONFIG_PER_BATCH 10000000//25000000
+#define CONFIG_TEST_UP 0
 
 static void err_doit(int errnoflag, int error, const char *fmt, va_list ap)
 {
@@ -407,7 +408,7 @@ next:
 	glob = 0;
 	if (++j < ARRAY_SIZE(mutexes))
 		goto next;
-	if (k++ < 1) {
+	if (k++ < CONFIG_TEST_UP) {
 		j = 0;
 		goto next;
 	}
