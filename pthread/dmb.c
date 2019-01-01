@@ -304,14 +304,48 @@ int broken_unlock_v5(struct arg *argp)
 	return 0;
 }
 
+int broken_unlock_v5p5(struct arg *argp)
+{
+	cpu_consumer();
+	__asm__ __volatile("11:");
+	__asm__ __volatile__(
+"\n"
+"1:\n"
+"	str %1, [%0]\n"
+"2:\n"
+	:
+	: "r" (&my_lock), "r"(UNLOCKED)
+	: "cc");
+	__asm__ __volatile("22:");
+	return 0;
+}
+
+int broken_unlock_v5p6(struct arg *argp)
+{
+	__asm__ __volatile("11:");
+	__asm__ __volatile__(
+"\n"
+"1:\n"
+"	str %1, [%0]\n"
+"2:\n"
+	:
+	: "r" (&my_lock), "r"(UNLOCKED)
+	: "cc");
+	cpu_consumer();
+	__asm__ __volatile("22:");
+	return 0;
+}
+
 mutex mutexes[][2] = {
 #if 0
-	{broken_lock_v1, broken_unlock_v1},
-	{broken_lock_v2, broken_unlock_v2},
-	{broken_lock_v3, broken_unlock_v3},
-	{broken_lock_v4, broken_unlock_v4},
+	{broken_lock_v1, broken_unlock_v1},//no error
+	{broken_lock_v2, broken_unlock_v2},//error will emit
+	{broken_lock_v3, broken_unlock_v3},//no error
+	{broken_lock_v4, broken_unlock_v4},//expect error but no error!!!
+	{broken_lock_v5, broken_unlock_v5},//error will emit but much less than v2: ***1/(10^8):Final 39999999 took 18.68s
+	{broken_lock_v5, broken_unlock_v5p5},//AL no error:Final 100000000 took 182.82s
+	{broken_lock_v5, broken_unlock_v5p6},//Final 40000000 took 34.66s
 #endif
-	{broken_lock_v5, broken_unlock_v5},
 };
 
 /*
