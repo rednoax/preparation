@@ -58,10 +58,10 @@ double cpu_consumer(void)
 	return r;
 }
 
-static int glob = 0;
+static unsigned int glob = 0;
 
 struct arg {
-	int loops;
+	unsigned int loops;
 	int cpu;
 	pthread_mutex_t *lock;
 	//int *my_lock;
@@ -118,7 +118,7 @@ void broken_unlock_v0(struct arg *argp)
 /*
 ldrex/strex test result on x86 is right!(You can run arm's ./a.out on ubuntu x86 directly)
 */
-void broken_lock_v1(struct arg *argp)
+int broken_lock_v1(struct arg *argp)//spin way
 {
 	volatile int val, ret;
 	__asm__ __volatile("11:");//mark the range in .s
@@ -134,14 +134,16 @@ void broken_lock_v1(struct arg *argp)
 	: "r" (&my_lock), "I"(LOCKED)
 	: "cc");
 	__asm__ __volatile("22:");
+	return !ret;
 }
 
-void broken_unlock_v1(struct arg *argp)
+int broken_unlock_v1(struct arg *argp)
 {
 	my_lock = UNLOCKED;
+	return 0;
 }
 
-int broken_lock_v2(struct arg *argp)//try_lock
+int broken_lock_v2(struct arg *argp)//try_lock way
 {
 	int ret;
 	__asm__ __volatile("11:");//mark the range in .s
@@ -165,6 +167,7 @@ int broken_unlock_v2(struct arg *argp)
 }
 
 mutex mutexes[][2] = {
+	{broken_lock_v1, broken_unlock_v1},
 	{broken_lock_v2, broken_unlock_v2},
 };
 
@@ -176,7 +179,7 @@ gcc -Wall -pthread pthread_setaffinity.c
 static void *threadFunc(void *_arg)
 {
 	struct arg * argp = _arg;
-	int loops = argp->loops;
+	unsigned int loops = argp->loops;
 	int i, s, cpu = argp->cpu;
 	pthread_t thread = pthread_self();
 	//pthread_mutex_t *lock = argp->lock;
@@ -256,7 +259,8 @@ uint64_t gettime_ns() {
 int main(int argc, char **argv)
 {
 	pthread_t t[CONFIG_THREAD_NR];
-	int loops = 10000000, s, i, j = 0;
+	int s, i, j = 0;
+	unsigned int delta, loops = 25000000;
 	void *rval_ptr;
 	pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 	pthread_t thread = pthread_self();
@@ -282,13 +286,13 @@ Expect 1 on thead 139728456488704:CPU 1
 
 	if (argc > 1)
 		loops = atoi(argv[1]);
-	printf("pid%d tid%lu loop %d\n", getpid(), thread, loops);
+	printf("pid%d tid%lu loop %u\n", getpid(), thread, loops);
 	//sleep(10);
 
 	//
 next:
-	mutex_lock = mutexes[0][0];
-	mutex_unlock = mutexes[0][1];
+	mutex_lock = mutexes[j][0];
+	mutex_unlock = mutexes[j][1];
 	printf("---%d---\n", j);
 	start = gettime_ns();
 	//
@@ -315,13 +319,17 @@ next:
 	pause();
 	*/
 	duration = (gettime_ns() - start) / 1000000000.0;
-	if (glob != CONFIG_THREAD_NR * loops) {
-		fputs("***", stderr);
+	delta = CONFIG_THREAD_NR * loops - glob;
+	if (delta != 0) {
+		char buf[1024];
+		int ret = snprintf(buf, sizeof(buf), "***%d/(10^8):", delta);
+		write(STDERR_FILENO, buf, ret);
+		//fprintf(stderr, );
 	}
 	printf("Final %d took %.2fs\n", glob, duration);
 	//
 	glob = 0;
-	if (j++ < CONFIG_THREAD_NR)
+	if (++j < ARRAY_SIZE(mutexes))
 		goto next;
 	//
 	return 0;
