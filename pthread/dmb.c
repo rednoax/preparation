@@ -143,7 +143,43 @@ int broken_unlock_v1(struct arg *argp)
 	return 0;
 }
 
-int broken_lock_v2(struct arg *argp)//try_lock way
+/*
+try_lock way:
+1. it can emit error on smp:
+---0: 1---
+create 2838512384, expect on CPU 0
+create 2846905088, expect on CPU 1
+create 2855297792, expect on CPU 2
+create 2863690496, expect on CPU 3
+[0001]t 2838512384 runs on CPU 0
+[0001]t 2855297792 runs on CPU 2
+[0001]t 2863690496 runs on CPU 3
+[0001]t 2846905088 runs on CPU 1
+[ 7821.025617] healthd: Unknown battery health 'Warm'
+[ 7846.923223] wlan: [3549:E :CTL] Error returned WDI_ProcessInitScanRspi:0 BMPS0
+join 2838512384 get 0
+join 2846905088 get 1
+join 2855297792 get 2
+join 2863690496 get 3
+***866/(10^8):Final 99999134 took 45.20s
+
+2. no ANY error on UP when k == 1:
+---1: 1---
+create 2838512384, expect on CPU 0
+create 2846905088, expect on CPU 0
+create 2855297792, expect on CPU 0
+create 2863690496, expect on CPU 0
+[0001]t 2855297792 runs on CPU 0
+[0001]t 2863690496 runs on CPU 0
+[0001]t 2846905088 runs on CPU 0
+[0001]t 2838512384 runs on CPU 0
+join 2838512384 get 0
+join 2846905088 get 0
+join 2855297792 get 0
+join 2863690496 get 0
+Final 100000000 took 35.57s
+*/
+int broken_lock_v2(struct arg *argp)
 {
 	int ret;
 	__asm__ __volatile("11:");//mark the range in .s
@@ -259,7 +295,7 @@ uint64_t gettime_ns() {
 int main(int argc, char **argv)
 {
 	pthread_t t[CONFIG_THREAD_NR];
-	int s, i, j = 0;
+	int s, i, j, k;
 	unsigned int delta, loops = 25000000;
 	void *rval_ptr;
 	pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
@@ -290,22 +326,23 @@ Expect 1 on thead 139728456488704:CPU 1
 	//sleep(10);
 
 	//
+	j = k = 0;
 next:
 	mutex_lock = mutexes[j][0];
 	mutex_unlock = mutexes[j][1];
-	printf("---%d---\n", j);
+	printf("---%d: %d---\n", k, j);
 	start = gettime_ns();
 	//
 	for (i = 0; i < CONFIG_THREAD_NR; i++) {
 		struct arg * argp = arg + i;
 		argp->loops = loops;
-		argp->cpu = i;
+		argp->cpu = k? 0: i;
 		argp->lock = &lock;
 		s = pthread_create(&t[i], NULL, threadFunc, argp);
 		if (s != 0)
 			err_exit(s, "***cannot create thread %d", i);
 		else
-			printf("create %lu, expect on CPU %d\n", t[i], i);
+			printf("create %lu, expect on CPU %d\n", t[i], argp->cpu);
 	}
 	for (i = 0; i < CONFIG_THREAD_NR; i++) {
 		s = pthread_join(t[i], &rval_ptr);
@@ -331,6 +368,10 @@ next:
 	glob = 0;
 	if (++j < ARRAY_SIZE(mutexes))
 		goto next;
+	if (k++ < 1) {
+		j = 0;
+		goto next;
+	}
 	//
 	return 0;
 }
