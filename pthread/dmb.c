@@ -13,6 +13,7 @@ typedef unsigned long long uint64_t;
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof((x)[0]))
 
 #define CONFIG_THREAD_NR 4
+#define CONFIG_PER_BATCH 10000000//25000000
 
 static void err_doit(int errnoflag, int error, const char *fmt, va_list ap)
 {
@@ -202,9 +203,42 @@ int broken_unlock_v2(struct arg *argp)
 	return 0;
 }
 
+int broken_lock_v3(struct arg *argp)//spin way
+{
+	volatile int val, ret;
+	__asm__ __volatile("11:");//mark the range in .s
+	__asm__ __volatile__(
+"1:	ldrex %0, [%2]\n"
+"	cmp %0, %3\n"
+"	wfeeq\n"
+"	beq 1b\n"
+"	mov %0, %3\n"
+"	strex %1, %0, [%2]\n"
+"	cmp %1, #0\n"
+"	bne	1b\n"
+	: "=&r" (val), "=&r" (ret)
+	: "r" (&my_lock), "I"(LOCKED)
+	: "cc");
+	__asm__ __volatile("22:");
+	return !ret;
+}
+
+int broken_unlock_v3(struct arg *argp)
+{
+	__asm__ __volatile__(
+"	str %1, [%0]\n"
+"	sev\n"
+	:
+	: "r" (&my_lock), "r"(UNLOCKED)
+	: "cc");
+	return 0;
+}
+
+
 mutex mutexes[][2] = {
 	{broken_lock_v1, broken_unlock_v1},
 	{broken_lock_v2, broken_unlock_v2},
+	{broken_lock_v3, broken_unlock_v3},
 };
 
 /*
@@ -296,7 +330,7 @@ int main(int argc, char **argv)
 {
 	pthread_t t[CONFIG_THREAD_NR];
 	int s, i, j, k;
-	unsigned int delta, loops = 25000000;
+	unsigned int delta, loops = CONFIG_PER_BATCH;
 	void *rval_ptr;
 	pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 	pthread_t thread = pthread_self();
