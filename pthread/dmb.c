@@ -13,7 +13,7 @@ typedef unsigned long long uint64_t;
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof((x)[0]))
 
 #define CONFIG_THREAD_NR 4
-#define CONFIG_PER_BATCH 10000000//25000000
+#define CONFIG_PER_BATCH 10000000//25000000//
 #define CONFIG_TEST_UP 0
 
 static void err_doit(int errnoflag, int error, const char *fmt, va_list ap)
@@ -249,7 +249,7 @@ int broken_lock_v4(struct arg *argp)//Add mem barrier to test
 "	cmp %0, %2\n"
 "	bne 2f\n"
 "	strex %0, %3, [%1]\n"
-"2:\n"
+"2:	dmb\n"
 	: "=&r" (ret)
 	: "r" (&my_lock), "I"(UNLOCKED), "r"(LOCKED)
 	: "cc");
