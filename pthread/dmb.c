@@ -8,6 +8,9 @@
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/types.h>
+#include <dirent.h>
+#include <errno.h>
 typedef unsigned long long uint64_t;
 
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof((x)[0]))
@@ -349,9 +352,9 @@ int broken_unlock_v5p7(struct arg *argp)
 	char buf[4096];
 	int pos = 0, ret;
 	if ((dp = opendir(".")) == NULL)
-		err_cont(errno, "can't open .",);
+		err_cont(errno, "can't open .");
 	while((dirp = readdir(dp)) != NULL) {
-		ret = snprintf(buf + pos, sizeof(buf) - pos, "%s", dirp->name);
+		ret = snprintf(buf + pos, sizeof(buf) - pos, "%s", dirp->d_name);
 		if (ret >= sizeof(buf) - pos)
 			break;
 		else
@@ -363,7 +366,7 @@ int broken_unlock_v5p7(struct arg *argp)
 	: "r" (&my_lock), "r"(UNLOCKED)
 	: "cc");
 	while((dirp = readdir(dp)) != NULL) {
-		ret = snprintf(buf + pos, sizeof(buf) - pos, "%s", dirp->name);
+		ret = snprintf(buf + pos, sizeof(buf) - pos, "%s", dirp->d_name);
 		if (ret >= sizeof(buf) - pos)
 			break;
 		else
