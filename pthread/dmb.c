@@ -377,6 +377,65 @@ int broken_unlock_v5p7(struct arg *argp)
 	return 0;
 }
 
+int broken_lock_v1p1(struct arg *argp)//alt spin way
+{
+	volatile int val, ret;
+	__asm__ __volatile__(
+"	mov %0, %0\n"
+"	mov %1, %1\n"
+"	mov %2, %2\n"
+"	mov %0, %0\n"
+"	mov %1, %1\n"
+"	mov %2, %2\n"
+"1:	ldrex %0, [%2]\n"
+"	mov %2, %2\n"
+"	mov %1, %1\n"
+"	mov %0, %0\n"
+"	mov %0, %0\n"
+"	mov %1, %1\n"
+"	mov %2, %2\n"
+"	cmp %0, %3\n"
+"	mov %0, %0\n"
+"	mov %1, %1\n"
+"	mov %2, %2\n"
+"	mov %0, %0\n"
+"	mov %1, %1\n"
+"	mov %2, %2\n"
+"	beq 1b\n"
+"	mov %0, %0\n"
+"	mov %1, %1\n"
+"	mov %2, %2\n"
+"	mov %0, %0\n"
+"	mov %1, %1\n"
+"	mov %2, %2\n"
+"	mov %0, %3\n"
+"	strex %1, %0, [%2]\n"
+"	mov %0, %0\n"
+"	mov %1, %1\n"
+"	mov %2, %2\n"
+"	mov %0, %0\n"
+"	mov %1, %1\n"
+"	mov %2, %2\n"
+"	cmp %1, #0\n"
+"	mov %0, %0\n"
+"	mov %1, %1\n"
+"	mov %2, %2\n"
+"	mov %0, %0\n"
+"	mov %1, %1\n"
+"	mov %2, %2\n"
+"	bne	1b\n"
+"	mov %0, %0\n"
+"	mov %1, %1\n"
+"	mov %2, %2\n"
+"	mov %0, %0\n"
+"	mov %1, %1\n"
+"	mov %2, %2\n"
+	: "=&r" (val), "=&r" (ret)
+	: "r" (&my_lock), "I"(LOCKED)
+	: "cc");
+	return !ret;
+}
+
 int broken_unlock_v5p8(struct arg *argp)
 {
 	__asm__ __volatile__(
@@ -417,7 +476,8 @@ mutex mutexes[][2] = {
 	{broken_lock_v2, broken_unlock_v2_near},//try lock way with a much near unlock: ***9/(10^8):Final 39999991 took 19.02s
 #else
 	//{broken_lock_v5, broken_unlock_v5p7},//Final 40000000 took 4278.33s
-	{broken_lock_v5, broken_unlock_v5p8},//***1345/(10^8):Final 39998655 took 17.97s
+	//{broken_lock_v5, broken_unlock_v5p8},//***1345/(10^8):Final 39998655 took 17.97s
+	{broken_lock_v1p1, broken_unlock_v5p8},//alter spin way:Final 40000000 took 13.41s
 #endif
 };
 
