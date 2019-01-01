@@ -377,6 +377,33 @@ int broken_unlock_v5p7(struct arg *argp)
 	return 0;
 }
 
+int broken_unlock_v5p8(struct arg *argp)
+{
+	__asm__ __volatile__(
+"	mov %0, %0\n"
+"	mov %0, %0\n"
+"	mov %0, %0\n"
+"	mov %0, %0\n"
+"	mov %0, %0\n"
+"	mov %0, %0\n"
+"	mov %0, %0\n"
+"	mov %0, %0\n"
+"	str %1, [%0]\n"
+"	mov %1, %1\n"
+"	mov %1, %1\n"
+"	mov %1, %1\n"
+"	mov %1, %1\n"
+"	mov %1, %1\n"
+"	mov %1, %1\n"
+"	mov %1, %1\n"
+"	mov %1, %1\n"
+	:
+	: "r" (&my_lock), "r"(UNLOCKED)
+	: "cc");
+	return 0;
+}
+
+
 mutex mutexes[][2] = {
 #if 0
 	{broken_lock_v1, broken_unlock_v1},//spin way:no error
@@ -389,7 +416,8 @@ mutex mutexes[][2] = {
 	{broken_lock_v5, broken_unlock_v2},//***668/(10^8):Final 39999332 took 18.82s
 	{broken_lock_v2, broken_unlock_v2_near},//try lock way with a much near unlock: ***9/(10^8):Final 39999991 took 19.02s
 #else
-	{broken_lock_v5, broken_unlock_v5p7},
+	//{broken_lock_v5, broken_unlock_v5p7},//Final 40000000 took 4278.33s
+	{broken_lock_v5, broken_unlock_v5p8},//***1345/(10^8):Final 39998655 took 17.97s
 #endif
 };
 
