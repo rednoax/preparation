@@ -26,6 +26,12 @@ typedef unsigned long long uint64_t;
 
 #define CONFIG_OHM (1000000000.0)
 #define DELTA(t1, t2) (((t1) - (t2)) /  CONFIG_OHM)
+
+uint64_t gettime_ns() {
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    return now.tv_sec * 1000000000ULL + now.tv_nsec;
+}
 static void err_doit(int errnoflag, int error, const char *fmt, va_list ap)
 {
 	char buf[4096];
@@ -74,22 +80,22 @@ double cpu_consumer(void)
 
 static unsigned int glob = 0;
 
+struct stamp {
+	uint64_t stamp;
+	double delta;
+};
+
 struct arg {
 	unsigned int loops;
 	int cpu;
 	pthread_mutex_t *lock;
-	pthread_conf_t *cond;
+	pthread_cond_t *cond;
 	//int *my_lock;
 	pthread_t tid;
 	struct stamp stamps[64];
 	int stamps_nr;
 	pthread_mutex_t l;
 	pthread_cond_t c;
-};
-
-struct stamp {
-	uint64_t stamp;
-	double delta;
 };
 //0:unlock 1:locked
 #define LOCKED 1
@@ -581,12 +587,6 @@ after adding:
 	return (void*)cpu;
 }
 
-uint64_t gettime_ns() {
-    struct timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
-    return now.tv_sec * 1000000000ULL + now.tv_nsec;
-}
-
 int main(int argc, char **argv)
 {
 	struct arg *args, *argp;
@@ -632,8 +632,8 @@ next:
 		argp->cpu = k? 0: (i % CONFIG_CPU_NR);
 		argp->lock = &lock;
 		argp->cond = &cond;
-		pthread_mutex_init(&argp->l);
-		pthread_cond_init(&argp->c);
+		pthread_mutex_init(&argp->l, NULL);
+		pthread_cond_init(&argp->c, NULL);
 		s = pthread_create(&argp->tid, NULL, threadFunc, argp);
 		if (s != 0)
 			err_exit(s, "***cannot create thread %d", i);
@@ -644,7 +644,10 @@ next:
 	for (i = 0; i < threads_nr; i++) {
 		argp = args + i;
 		pthread_mutex_lock(&argp->l);
-		//pthread_cond_wait shall be called with @mutex locked by the calling thread or undefined behavior results
+		/*
+		pthread_cond_wait shall be called with @mutex locked by the calling thread
+		or undefined behavior results
+		*/
 		pthread_cond_wait(&argp->c, &argp->l);
 		pthread_mutex_unlock(&argp->l);
 	}
@@ -679,7 +682,7 @@ next:
 	printf("\n");
 	for (i = 0; i < threads_nr; i++)  {
 		argp =args + i;
-		printf("[%02d]:(%d)tid %d:", i, argp->cpu, argp->tid);
+		printf("[%02d]:(%d)tid %lu:", i, argp->cpu, argp->tid);
 		for (index = 0; index < argp->stamps_nr - 1; index++) {
 			struct stamp *p = &argp->stamps[index];
 			p->delta = DELTA(p[1].stamp, p[0].stamp);
@@ -695,7 +698,6 @@ next:
 		j = 0;
 		goto next;
 	}
-end:
 	free(args);
 	free(stamps);
 	//
