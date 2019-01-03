@@ -109,6 +109,7 @@ struct arg {
 	int stamps_nr;
 	pthread_mutex_t l;
 	pthread_cond_t c;
+	int local, *pub;
 	int index;
 };
 //0:unlock 1:locked
@@ -572,13 +573,14 @@ https://stackoverflow.com/questions/8032372/how-can-i-see-which-cpu-core-a-threa
 	pause();
 #else
 	argp->stamps[index++].stamp = gettime_ns();
-	debug("(-%d", argp->index);
+	pthread_mutex_lock(&argp->l);
+	//Never change, nor check, the predicate condition unless the mutex is locked. Ever.
+	argp->local = UNLOCKED;
+	pthread_mutex_unlock(&argp->l);
 	pthread_cond_signal(&argp->c);
-	debug(")");
 	pthread_mutex_lock(argp->lock);
-	debug("<+%d", argp->index);
-	pthread_cond_wait(argp->cond, argp->lock);
-	debug(">");
+	if (argp->pub[0] == LOCKED)
+		pthread_cond_wait(argp->cond, argp->lock);
 	pthread_mutex_unlock(argp->lock);
 	argp->stamps[index++].stamp = gettime_ns();
 	debug("##%lu starts loop\n", thread);
@@ -620,7 +622,7 @@ int main(int argc, char **argv)
 	void *rval_ptr;
 	pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 	pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
-	int threads_nr, loops;
+	int threads_nr, loops, public = LOCKED;
 	threads_nr = CONFIG_CPU_NR;
 	loops = CONFIG_PER_BATCH;
 
@@ -653,6 +655,8 @@ next:
 	for (i = 0; i < threads_nr; i++) {
 		argp = args + i;
 		argp->index = i;
+		argp->local = LOCKED;
+		argp->pub = &public;
 		argp->loops = loops;
 		argp->cpu = k? 0: (i % CONFIG_CPU_NR);
 		argp->lock = &lock;
@@ -673,16 +677,19 @@ next:
 		pthread_cond_wait shall be called with @mutex locked by the calling thread
 		or undefined behavior results
 		*/
-		debug("{@%d", i);
-		pthread_cond_wait(&argp->c, &argp->l);
-		debug(":%d}\n", i);
+		if (argp->local == LOCKED)
+			pthread_cond_wait(&argp->c, &argp->l);
 		pthread_mutex_unlock(&argp->l);
 	}
+	pthread_mutex_lock(&lock);
 	stamps[index++].stamp = gettime_ns();
+	public = UNLOCKED;
 	pthread_cond_signal(&cond);
 	stamps[index++].stamp = gettime_ns();
+	pthread_mutex_unlock(&lock);
+	debug("main fin signal\n");
 	for (i = 0; i < threads_nr; i++) {
-		argp = args;// + i;//FIXME
+		argp = args + i;
 		s = pthread_join(argp->tid, &rval_ptr);//if a joined tid is joined again:the following error will emit!
 		if (s != 0)
 			err_exit(s, "***join %lu fails", argp->tid);
