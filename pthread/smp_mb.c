@@ -525,7 +525,7 @@ void getaffinity(struct arg *argp, cpu_set_t *expected)
 {
 	cpu_set_t real;
 	pthread_t thread = pthread_self();
-	int i, ret, cpu;
+	int i, ret, cpu = -1;
 	for (i = 0; i < CONFIG_CPU_NR; i++) {
 		if (CPU_ISSET(i, expected)) {
 			cpu = i;
@@ -534,17 +534,18 @@ void getaffinity(struct arg *argp, cpu_set_t *expected)
 	}
 	ret = pthread_getaffinity_np(thread, sizeof(cpu_set_t), &real);
 	if (ret != 0)
-		err_cont(s, "***pthread_getaffinity_np for %lu on CPU %d", thread, cpu);
+		err_cont(ret, "***pthread_getaffinity_np for %lu on CPU %d", thread, cpu);
 	else {
-		if (!CPU_EQUAL(&real, expected))
-			err_cont(0, "***expect on CPU %d, but", cpu);
-		for (i = 0; i < CONFIG_CPU_NR; i++) {
-			if (CPU_ISSET(i, &real)) {
-				argp->cpu = i;
-				debug("[%d: c%d]t%lu\n", argp->index, i, thread);
+		if (!CPU_EQUAL(&real, expected)) {
+			err_write("***expect on C %d, but on C ", cpu);
+			for (i = 0; i < CONFIG_CPU_NR; i++) {
+				if (CPU_ISSET(i, &real)) {
+					argp->cpu = i;
+					err_write("%d", i);
+				}
 			}
+			*expected = real;
 		}
-		expected[0] = real;
 	}
 
 }
@@ -556,7 +557,7 @@ gcc -Wall -pthread pthread_setaffinity.c
 static void *threadFunc(void *_arg)
 {
 	struct arg * argp = _arg;
-	uint64_t delta;
+	double delta;
 	unsigned int i, s, cpu = argp->cpu;
 	pthread_t thread = pthread_self();
 	int index = 0, cnt = 1;
@@ -567,17 +568,17 @@ static void *threadFunc(void *_arg)
 	argp->stamps[index++].stamp = gettime_ns();
 reset:
 	s = pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
+	delta = DELTA(gettime_ns(), argp->stamps[index - 1].stamp);
 	if (s != 0) {
-		delta = gettime_ns() - argp->stamps[index - 1].stamp;
 		cnt++;
-		if (delta > 100 * CONFIG_NM)
+		if (delta > 1.0)
 			err_cont(s, "***setaffinity tid %lu on CPU %d pass 10s", thread, cpu);
 		goto reset;
 	} else {
-		delta = gettime_ns() - argp->stamps[index - 1].stamp;
 		if (cnt > 1)
-			err_write("+%d,%llus:", cnt, delta/CONFIG_NM);
+			err_write("+%d,%.4fs:", cnt, delta);
 		getaffinity(argp, &cpuset);
+		err_write("[%d:C %d]%lu\n", argp->index, argp->cpu, thread);
 	}
 #if 0
 	printf("==t%lu sleep\n", thread);
@@ -598,7 +599,7 @@ https://stackoverflow.com/questions/8032372/how-can-i-see-which-cpu-core-a-threa
 		pthread_cond_wait(argp->cond, argp->lock);
 	pthread_mutex_unlock(argp->lock);
 	argp->stamps[index++].stamp = gettime_ns();
-	debug("[%d]starts loop\n", argp->index);
+	debug("##[%d]starts loop\n", argp->index);
 /*
 android ver:
 https://stackoverflow.com/questions/9287315/finding-usage-of-resources-cpu-and-memory-by-threads-of-a-process-in-android
@@ -626,7 +627,7 @@ after adding:
 	argp->stamps[index++].stamp = gettime_ns();
 	argp->stamps_nr = index;
 	getaffinity(argp, &cpuset);
-	debug("[%d]:end loop\n", argp->index);
+	debug("##[%d]:end loop\n", argp->index);
 	return (void*)cpu;
 }
 
