@@ -542,14 +542,14 @@ static void *threadFunc(void *_arg)
 reset:
 	s = pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
 	if (s != 0) {
-		delta = gettime_ns() - argp->stamps[index].stamp;
+		delta = gettime_ns() - argp->stamps[index - 1].stamp;
 		cnt++;
 		if (delta > 100 * CONFIG_NM)
-			//err_cont(s, "***setaffinity tid %lu on CPU %d pass 10s", thread, cpu);
+			err_cont(s, "***setaffinity tid %lu on CPU %d pass 10s", thread, cpu);
 		goto reset;
 	} else {
 		cpu_set_t real;
-		delta = gettime_ns() - argp->stamps[index].stamp;
+		delta = gettime_ns() - argp->stamps[index - 1].stamp;
 		s = pthread_getaffinity_np(thread, sizeof(cpu_set_t), &real);
 		if (s != 0)
 			err_cont(s, "***pthread_getaffinity_np for %lu on CPU %d", thread, cpu);
