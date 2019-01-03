@@ -17,14 +17,15 @@ typedef unsigned long long uint64_t;
 #define CONFIG_CPU_NR 4
 #define CONFIG_PER_BATCH 10000000//25000000//
 #define CONFIG_TEST_UP 0
-//#define CONFIG_DEBUG
+#define CONFIG_DEBUG
 #ifdef CONFIG_DEBUG
-#define debug(fmt, arg...) printf(fmt, ##arg)
+#define debug(fmt, arg...) err_write(fmt, ##arg)
 #else
 #define debug(fmt, ...) do{}while(0)
 #endif
 
-#define CONFIG_OHM (1000000000.0)
+#define CONFIG_NM (1000000000ULL)
+#define CONFIG_OHM (CONFIG_NM * 1.0)
 #define DELTA(t1, t2) (((t1) - (t2)) /  CONFIG_OHM)
 
 uint64_t gettime_ns() {
@@ -32,6 +33,18 @@ uint64_t gettime_ns() {
     clock_gettime(CLOCK_MONOTONIC, &now);
     return now.tv_sec * 1000000000ULL + now.tv_nsec;
 }
+
+static void err_write(const char *fmt, ...)
+{
+	char buf[4096];
+	int ret;
+	va_list ap;
+	va_start(ap, fmt);
+	ret = vsnprintf(buf, sizeof(buf), fmt, ap);
+	write(STDERR_FILENO, buf, ret);
+	va_end(ap);
+}
+
 static void err_doit(int errnoflag, int error, const char *fmt, va_list ap)
 {
 	char buf[4096];
@@ -96,6 +109,7 @@ struct arg {
 	int stamps_nr;
 	pthread_mutex_t l;
 	pthread_cond_t c;
+	int index;
 };
 //0:unlock 1:locked
 #define LOCKED 1
@@ -515,6 +529,7 @@ static void *threadFunc(void *_arg)
 {
 	struct arg * argp = _arg;
 	//unsigned int loops = argp->loops;
+	uint64_t delta;
 	unsigned int i, s, cpu = argp->cpu;
 	pthread_t thread = pthread_self();
 	cpu_set_t cpuset;
@@ -526,20 +541,24 @@ static void *threadFunc(void *_arg)
 reset:
 	s = pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
 	if (s != 0) {
+		delta = gettime_ns() - argp->stamps[index].stamp;
 		cnt++;
+		if (delta > 100 * CONFIG_NM)
+			//err_cont(s, "***setaffinity tid %lu on CPU %d pass 10s", thread, cpu);
 		goto reset;
 	} else {
 		cpu_set_t real;
+		delta = gettime_ns() - argp->stamps[index].stamp;
 		s = pthread_getaffinity_np(thread, sizeof(cpu_set_t), &real);
 		if (s != 0)
 			err_cont(s, "***pthread_getaffinity_np for %lu on CPU %d", thread, cpu);
 		else {
 			if (!CPU_EQUAL(&real, &cpuset))
-				printf("***expect on CPU %d, but", cpu);
+				err_cont(0, "***expect on CPU %d, but", cpu);
 			for (i = 0; i < CONFIG_CPU_NR; i++) {
 				if (CPU_ISSET(i, &real)) {
 					argp->cpu = i;
-					debug("[%04d]tid %lu runs on CPU %d\n", cnt, thread, i);
+					debug("[%d: %d,%04d]tid %lu, %llu\n", argp->index, i, cnt, thread, delta);
 				}
 			}
 		}
@@ -553,11 +572,16 @@ https://stackoverflow.com/questions/8032372/how-can-i-see-which-cpu-core-a-threa
 	pause();
 #else
 	argp->stamps[index++].stamp = gettime_ns();
+	debug("(-%d", argp->index);
 	pthread_cond_signal(&argp->c);
+	debug(")");
 	pthread_mutex_lock(argp->lock);
+	debug("<+%d", argp->index);
 	pthread_cond_wait(argp->cond, argp->lock);
+	debug(">");
 	pthread_mutex_unlock(argp->lock);
 	argp->stamps[index++].stamp = gettime_ns();
+	debug("##%lu starts loop\n", thread);
 /*
 android ver:
 https://stackoverflow.com/questions/9287315/finding-usage-of-resources-cpu-and-memory-by-threads-of-a-process-in-android
@@ -613,7 +637,7 @@ int main(int argc, char **argv)
 			break;
 		}
 	}
-	printf("p %d t %lu: (%u loops * %d threads)\n", getpid(), pthread_self(), loops, threads_nr);
+	printf("p %d t %lu: (%u loops X %d threads)\n", getpid(), pthread_self(), loops, threads_nr);
 	if ((args = malloc(sizeof(struct arg) * threads_nr)) == NULL)
 		err_exit(errno, "***fail to malloc for %d threads", threads_nr);
 	if ((stamps = malloc(sizeof(struct stamp) * threads_nr)) == NULL)
@@ -628,6 +652,7 @@ next:
 	//
 	for (i = 0; i < threads_nr; i++) {
 		argp = args + i;
+		argp->index = i;
 		argp->loops = loops;
 		argp->cpu = k? 0: (i % CONFIG_CPU_NR);
 		argp->lock = &lock;
@@ -648,18 +673,21 @@ next:
 		pthread_cond_wait shall be called with @mutex locked by the calling thread
 		or undefined behavior results
 		*/
+		debug("{@%d", i);
 		pthread_cond_wait(&argp->c, &argp->l);
+		debug(":%d}\n", i);
 		pthread_mutex_unlock(&argp->l);
 	}
 	stamps[index++].stamp = gettime_ns();
 	pthread_cond_signal(&cond);
 	stamps[index++].stamp = gettime_ns();
 	for (i = 0; i < threads_nr; i++) {
-		s = pthread_join(args->tid, &rval_ptr);
+		argp = args;// + i;//FIXME
+		s = pthread_join(argp->tid, &rval_ptr);//if a joined tid is joined again:the following error will emit!
 		if (s != 0)
-			err_exit(s, "***join %d fails", args->tid);
+			err_exit(s, "***join %lu fails", argp->tid);
 		else
-			debug("join %lu get %d\n", args->tid, (int)rval_ptr);
+			debug("join %lu get %d\n", argp->tid, (int)rval_ptr);
 	}
 	stamps[index++].stamp = gettime_ns();
 	/*
@@ -681,7 +709,7 @@ next:
 	}
 	printf("\n");
 	for (i = 0; i < threads_nr; i++)  {
-		argp =args + i;
+		argp = args + i;
 		printf("[%02d]:(%d)tid %lu:", i, argp->cpu, argp->tid);
 		for (index = 0; index < argp->stamps_nr - 1; index++) {
 			struct stamp *p = &argp->stamps[index];
