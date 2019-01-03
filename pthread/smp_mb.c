@@ -521,6 +521,33 @@ mutex mutexes[][2] = {
 #endif
 };
 
+void getaffinity(struct arg *argp, cpu_set_t *expected)
+{
+	cpu_set_t real;
+	pthread_t thread = pthread_self();
+	int i, ret, cpu;
+	for (i = 0; i < CONFIG_CPU_NR; i++) {
+		if (CPU_ISSET(i, expected)) {
+			cpu = i;
+			break;
+		}
+	}
+	ret = pthread_getaffinity_np(thread, sizeof(cpu_set_t), &real);
+	if (ret != 0)
+		err_cont(s, "***pthread_getaffinity_np for %lu on CPU %d", thread, cpu);
+	else {
+		if (!CPU_EQUAL(&real, expected))
+			err_cont(0, "***expect on CPU %d, but", cpu);
+		for (i = 0; i < CONFIG_CPU_NR; i++) {
+			if (CPU_ISSET(i, &real)) {
+				argp->cpu = i;
+				debug("[%d: c%d]t%lu\n", argp->index, i, thread);
+			}
+		}
+		expected[0] = real;
+	}
+
+}
 /*
 pthread_setaffinity_np
 http://man7.org/linux/man-pages/man3/pthread_setaffinity_np.3.html
@@ -529,12 +556,11 @@ gcc -Wall -pthread pthread_setaffinity.c
 static void *threadFunc(void *_arg)
 {
 	struct arg * argp = _arg;
-	//unsigned int loops = argp->loops;
 	uint64_t delta;
 	unsigned int i, s, cpu = argp->cpu;
 	pthread_t thread = pthread_self();
-	cpu_set_t cpuset;
 	int index = 0, cnt = 1;
+	cpu_set_t cpuset;
 
 	CPU_ZERO(&cpuset);
 	CPU_SET(cpu, &cpuset);
@@ -548,21 +574,10 @@ reset:
 			err_cont(s, "***setaffinity tid %lu on CPU %d pass 10s", thread, cpu);
 		goto reset;
 	} else {
-		cpu_set_t real;
 		delta = gettime_ns() - argp->stamps[index - 1].stamp;
-		s = pthread_getaffinity_np(thread, sizeof(cpu_set_t), &real);
-		if (s != 0)
-			err_cont(s, "***pthread_getaffinity_np for %lu on CPU %d", thread, cpu);
-		else {
-			if (!CPU_EQUAL(&real, &cpuset))
-				err_cont(0, "***expect on CPU %d, but", cpu);
-			for (i = 0; i < CONFIG_CPU_NR; i++) {
-				if (CPU_ISSET(i, &real)) {
-					argp->cpu = i;
-					debug("[%d: %d,%04d]tid %lu, %llu\n", argp->index, i, cnt, thread, delta);
-				}
-			}
-		}
+		if (cnt > 1)
+			err_write("+%d,%llus:", cnt, delta/CONFIG_NM);
+		getaffinity(argp, &cpuset);
 	}
 #if 0
 	printf("==t%lu sleep\n", thread);
@@ -583,7 +598,7 @@ https://stackoverflow.com/questions/8032372/how-can-i-see-which-cpu-core-a-threa
 		pthread_cond_wait(argp->cond, argp->lock);
 	pthread_mutex_unlock(argp->lock);
 	argp->stamps[index++].stamp = gettime_ns();
-	debug("##%lu starts loop\n", thread);
+	debug("[%d]starts loop\n", argp->index);
 /*
 android ver:
 https://stackoverflow.com/questions/9287315/finding-usage-of-resources-cpu-and-memory-by-threads-of-a-process-in-android
@@ -610,6 +625,8 @@ after adding:
 #endif
 	argp->stamps[index++].stamp = gettime_ns();
 	argp->stamps_nr = index;
+	getaffinity(argp, &cpuset);
+	debug("[%d]:end loop\n", argp->index);
 	return (void*)cpu;
 }
 
@@ -684,10 +701,10 @@ next:
 	pthread_mutex_lock(&lock);
 	stamps[index++].stamp = gettime_ns();
 	public = UNLOCKED;
-	pthread_cond_signal(&cond);
+	pthread_cond_signal(&cond);//on x86 it can trigger [1,2] threads
 	stamps[index++].stamp = gettime_ns();
-	pthread_mutex_unlock(&lock);
 	debug("main fin signal\n");
+	pthread_mutex_unlock(&lock);
 	for (i = 0; i < threads_nr; i++) {
 		argp = args + i;
 		s = pthread_join(argp->tid, &rval_ptr);//if a joined tid is joined again:the following error will emit!
