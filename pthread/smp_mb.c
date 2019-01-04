@@ -557,8 +557,8 @@ gcc -Wall -pthread pthread_setaffinity.c
 static void *threadFunc(void *_arg)
 {
 	struct arg * argp = _arg;
-	double delta;
-	unsigned int i, s, cpu = argp->cpu;
+	double delta, secs, base = 10.0;
+	unsigned int i, s, base_cnt = 1, cpu = argp->cpu;
 	pthread_t thread = pthread_self();
 	int index = 0, cnt = 1;
 	cpu_set_t cpuset;
@@ -571,8 +571,11 @@ reset:
 	delta = DELTA(gettime_ns(), argp->stamps[index - 1].stamp);
 	if (s != 0) {
 		cnt++;
-		if (delta > 1.0)
-			err_cont(s, "***setaffinity tid %lu on CPU %d pass 10s", thread, cpu);
+		secs = base * base_cnt;
+		if (delta > secs) {
+			err_cont(s, "***setaffinity tid %lu on C %d pass %.2fs", thread, cpu, secs);
+			base_cnt++;
+		}
 		goto reset;
 	} else {
 		if (cnt > 1)
