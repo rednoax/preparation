@@ -541,7 +541,7 @@ void getaffinity(struct arg *argp, cpu_set_t *expected)
 			for (i = 0; i < CONFIG_CPU_NR; i++) {
 				if (CPU_ISSET(i, &real)) {
 					argp->cpu = i;
-					err_write(":%d:", i);
+					err_write(":%d", i);
 				}
 			}
 			err_write(">");
