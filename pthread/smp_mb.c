@@ -706,7 +706,8 @@ next:
 	pthread_mutex_lock(&lock);
 	stamps[index++].stamp = gettime_ns();
 	public = UNLOCKED;
-	pthread_cond_signal(&cond);//on x86 it can trigger [1,2] threads
+	//pthread_cond_signal(&cond);//on x86 it can trigger [1,2] threads, on arm there seems al only 1 treads waiting first on signal
+	pthread_cond_broadcast(&cond);
 	stamps[index++].stamp = gettime_ns();
 	debug("main fin signal\n");
 	pthread_mutex_unlock(&lock);
