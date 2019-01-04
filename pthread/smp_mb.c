@@ -537,13 +537,14 @@ void getaffinity(struct arg *argp, cpu_set_t *expected)
 		err_cont(ret, "***pthread_getaffinity_np for %lu on CPU %d", thread, cpu);
 	else {
 		if (!CPU_EQUAL(&real, expected)) {
-			err_write("***expect on C %d, but on C ", cpu);
+			err_write("***{%d}expect C %d,but on C ", argp->index, cpu);
 			for (i = 0; i < CONFIG_CPU_NR; i++) {
 				if (CPU_ISSET(i, &real)) {
 					argp->cpu = i;
-					err_write("%d", i);
+					err_write(":%d:", i);
 				}
 			}
+			err_write(">");
 			*expected = real;
 		}
 	}
@@ -579,9 +580,9 @@ reset:
 		goto reset;
 	} else {
 		if (cnt > 1)
-			err_write("+%d,%.4fs:", cnt, delta);
+			err_write("(%d:+%d:%.4fs)", argp->index, cnt, delta);
 		getaffinity(argp, &cpuset);
-		err_write("[%d:C %d]%lu\n", argp->index, argp->cpu, thread);
+		err_write("{%d:C %d %lu}\n", argp->index, argp->cpu, thread);
 	}
 #if 0
 	printf("==t%lu sleep\n", thread);
@@ -602,7 +603,7 @@ https://stackoverflow.com/questions/8032372/how-can-i-see-which-cpu-core-a-threa
 		pthread_cond_wait(argp->cond, argp->lock);
 	pthread_mutex_unlock(argp->lock);
 	argp->stamps[index++].stamp = gettime_ns();
-	debug("##[%d]starts loop\n", argp->index);
+	debug("$$[%d]starts loop\n", argp->index);
 /*
 android ver:
 https://stackoverflow.com/questions/9287315/finding-usage-of-resources-cpu-and-memory-by-threads-of-a-process-in-android
@@ -688,7 +689,7 @@ next:
 		if (s != 0)
 			err_exit(s, "***cannot create thread %d", i);
 		else
-			debug("lunch %lu on CPU %d(expected)\n", argp->tid, argp->cpu);
+			debug("%d.lunch %lu on CPU %d(expected)\n", argp->index, argp->tid, argp->cpu);
 	}
 	stamps[index++].stamp = gettime_ns();
 	for (i = 0; i < threads_nr; i++) {
