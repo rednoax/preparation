@@ -56,7 +56,7 @@ static void err_doit(int errnoflag, int error, const char *fmt, va_list ap)
 	fputs(buf, stderr);
 	fflush(NULL);
 }
-
+/*
 void err_exit(int error, const char *fmt, ...)
 {
 	va_list ap;
@@ -65,7 +65,7 @@ void err_exit(int error, const char *fmt, ...)
 	va_end(ap);
 	exit(1);
 }
-
+*/
 void err_cont(int error, const char *fmt, ...)
 {
 	va_list ap;
@@ -93,11 +93,18 @@ double cpu_consumer(void)
 
 static unsigned int glob = 0;
 
-struct stamp {
+struct tRec {
 	uint64_t stamp;
 	double delta;
+	const char *desp;
+	int index;
 };
 
+struct trecs {
+	struct tRec *parray;
+	int used;
+	int array_size;
+};
 struct arg {
 	unsigned int loops;
 	int cpu;
@@ -105,8 +112,8 @@ struct arg {
 	pthread_cond_t *cond;
 	//int *my_lock;
 	pthread_t tid;
-	struct stamp stamps[64];
-	int stamps_nr;
+	struct trecs *precs;
+	//int stamps_nr;
 	pthread_mutex_t l;
 	pthread_cond_t c;
 	int local, *pub;
@@ -115,11 +122,68 @@ struct arg {
 //0:unlock 1:locked
 #define LOCKED 1
 #define UNLOCKED 0
+#define CONFIG_STAMPS_NR 16
 volatile int my_lock = UNLOCKED;
 
 typedef int (*mutex)(struct arg*);
 int (*mutex_lock)(struct arg*);
 int (*mutex_unlock)(struct arg*);
+
+void trecs_dump(struct trecs *p)
+{
+	int i;
+	struct tRec *rec = p->parray;
+	for (i = 1; i < p->used; i++) {
+		rec[i].delta = DELTA(rec[i].stamp, rec[i - 1].stamp);
+		debug("%s:%.6f ", rec[i].desp, rec[i].delta);
+	}
+	debug("\n");
+}
+
+void RecTime(struct trecs *p, const char *str)
+{
+	struct tRec *recp;
+	if (p->used < p->array_size) {
+		recp = p->parray[p->used];
+		recp->stamp = gettime_ns();
+		recp->desp = str;
+		recp->index = p->used;
+		/*
+		if (p->used > 0)
+			recp->delta = DELTA(recp->stamp, recp[-1].stamp);
+		*/
+		p->used++;
+	}
+}
+
+struct trecs *trecs_init(int nr)
+{
+	int size;
+	struct trecs *p = malloc(sizeof(*p));
+	if (p == NULL) {
+		err_write(errno, "***fail to malloc trecs");
+		return NULL;
+	}
+	p->array_size = nr;
+	p->used = 0;
+	size = sizeof(p->parray[0]) * nr;
+	if ((p->parray = malloc(size)) == NULL) {
+		free(p);
+		p = NULL;
+		err_write(errno, "***fail to malloc for %d tRec", nr);
+	} else
+		memset(p->parray, 0, size);
+	return p;
+}
+
+void trecs_free(struct trecs *p)
+{
+	if (p == NULL)
+		return;
+	if (p->parray)
+		free(p->parray);
+	free(p);
+}
 
 void dummy_lock(struct arg *argp)
 {
@@ -563,13 +627,14 @@ static void *threadFunc(void *_arg)
 	pthread_t thread = pthread_self();
 	int index = 0, cnt = 1;
 	cpu_set_t cpuset;
+	struct trecs *trecsp = argp->precs;
 
 	CPU_ZERO(&cpuset);
 	CPU_SET(cpu, &cpuset);
-	argp->stamps[index++].stamp = gettime_ns();
+	RecTime(trecsp, "start");
 reset:
 	s = pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
-	delta = DELTA(gettime_ns(), argp->stamps[index - 1].stamp);
+	delta = DELTA(gettime_ns(), trecsp->parray[trecsp->used - 1].stamp);
 	if (s != 0) {
 		cnt++;
 		secs = base * base_cnt;
@@ -592,7 +657,7 @@ https://stackoverflow.com/questions/8032372/how-can-i-see-which-cpu-core-a-threa
 	*/
 	pause();
 #else
-	argp->stamps[index++].stamp = gettime_ns();
+	RecTime(trecsp, "b");
 	pthread_mutex_lock(&argp->l);
 	//Never change, nor check, the predicate condition unless the mutex is locked. Ever.
 	argp->local = UNLOCKED;
@@ -602,8 +667,8 @@ https://stackoverflow.com/questions/8032372/how-can-i-see-which-cpu-core-a-threa
 	if (argp->pub[0] == LOCKED)
 		pthread_cond_wait(argp->cond, argp->lock);
 	pthread_mutex_unlock(argp->lock);
-	argp->stamps[index++].stamp = gettime_ns();
-	debug("$$[%d]starts loop\n", argp->index);
+	RecTime(trecsp, "w");
+	debug("$$[%d:starts loop\n", argp->index);
 /*
 android ver:
 https://stackoverflow.com/questions/9287315/finding-usage-of-resources-cpu-and-memory-by-threads-of-a-process-in-android
@@ -628,8 +693,7 @@ after adding:
 		}
 	}
 #endif
-	argp->stamps[index++].stamp = gettime_ns();
-	argp->stamps_nr = index;
+	RecTime(trecsp, "L");
 	getaffinity(argp, &cpuset);
 	debug("##[%d]:end loop\n", argp->index);
 	return (void*)argp->index;
@@ -638,7 +702,7 @@ after adding:
 int main(int argc, char **argv)
 {
 	struct arg *args, *argp;
-	struct stamp *stamps;
+	struct trecs *trecsp = NULL;
 	int s, i, j, k, index;
 	unsigned int delta;
 	void *rval_ptr;
@@ -662,17 +726,20 @@ int main(int argc, char **argv)
 		}
 	}
 	printf("p %d t %lu: (%u loops X %d threads)\n", getpid(), pthread_self(), loops, threads_nr);
-	if ((args = malloc(sizeof(struct arg) * threads_nr)) == NULL)
-		err_exit(errno, "***fail to malloc for %d threads", threads_nr);
-	if ((stamps = malloc(sizeof(struct stamp) * threads_nr)) == NULL)
-		err_exit(errno, "***fail to malloc for %d stamps", threads_nr);
+	if ((args = calloc(threads_nr, sizeof(struct arg))) == NULL) {
+		err_write(errno, "***fail to malloc for %d threads", threads_nr);
+		goto end;
+	}
+	//
+	if ((trecsp = trecs_init(CONFIG_STAMPS_NR)) == NULL)
+		goto end;
 	//
 	index = j = k = 0;
 next:
 	mutex_lock = mutexes[j][0];
 	mutex_unlock = mutexes[j][1];
 	printf("---%d: [%d]---\n", k, j);
-	stamps[index++].stamp = gettime_ns();
+	RecTime(trecsp, "");
 	//
 	for (i = 0; i < threads_nr; i++) {
 		argp = args + i;
@@ -683,15 +750,19 @@ next:
 		argp->cpu = k? 0: (i % CONFIG_CPU_NR);
 		argp->lock = &lock;
 		argp->cond = &cond;
+		argp->precs = trecs_init(CONFIG_STAMPS_NR);
+		if (argp->precs == NULL)
+			goto end;
 		pthread_mutex_init(&argp->l, NULL);
 		pthread_cond_init(&argp->c, NULL);
 		s = pthread_create(&argp->tid, NULL, threadFunc, argp);
-		if (s != 0)
-			err_exit(s, "***cannot create thread %d", i);
-		else
+		if (s != 0) {
+			err_write(s, "***cannot create thread %d", i);
+			goto end;
+		} else
 			debug("%d.lunch %lu on CPU %d(expected)\n", argp->index, argp->tid, argp->cpu);
 	}
-	stamps[index++].stamp = gettime_ns();
+	RecTime(trecsp, "L");
 	for (i = 0; i < threads_nr; i++) {
 		argp = args + i;
 		pthread_mutex_lock(&argp->l);
@@ -703,23 +774,23 @@ next:
 			pthread_cond_wait(&argp->c, &argp->l);
 		pthread_mutex_unlock(&argp->l);
 	}
+	RecTime(trecsp, "W");
 	pthread_mutex_lock(&lock);
-	stamps[index++].stamp = gettime_ns();
 	public = UNLOCKED;
 	//pthread_cond_signal(&cond);//on x86 it can trigger [1,2] threads, on arm there seems al only 1 treads waiting first on signal
 	pthread_cond_broadcast(&cond);
-	stamps[index++].stamp = gettime_ns();
 	debug("main fin signal\n");
+	RecTime(trecsp, "B");
 	pthread_mutex_unlock(&lock);
 	for (i = 0; i < threads_nr; i++) {
 		argp = args + i;
 		s = pthread_join(argp->tid, &rval_ptr);//if a joined tid is joined again:the following error will emit!
 		if (s != 0)
-			err_exit(s, "***join %lu fails", argp->tid);
+			err_cont(s, "***join %lu fails", argp->tid);
 		else
 			debug("join %lu get %d\n", argp->tid, (int)rval_ptr);
 	}
-	stamps[index++].stamp = gettime_ns();
+	RecTime(trecsp, "J");
 	/*
 	printf("t%lu sleep\n", thread);
 	pause();
@@ -728,25 +799,17 @@ next:
 	if (delta != 0) {
 		char buf[256];
 		//ohm: One hundred millionth(percent of 10^8)
-		int ret = snprintf(buf, sizeof(buf), "***%d(%.6f):", delta, (delta * 1.0)/(threads_nr * loops));
+		int ret = snprintf(buf, sizeof(buf), "***%d(%.6f%% %u<%u)", \
+			delta, (delta * 1.0)/(threads_nr * loops), glob, threads_nr * loops);
 		write(STDERR_FILENO, buf, ret);
 		//fprintf(stderr, );
-	}
-	printf("==>%d", glob);
-	for (i = 0; i < index - 1; i++) {
-		stamps[i].delta = DELTA(stamps[i + 1].stamp, stamps[i].stamp);
-		printf("%.6f ", stamps[i].delta);
-	}
-	printf("\n");
+	} else
+		err_write("=>OK:");
+	trecs_dump(trecsp);
 	for (i = 0; i < threads_nr; i++)  {
 		argp = args + i;
-		printf("[%02d]:(%d)tid %lu:", i, argp->cpu, argp->tid);
-		for (index = 0; index < argp->stamps_nr - 1; index++) {
-			struct stamp *p = &argp->stamps[index];
-			p->delta = DELTA(p[1].stamp, p[0].stamp);
-			printf("%.6f ", p->delta);
-		}
-		printf("\n");
+		debug("[%d:C %d:", i, argp->cpu);
+		trecs_dump(argp->precs);
 	}
 	//
 	glob = 0;
@@ -756,8 +819,15 @@ next:
 		j = 0;
 		goto next;
 	}
+end:
+	if (args) {
+		for (i = 0; i < threads_nr; i++)  {
+			argp = args + i;
+			trecs_free(argp->precs);
+		}
+	}
 	free(args);
-	free(stamps);
+	trecs_free(trecsp);
 	//
 	return 0;
 }
