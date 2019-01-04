@@ -91,7 +91,8 @@ double cpu_consumer(void)
 	return r;
 }
 
-static uint64_t glob = 0;
+//static uint64_t glob = 0;//once use 64, no error happens!
+static unsigned long glob = 0;
 
 struct tRec {
 	uint64_t stamp;
@@ -567,6 +568,18 @@ int unlock_with_dummy_nb(struct arg *argp)
 }
 
 
+int unlock_with_nop_nb(struct arg *argp)
+{
+	__asm__ __volatile__(
+"	nop\n"
+"	str %1, [%0]\n"
+"	nop\n"
+	:
+	: "r" (&my_lock), "r"(UNLOCKED)
+	: "cc");
+	return 0;
+}
+
 mutex mutexes[][2] = {
 #if 0
 	{broken_lock_v1, broken_unlock_v1},//spin way:no error
@@ -580,9 +593,10 @@ mutex mutexes[][2] = {
 	{broken_lock_v2, broken_unlock_v2_near},//try lock way with a much near unlock: ***9/(10^8):Final 39999991 took 19.02s
 #else
 	//{broken_lock_v5, broken_unlock_v5p7},//Final 40000000 took 4278.33s
-	{try_lock_nb, unlock_with_dummy_nb},//w/o cpu_consumer:***196550(0.001228% 159803450<160000000)
+	{try_lock_nb, unlock_with_dummy_nb},//w/o cpu_consumer:***46219(0.001155% 39953781<40000000)
 	{try_lock_nb, unlock_nb},//w/o cpu_consumer:***4(0.000000% 159999996<160000000)
-	{spin_lock_dummy_nb, unlock_nb},
+	{spin_lock_dummy_nb, unlock_nb},//no error
+	{try_lock_nb, unlock_with_nop_nb},//***172324(0.004308% 39827676<40000000)
 #endif
 };
 
@@ -800,12 +814,12 @@ next:
 	if (delta != 0ULL) {
 		char buf[256];
 		//ohm: One hundred millionth(percent of 10^8)
-		int ret = snprintf(buf, sizeof(buf), "***%llu(%.6f%% %llu<%llu)", \
+		int ret = snprintf(buf, sizeof(buf), "***%llu(%.6f%% %lu<%llu)", \
 			delta, (delta * 1.0)/(threads_nr * loops), glob, threads_nr * loops);
 		write(STDERR_FILENO, buf, ret);
 		//fprintf(stderr, );
 	} else
-		err_write("====>OK:");
+		err_write("====>OK:%lu:", glob);
 	trecs_dump(trecsp);
 	for (i = 0; i < threads_nr; i++)  {
 		argp = args + i;
@@ -813,7 +827,7 @@ next:
 		trecs_dump(argp->precs);
 	}
 	//
-	glob = 0ULL;
+	glob = 0;
 	if (++j < ARRAY_SIZE(mutexes))
 		goto next;
 	if (k++ < CONFIG_TEST_UP) {
