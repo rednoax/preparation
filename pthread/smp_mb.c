@@ -601,14 +601,14 @@ void getaffinity(struct arg *argp, cpu_set_t *expected)
 		err_cont(ret, "***pthread_getaffinity_np for %lu on CPU %d", thread, cpu);
 	else {
 		if (!CPU_EQUAL(&real, expected)) {
-			err_write("***{%d}expect C %d,but on C ", argp->index, cpu);
+			err_write("***{%d:expect C %d,but on C ", argp->index, cpu);
 			for (i = 0; i < CONFIG_CPU_NR; i++) {
 				if (CPU_ISSET(i, &real)) {
 					argp->cpu = i;
 					err_write(":%d", i);
 				}
 			}
-			err_write(">");
+			err_write("}");
 			*expected = real;
 		}
 	}
@@ -668,7 +668,7 @@ https://stackoverflow.com/questions/8032372/how-can-i-see-which-cpu-core-a-threa
 		pthread_cond_wait(argp->cond, argp->lock);
 	pthread_mutex_unlock(argp->lock);
 	RecTime(trecsp, "w");
-	debug("$$[%d:starts loop\n", argp->index);
+	debug("$$%d:starts loop\n", argp->index);
 /*
 android ver:
 https://stackoverflow.com/questions/9287315/finding-usage-of-resources-cpu-and-memory-by-threads-of-a-process-in-android
@@ -804,7 +804,7 @@ next:
 		write(STDERR_FILENO, buf, ret);
 		//fprintf(stderr, );
 	} else
-		err_write("=>OK:");
+		err_write("====>OK:");
 	trecs_dump(trecsp);
 	for (i = 0; i < threads_nr; i++)  {
 		argp = args + i;
