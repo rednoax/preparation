@@ -119,6 +119,7 @@ struct arg {
 	pthread_cond_t c;
 	int local, *pub;
 	int index;
+	unsigned long audit[2];
 };
 //0:unlock 1:locked
 #define LOCKED 1
@@ -244,6 +245,29 @@ int spin_lock_nb(struct arg *argp)//spin way
 	: "r" (&my_lock), "I"(LOCKED)
 	: "cc");
 	__asm__ __volatile("22:");
+	return !ret;
+}
+
+int spin_lock_audit_nb(struct arg *argp)//spin with auditing
+{
+	int val, ret;
+	__asm__ __volatile__(
+"1:	ldrex %0, [%3]\n"
+"	cmp %0, %4\n"
+	"	ldreq %0, [%2]\n"
+	"	addeq %0, %0, #1\n"
+	"	streq %0, [%2]\n"
+"	beq 1b\n"
+"	mov %0, %4\n"
+"	strex %1, %0, [%3]\n"
+"	cmp %1, #0\n"
+	"	ldrne %0, [%2, #4]\n"
+	"	addne %0, %0, #1\n"
+	"	strne %0, [%2, #4]\n"
+"	bne	1b\n"
+	: "=&r" (val), "=&r" (ret), "=&r" (argp->audit)
+	: "r" (&my_lock), "I"(LOCKED)
+	: "cc");
 	return !ret;
 }
 
@@ -595,8 +619,9 @@ mutex mutexes[][2] = {
 	//{broken_lock_v5, broken_unlock_v5p7},//Final 40000000 took 4278.33s
 	{try_lock_nb, unlock_with_dummy_nb},//w/o cpu_consumer:***46219(0.001155% 39953781<40000000)
 	{try_lock_nb, unlock_nb},//w/o cpu_consumer:***4(0.000000% 159999996<160000000)
-	{spin_lock_dummy_nb, unlock_nb},//no error
+	//{spin_lock_dummy_nb, unlock_nb},//no error
 	{try_lock_nb, unlock_with_nop_nb},//***172324(0.004308% 39827676<40000000)
+	{spin_lock_audit_nb, unlock_with_nop_nb},
 #endif
 };
 
@@ -766,6 +791,7 @@ next:
 		argp->lock = &lock;
 		argp->cond = &cond;
 		argp->precs = trecs_init(CONFIG_STAMPS_NR);
+		memset(argp->audit, 0, sizeof(argp->audit)));
 		if (argp->precs == NULL)
 			goto end;
 		pthread_mutex_init(&argp->l, NULL);
