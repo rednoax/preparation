@@ -144,7 +144,7 @@ void RecTime(struct trecs *p, const char *str)
 {
 	struct tRec *recp;
 	if (p->used < p->array_size) {
-		recp = p->parray[p->used];
+		recp = &p->parray[p->used];
 		recp->stamp = gettime_ns();
 		recp->desp = str;
 		recp->index = p->used;
@@ -161,7 +161,7 @@ struct trecs *trecs_init(int nr)
 	int size;
 	struct trecs *p = malloc(sizeof(*p));
 	if (p == NULL) {
-		err_write(errno, "***fail to malloc trecs");
+		err_write("***fail to malloc trecs");
 		return NULL;
 	}
 	p->array_size = nr;
@@ -170,7 +170,7 @@ struct trecs *trecs_init(int nr)
 	if ((p->parray = malloc(size)) == NULL) {
 		free(p);
 		p = NULL;
-		err_write(errno, "***fail to malloc for %d tRec", nr);
+		err_write("***fail to malloc for %d tRec", nr);
 	} else
 		memset(p->parray, 0, size);
 	return p;
@@ -625,7 +625,7 @@ static void *threadFunc(void *_arg)
 	double delta, secs, base = 10.0;
 	unsigned int i, s, base_cnt = 1, cpu = argp->cpu;
 	pthread_t thread = pthread_self();
-	int index = 0, cnt = 1;
+	int cnt = 1;
 	cpu_set_t cpuset;
 	struct trecs *trecsp = argp->precs;
 
@@ -703,7 +703,7 @@ int main(int argc, char **argv)
 {
 	struct arg *args, *argp;
 	struct trecs *trecsp = NULL;
-	int s, i, j, k, index;
+	int s, i, j, k;
 	unsigned int delta;
 	void *rval_ptr;
 	pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
@@ -727,14 +727,14 @@ int main(int argc, char **argv)
 	}
 	printf("p %d t %lu: (%u loops X %d threads)\n", getpid(), pthread_self(), loops, threads_nr);
 	if ((args = calloc(threads_nr, sizeof(struct arg))) == NULL) {
-		err_write(errno, "***fail to malloc for %d threads", threads_nr);
+		err_write("***fail to malloc for %d threads", threads_nr);
 		goto end;
 	}
 	//
 	if ((trecsp = trecs_init(CONFIG_STAMPS_NR)) == NULL)
 		goto end;
 	//
-	index = j = k = 0;
+	j = k = 0;
 next:
 	mutex_lock = mutexes[j][0];
 	mutex_unlock = mutexes[j][1];
@@ -757,7 +757,7 @@ next:
 		pthread_cond_init(&argp->c, NULL);
 		s = pthread_create(&argp->tid, NULL, threadFunc, argp);
 		if (s != 0) {
-			err_write(s, "***cannot create thread %d", i);
+			err_cont(s, "***cannot create thread %d", i);
 			goto end;
 		} else
 			debug("%d.lunch %lu on CPU %d(expected)\n", argp->index, argp->tid, argp->cpu);
