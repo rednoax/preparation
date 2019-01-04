@@ -91,7 +91,7 @@ double cpu_consumer(void)
 	return r;
 }
 
-static unsigned int glob = 0;
+static uint64_t glob = 0;
 
 struct tRec {
 	uint64_t stamp;
@@ -106,7 +106,7 @@ struct trecs {
 	int array_size;
 };
 struct arg {
-	unsigned int loops;
+	uint64_t loops;
 	int cpu;
 	pthread_mutex_t *lock;
 	pthread_cond_t *cond;
@@ -580,8 +580,8 @@ mutex mutexes[][2] = {
 	{broken_lock_v2, broken_unlock_v2_near},//try lock way with a much near unlock: ***9/(10^8):Final 39999991 took 19.02s
 #else
 	//{broken_lock_v5, broken_unlock_v5p7},//Final 40000000 took 4278.33s
-	{try_lock_nb, unlock_with_dummy_nb},//if cpu_consumer removed:***45091(0.001127% 39954909<40000000)
-	{try_lock_nb, unlock_nb},
+	{try_lock_nb, unlock_with_dummy_nb},//w/o cpu_consumer:***196550(0.001228% 159803450<160000000)
+	{try_lock_nb, unlock_nb},//w/o cpu_consumer:***4(0.000000% 159999996<160000000)
 	{spin_lock_dummy_nb, unlock_nb},
 #endif
 };
@@ -624,7 +624,8 @@ static void *threadFunc(void *_arg)
 {
 	struct arg * argp = _arg;
 	double delta, secs, base = 10.0;
-	unsigned int i, s, base_cnt = 1, cpu = argp->cpu;
+	uint64_t i;
+	unsigned int s, base_cnt = 1, cpu = argp->cpu;
 	pthread_t thread = pthread_self();
 	int cnt = 1;
 	cpu_set_t cpuset;
@@ -705,13 +706,12 @@ int main(int argc, char **argv)
 	struct arg *args, *argp;
 	struct trecs *trecsp = NULL;
 	int s, i, j, k;
-	unsigned int delta;
 	void *rval_ptr;
 	pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 	pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
-	int threads_nr, loops, public = LOCKED;
-	threads_nr = CONFIG_CPU_NR;
-	loops = CONFIG_PER_BATCH;
+	int public = LOCKED;
+	unsigned int threads_nr = CONFIG_CPU_NR;
+	uint64_t loops = CONFIG_PER_BATCH, delta;
 
 	while((s = getopt(argc, argv, "t:l:")) != -1) {
 		switch(s)
@@ -720,15 +720,15 @@ int main(int argc, char **argv)
 			threads_nr = atoi(optarg);
 			break;
 		case 'l':
-			loops = atoi(optarg);
+			loops = strtoull(optarg, NULL, 10);
 			break;
 		default:
 			break;
 		}
 	}
-	printf("p %d t %lu: (%u loops X %d threads)\n", getpid(), pthread_self(), loops, threads_nr);
+	printf("p %d t %lu: (%llu loops X %u threads)\n", getpid(), pthread_self(), loops, threads_nr);
 	if ((args = calloc(threads_nr, sizeof(struct arg))) == NULL) {
-		err_write("***fail to malloc for %d threads", threads_nr);
+		err_write("***fail to malloc for %u threads", threads_nr);
 		goto end;
 	}
 	//
@@ -797,10 +797,10 @@ next:
 	pause();
 	*/
 	delta = threads_nr * loops - glob;
-	if (delta != 0) {
+	if (delta != 0ULL) {
 		char buf[256];
 		//ohm: One hundred millionth(percent of 10^8)
-		int ret = snprintf(buf, sizeof(buf), "***%d(%.6f%% %u<%u)", \
+		int ret = snprintf(buf, sizeof(buf), "***%llu(%.6f%% %llu<%llu)", \
 			delta, (delta * 1.0)/(threads_nr * loops), glob, threads_nr * loops);
 		write(STDERR_FILENO, buf, ret);
 		//fprintf(stderr, );
@@ -813,7 +813,7 @@ next:
 		trecs_dump(argp->precs);
 	}
 	//
-	glob = 0;
+	glob = 0ULL;
 	if (++j < ARRAY_SIZE(mutexes))
 		goto next;
 	if (k++ < CONFIG_TEST_UP) {
