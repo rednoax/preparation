@@ -227,7 +227,7 @@ void broken_unlock_v0(struct arg *argp)
 /*
 ldrex/strex test result on x86 is right!(You can run arm's ./a.out on ubuntu x86 directly)
 */
-int broken_lock_v1(struct arg *argp)//spin way
+int spin_lock_nb(struct arg *argp)//spin way
 {
 	volatile int val, ret;
 	__asm__ __volatile("11:");//mark the range in .s
@@ -379,7 +379,7 @@ int broken_unlock_v4(struct arg *argp)
 	return 0;
 }
 
-int broken_lock_v5(struct arg *argp)//Add mem barrier to test
+int try_lock_nb(struct arg *argp)
 {
 	int ret;
 	__asm__ __volatile("11:");//mark the range in .s
@@ -443,7 +443,7 @@ int broken_unlock_v5p6(struct arg *argp)
 	return 0;
 }
 
-int broken_unlock_v2_near(struct arg *argp)
+int unlock_nb(struct arg *argp)
 {
 	my_lock = UNLOCKED;
 	return 0;
@@ -481,7 +481,7 @@ int broken_unlock_v5p7(struct arg *argp)
 	return 0;
 }
 
-int broken_lock_v1p1(struct arg *argp)//alt spin way
+int spin_lock_dummy_nb(struct arg *argp)//alt spin way
 {
 	volatile int val, ret;
 	__asm__ __volatile__(
@@ -540,7 +540,7 @@ int broken_lock_v1p1(struct arg *argp)//alt spin way
 	return !ret;
 }
 
-int broken_unlock_v5p8(struct arg *argp)
+int unlock_with_dummy_nb(struct arg *argp)
 {
 	__asm__ __volatile__(
 "	mov %0, %0\n"
@@ -580,8 +580,9 @@ mutex mutexes[][2] = {
 	{broken_lock_v2, broken_unlock_v2_near},//try lock way with a much near unlock: ***9/(10^8):Final 39999991 took 19.02s
 #else
 	//{broken_lock_v5, broken_unlock_v5p7},//Final 40000000 took 4278.33s
-	{broken_lock_v5, broken_unlock_v5p8},//***1345/(10^8):Final 39998655 took 17.97s, if cpu_consumer removed:***98934/(10^8):Final 39901066 took 4.55s
-	{broken_lock_v1p1, broken_unlock_v5p8},//alter spin way:Final 40000000 took 13.41s
+	{try_lock_nb, unlock_with_dummy_nb},//if cpu_consumer removed:***45091(0.001127% 39954909<40000000)
+	{try_lock_nb, unlock_nb},
+	{spin_lock_dummy_nb, unlock_nb},
 #endif
 };
 
