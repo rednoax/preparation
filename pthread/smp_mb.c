@@ -632,7 +632,7 @@ after adding:
 	argp->stamps_nr = index;
 	getaffinity(argp, &cpuset);
 	debug("##[%d]:end loop\n", argp->index);
-	return (void*)cpu;
+	return (void*)argp->index;
 }
 
 int main(int argc, char **argv)
