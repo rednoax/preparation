@@ -252,21 +252,21 @@ int spin_lock_audit_nb(struct arg *argp)//spin with auditing
 {
 	int val, ret;
 	__asm__ __volatile__(
-"1:	ldrex %0, [%3]\n"
-"	cmp %0, %4\n"
-	"	ldreq %0, [%2]\n"
+"1:	ldrex %0, [%2]\n"
+"	cmp %0, %3\n"
+	"	ldreq %0, [%4]\n"
 	"	addeq %0, %0, #1\n"
-	"	streq %0, [%2]\n"
+	"	streq %0, [%4]\n"
 "	beq 1b\n"
-"	mov %0, %4\n"
-"	strex %1, %0, [%3]\n"
+"	mov %0, %3\n"
+"	strex %1, %0, [%2]\n"
 "	cmp %1, #0\n"
-	"	ldrne %0, [%2, #4]\n"
+	"	ldrne %0, [%4, #4]\n"
 	"	addne %0, %0, #1\n"
-	"	strne %0, [%2, #4]\n"
+	"	strne %0, [%4, #4]\n"
 "	bne	1b\n"
-	: "=&r" (val), "=&r" (ret), "=&r" (argp->audit)
-	: "r" (&my_lock), "I"(LOCKED)
+	: "=&r" (val), "=&r" (ret)
+	: "r" (&my_lock), "I"(LOCKED), "r" (&argp->audit[0])
 	: "cc");
 	return !ret;
 }
@@ -791,7 +791,7 @@ next:
 		argp->lock = &lock;
 		argp->cond = &cond;
 		argp->precs = trecs_init(CONFIG_STAMPS_NR);
-		memset(argp->audit, 0, sizeof(argp->audit)));
+		memset(argp->audit, 0, sizeof(argp->audit));
 		if (argp->precs == NULL)
 			goto end;
 		pthread_mutex_init(&argp->l, NULL);
