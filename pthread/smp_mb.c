@@ -266,7 +266,7 @@ int spin_lock_audit_nb(struct arg *argp)//spin with auditing
 	"	strne %0, [%4, #4]\n"
 "	bne	1b\n"
 	: "=&r" (val), "=&r" (ret)
-	: "r" (&my_lock), "I"(LOCKED), "r" (&argp->audit[0])
+	: "r" (&my_lock), "I"(LOCKED), "r" (argp->audit)
 	: "cc");
 	return !ret;
 }
@@ -621,7 +621,7 @@ mutex mutexes[][2] = {
 	{try_lock_nb, unlock_nb},//w/o cpu_consumer:***4(0.000000% 159999996<160000000)
 	//{spin_lock_dummy_nb, unlock_nb},//no error
 	{try_lock_nb, unlock_with_nop_nb},//***172324(0.004308% 39827676<40000000)
-	{spin_lock_audit_nb, unlock_with_nop_nb},
+	{spin_lock_audit_nb, unlock_with_nop_nb},//no error
 #endif
 };
 
@@ -849,7 +849,7 @@ next:
 	trecs_dump(trecsp);
 	for (i = 0; i < threads_nr; i++)  {
 		argp = args + i;
-		debug("[%d:C %d:", i, argp->cpu);
+		debug("[%d:C %d:%lu %lu:", i, argp->cpu, argp->audit[0], argp->audit[1]);
 		trecs_dump(argp->precs);
 	}
 	//
