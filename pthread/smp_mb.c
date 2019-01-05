@@ -266,8 +266,8 @@ int spin_lock_bl_nb(struct arg *argp)//spin with auditing
 	"	push {r0, r1, r2, r3, r12, lr}\n"
 	"	mov r0, %4\n"
 	"	bl audit\n"
-	"	pop {r0, r1, r2, r3, r12 ,lr}\n"
-	"	b 1f\n"
+	"	pop {r0, r1, r2, r3, r12, lr}\n"
+	"	b 1b\n"
 "2:	mov %0, %3\n"
 "	strex %1, %0, [%2]\n"
 "	cmp %1, #0\n"
@@ -276,8 +276,8 @@ int spin_lock_bl_nb(struct arg *argp)//spin with auditing
 	"	mov r0, %4\n"
 	"	add r0, r0, #4\n"
 	"	bl audit\n"
-	"	pop {r0, r1, r2, r3, r12 ,lr}\n"
-	"	b 1f\n"
+	"	pop {r0, r1, r2, r3, r12, lr}\n"
+	"	b 1b\n"
 "3:\n"
 	: "=&r" (val), "=&r" (ret)
 	: "r" (&my_lock), "I"(LOCKED), "r" (argp->audit)
