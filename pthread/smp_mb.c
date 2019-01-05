@@ -256,35 +256,6 @@ void audit(unsigned long *l)
 	*l = local;
 }
 
-int spin_lock_bl_nb(struct arg *argp)//spin with auditing
-{
-	int val, ret;
-	__asm__ __volatile__(
-"1:	ldrex %0, [%2]\n"
-"	cmp %0, %3\n"
-"	bne 2f\n"
-	"	push {r0, r1, r2, r3, r12, lr}\n"
-	"	mov r0, %4\n"
-	"	bl audit\n"
-	"	pop {r0, r1, r2, r3, r12, lr}\n"
-	"	b 1b\n"
-"2:	mov %0, %3\n"
-"	strex %1, %0, [%2]\n"
-"	cmp %1, #0\n"
-"	beq	3f\n"
-	"	push {r0, r1, r2, r3, r12, lr}\n"
-	"	mov r0, %4\n"
-	"	add r0, r0, #4\n"
-	"	bl audit\n"
-	"	pop {r0, r1, r2, r3, r12, lr}\n"
-	"	b 1b\n"
-"3:\n"
-	: "=&r" (val), "=&r" (ret)
-	: "r" (&my_lock), "I"(LOCKED), "r" (argp->audit)
-	: "cc");
-	return !ret;
-}
-
 int spin_lock_audit_nb(struct arg *argp)//spin with auditing
 {
 	int val, ret;
@@ -472,6 +443,35 @@ int try_lock_nb(struct arg *argp)
 	: "r" (&my_lock), "I"(UNLOCKED), "r"(LOCKED)
 	: "cc");
 	__asm__ __volatile("22:");
+	return !ret;
+}
+
+int spin_lock_bl_nb(struct arg *argp)//spin with auditing
+{
+	int val, ret;
+	__asm__ __volatile__(
+"1:	ldrex %0, [%2]\n"
+"	cmp %0, %3\n"
+"	bne 2f\n"
+	"	push {r0, r1, r2, r3, r12, lr}\n"
+	"	mov r0, %4\n"
+	"	bl audit\n"
+	"	pop {r0, r1, r2, r3, r12, lr}\n"
+	"	b 1b\n"
+"2:	mov %0, %3\n"
+"	strex %1, %0, [%2]\n"
+"	cmp %1, #0\n"
+"	beq	3f\n"
+	"	push {r0, r1, r2, r3, r12, lr}\n"
+	"	mov r0, %4\n"
+	"	add r0, r0, #4\n"
+	"	bl audit\n"
+	"	pop {r0, r1, r2, r3, r12, lr}\n"
+	"	b 1b\n"
+"3:\n"
+	: "=&r" (val), "=&r" (ret)
+	: "r" (&my_lock), "I"(LOCKED), "r" (argp->audit)
+	: "cc");
 	return !ret;
 }
 
@@ -670,12 +670,14 @@ mutex mutexes[][2] = {
 	{broken_lock_v5, broken_unlock_v2},//***668/(10^8):Final 39999332 took 18.82s
 	{broken_lock_v2, broken_unlock_v2_near},//try lock way with a much near unlock: ***9/(10^8):Final 39999991 took 19.02s
 #else
+# if 0
 	//{broken_lock_v5, broken_unlock_v5p7},//Final 40000000 took 4278.33s
 	{try_lock_nb, unlock_with_dummy_nb},//w/o cpu_consumer:***46219(0.001155% 39953781<40000000)
 	{try_lock_nb, unlock_nb},//w/o cpu_consumer:***4(0.000000% 159999996<160000000)
 	//{spin_lock_dummy_nb, unlock_nb},//no error
 	{try_lock_nb, unlock_with_nop_nb},//***172324(0.004308% 39827676<40000000)
 	//{spin_lock_audit_nb, unlock_with_nop_nb},//no error
+# endif
 	{spin_lock_bl_nb, unlock_with_nop_nb},//can get error even when glob is 32bits, but -t 8 should be used; 4 times error when 64billion(0.8 billion x 8 threads) in 64bits's glob
 	//{try_lock_cpu_consumer_nb, unlock_nb},//no more error than {try_lock_nb, unlock_nb}
 #endif
