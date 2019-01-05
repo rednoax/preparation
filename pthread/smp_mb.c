@@ -92,7 +92,7 @@ double cpu_consumer(void)
 }
 
 //static uint64_t glob = 0;//once use 64, no error happens!
-static unsigned long glob = 0;
+static unsigned long glob[2] = {0, 0};
 
 struct tRec {
 	uint64_t stamp;
@@ -659,7 +659,7 @@ mutex mutexes[][2] = {
 	//{spin_lock_dummy_nb, unlock_nb},//no error
 	{try_lock_nb, unlock_with_nop_nb},//***172324(0.004308% 39827676<40000000)
 	//{spin_lock_audit_nb, unlock_with_nop_nb},//no error
-	{spin_lock_bl_nb, unlock_with_nop_nb},
+	{spin_lock_bl_nb, unlock_with_nop_nb},//no error when loop is low; 4 times error when 64billion(0.8 billion x 8 threads)
 #endif
 };
 
@@ -766,7 +766,11 @@ after adding:
 */
 		//cpu_consumer();
 		if (mutex_lock(argp)) {
-			glob++;
+			glob[0]++;
+			if (glob[0] == ~0UL) {
+				glob[1]++;
+				glob[0] = 0;
+			}
 			mutex_unlock(argp);
 			i++;
 		}
@@ -788,7 +792,7 @@ int main(int argc, char **argv)
 	pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 	int public = LOCKED;
 	unsigned int threads_nr = CONFIG_CPU_NR;
-	uint64_t loops = CONFIG_PER_BATCH, delta;
+	uint64_t loops = CONFIG_PER_BATCH, delta,*pglob = (uint64_t*)glob;
 
 	while((s = getopt(argc, argv, "t:l:")) != -1) {
 		switch(s)
@@ -874,16 +878,16 @@ next:
 	printf("t%lu sleep\n", thread);
 	pause();
 	*/
-	delta = threads_nr * loops - glob;
+	delta = threads_nr * loops - *pglob;
 	if (delta != 0ULL) {
 		char buf[256];
 		//ohm: One hundred millionth(percent of 10^8)
-		int ret = snprintf(buf, sizeof(buf), "***%llu(%.6f%% %lu<%llu)", \
-			delta, (delta * 1.0)/(threads_nr * loops), glob, threads_nr * loops);
+		int ret = snprintf(buf, sizeof(buf), "***%llu(%.6f%% %llu<%llu)", \
+			delta, (delta * 1.0)/(threads_nr * loops), *pglob, threads_nr * loops);
 		write(STDERR_FILENO, buf, ret);
 		//fprintf(stderr, );
 	} else
-		err_write("====>OK:%lu:", glob);
+		err_write("====>OK:%llu:", *pglob);
 	trecs_dump(trecsp);
 	for (i = 0; i < threads_nr; i++)  {
 		argp = args + i;
@@ -891,7 +895,7 @@ next:
 		trecs_dump(argp->precs);
 	}
 	//
-	glob = 0;
+	*pglob = 0;
 	if (++j < ARRAY_SIZE(mutexes))
 		goto next;
 	if (k++ < CONFIG_TEST_UP) {
