@@ -475,21 +475,18 @@ int spin_lock_bl_nb(struct arg *argp)//spin with auditing
 	return !ret;
 }
 
-int spin_lock_bx_nb(struct arg *argp)//spin with auditing
+int spin_lock_simplified_nb(struct arg *argp)//spin way based on try lock way that can emit much error
 {
-	int val, ret;
+	int ret;
 	__asm__ __volatile__(
-"1:	ldrex %0, [%2]\n"
-"	cmp %0, %3\n"
-"	bne 2f\n"
-"	b 3f\n"
-"2:	mov %0, %3\n"
-"	strex %1, %0, [%2]\n"
-"	cmp %1, #0\n"
-"	beq	3f\n"
-"3:\n"
-	: "=&r" (val), "=&r" (ret)
-	: "r" (&my_lock), "I"(LOCKED), "r" (argp->audit)
+"1:	ldrex %0, [%1]\n"
+"	cmp %0, %2\n"
+"	bne 1b\n"
+"	strex %0, %3, [%1]\n"
+"	cmp %0, #0\n"
+"	bne 1b\n"
+	: "=&r" (ret)
+	: "r" (&my_lock), "I"(UNLOCKED), "r"(LOCKED), "r" (argp->audit)
 	: "cc");
 	return !ret;
 }
@@ -699,7 +696,8 @@ mutex mutexes[][2] = {
 # endif
 	{spin_lock_bl_nb, unlock_with_nop_nb},//can get error even when glob is 32bits, but -t 8 should be used; 4 times error when 64billion(0.8 billion x 8 threads) in 64bits's glob
 	//{try_lock_cpu_consumer_nb, unlock_nb},//no more error than {try_lock_nb, unlock_nb}
-	{spin_lock_bx_nb, unlock_with_nop_nb},
+	{spin_lock_simplified_nb, unlock_with_nop_nb},
+	{spin_lock_simplified_nb, unlock_nb},
 #endif
 };
 
