@@ -696,8 +696,9 @@ mutex mutexes[][2] = {
 # endif
 	{spin_lock_bl_nb, unlock_with_nop_nb},//can get error even when glob is 32bits, but -t 8 should be used; 4 times error when 64billion(0.8 billion x 8 threads) in 64bits's glob
 	//{try_lock_cpu_consumer_nb, unlock_nb},//no more error than {try_lock_nb, unlock_nb}
-	{spin_lock_simplified_nb, unlock_with_nop_nb},
-	{spin_lock_simplified_nb, unlock_nb},
+	{spin_lock_simplified_nb, unlock_with_nop_nb},//**51412(0.001285% 39948588<40000000)
+	//{spin_lock_simplified_nb, unlock_nb},//not easy to emit error
+	//{spin_lock_simplified_nb, unlock_with_dummy_nb},//less than {spin_lock_simplified_nb, unlock_with_nop_nb}
 #endif
 };
 
