@@ -736,7 +736,8 @@ reset:
 		cnt++;
 		secs = base * base_cnt;
 		if (delta > secs) {
-			err_cont(s, "***setaffinity tid %lu on C %d pass %.2fs(%d)", thread, cpu, secs, base_cnt);
+			//err_cont(s, "***setaffinity tid %lu on C %d pass %.2fs(%d)", thread, cpu, secs, base_cnt);
+			err_cont(s, "***setaffinity tid %lu on C %d pass %.2fs", thread, cpu, secs);
 			base_cnt++;
 		}
 		goto reset;
