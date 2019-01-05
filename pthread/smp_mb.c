@@ -16,7 +16,7 @@ typedef unsigned long long uint64_t;
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof((x)[0]))
 #define CONFIG_CPU_NR 4
 #define CONFIG_PER_BATCH 10000000//25000000//
-#define CONFIG_TEST_UP 0
+//#define CONFIG_TEST_UP 0
 #define CONFIG_DEBUG
 #ifdef CONFIG_DEBUG
 #define debug(fmt, arg...) err_write(fmt, ##arg)
@@ -798,7 +798,7 @@ int main(int argc, char **argv)
 {
 	struct arg *args, *argp;
 	struct trecs *trecsp = NULL;
-	int s, i, j, k;
+	int s, i, j, k, multi = 1, cpu = -1;
 	void *rval_ptr;
 	pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 	pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
@@ -806,7 +806,7 @@ int main(int argc, char **argv)
 	unsigned int threads_nr = CONFIG_CPU_NR;
 	uint64_t loops = CONFIG_PER_BATCH, delta,*pglob = (uint64_t*)glob;
 
-	while((s = getopt(argc, argv, "t:l:")) != -1) {
+	while((s = getopt(argc, argv, "t:l:m:c:")) != -1) {
 		switch(s)
 		{
 		case 't':
@@ -815,11 +815,17 @@ int main(int argc, char **argv)
 		case 'l':
 			loops = strtoull(optarg, NULL, 10);
 			break;
+		case 'm':
+			multi = atoi(optarg);
+			break;
+		case 'c':
+			cpu = atoi(optarg);
+			break;
 		default:
 			break;
 		}
 	}
-	printf("p %d t %lu: (%llu loops X %u threads)\n", getpid(), pthread_self(), loops, threads_nr);
+	printf("p %d t %lu: (%llu loops X %u threads), CPU:%d(%d times)\n", getpid(), pthread_self(), loops, threads_nr, cpu, multi);
 	if ((args = calloc(threads_nr, sizeof(struct arg))) == NULL) {
 		err_write("***fail to malloc for %u threads", threads_nr);
 		goto end;
@@ -841,7 +847,7 @@ next:
 		argp->local = LOCKED;
 		argp->pub = &public;
 		argp->loops = loops;
-		argp->cpu = k? 0: (i % CONFIG_CPU_NR);
+		argp->cpu = (cpu >= 0) ? cpu: (i % CONFIG_CPU_NR);
 		argp->lock = &lock;
 		argp->cond = &cond;
 		argp->precs = trecs_init(CONFIG_STAMPS_NR);
@@ -910,7 +916,7 @@ next:
 	*pglob = 0;
 	if (++j < ARRAY_SIZE(mutexes))
 		goto next;
-	if (k++ < CONFIG_TEST_UP) {
+	if (++k < multi) {
 		j = 0;
 		goto next;
 	}
