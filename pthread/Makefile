@@ -5,7 +5,10 @@ C_OUT=$(patsubst %.c,%.out,$(C_SOURCE))
 .PHONY:all
 all:$(C_OUT)
 
-%.out:%.c
-	$(GCC) -pthread -static -Wall $< -o $@
-	$(GCC) -pthread -static -Wall $< -S
+#once -Os, try_lock cannot emit error
+#CFLAGS:=-pthread -static -Wall -Os
+CFLAGS:=-pthread -static -Wall
+%.out:%.c Makefile
+	$(GCC) $(CFLAGS) $< -o $@
+	$(GCC) $(CFLAGS) $< -S
 	$(OBJDUMP) -dx $@ > $@.dump.s
