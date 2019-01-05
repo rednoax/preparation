@@ -259,28 +259,29 @@ void audit(unsigned long *l)
 int spin_lock_bl_nb(struct arg *argp)//spin with auditing
 {
 	int val, ret;
-spin:
 	__asm__ __volatile__(
 "1:	ldrex %0, [%2]\n"
 "	cmp %0, %3\n"
-"#	beq 1b\n"
-"	beq 2f\n"
-"	mov %0, %3\n"
+"	bne 2f\n"
+	"	push {r0, r1, r2, r3, r12, lr}\n"
+	"	mov r0, %4\n"
+	"	bl audit\n"
+	"	pop {r0, r1, r2, r3, r12 ,lr}\n"
+	"	b 1f\n"
+"2:	mov %0, %3\n"
 "	strex %1, %0, [%2]\n"
 "	cmp %1, #0\n"
-"#	bne	1b\n"
-"	bne 3f\n"
-"	beq 4f\n"
+"	beq	3f\n"
+	"	push {r0, r1, r2, r3, r12, lr}\n"
+	"	mov r0, %4\n"
+	"	add r0, r0, #4\n"
+	"	bl audit\n"
+	"	pop {r0, r1, r2, r3, r12 ,lr}\n"
+	"	b 1f\n"
+"3:\n"
 	: "=&r" (val), "=&r" (ret)
-	: "r" (&my_lock), "I"(LOCKED)
+	: "r" (&my_lock), "I"(LOCKED), "r" (argp->audit)
 	: "cc");
-	__asm__ __volatile("2:");
-	audit(argp->audit);
-	goto spin;
-	__asm__ __volatile("3:");
-	audit(&argp->audit[1]);
-	goto spin;
-	__asm__ __volatile("4:");
 	return !ret;
 }
 
