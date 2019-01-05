@@ -441,6 +441,23 @@ int broken_unlock_v4(struct arg *argp)
 	return 0;
 }
 
+
+int try_lock_cpu_consumer_nb(struct arg *argp)
+{
+	int ret;
+	cpu_consumer();
+	__asm__ __volatile__(
+"1: ldrex %0, [%1]\n"
+"	cmp %0, %2\n"
+"	bne 2f\n"
+"	strex %0, %3, [%1]\n"
+"2:	#dmb\n"
+	: "=&r" (ret)
+	: "r" (&my_lock), "I"(UNLOCKED), "r"(LOCKED)
+	: "cc");
+	return !ret;
+}
+
 int try_lock_nb(struct arg *argp)
 {
 	int ret;
@@ -659,7 +676,8 @@ mutex mutexes[][2] = {
 	//{spin_lock_dummy_nb, unlock_nb},//no error
 	{try_lock_nb, unlock_with_nop_nb},//***172324(0.004308% 39827676<40000000)
 	//{spin_lock_audit_nb, unlock_with_nop_nb},//no error
-	{spin_lock_bl_nb, unlock_with_nop_nb},//no error when loop is low; 4 times error when 64billion(0.8 billion x 8 threads)
+	{spin_lock_bl_nb, unlock_with_nop_nb},//no error when glob is 32bits; 4 times error when 64billion(0.8 billion x 8 threads) in 64bits's glob
+	//{try_lock_cpu_consumer_nb, unlock_nb},//no more error than {try_lock_nb, unlock_nb}
 #endif
 };
 
@@ -718,7 +736,7 @@ reset:
 		cnt++;
 		secs = base * base_cnt;
 		if (delta > secs) {
-			err_cont(s, "***setaffinity tid %lu on C %d pass %.2fs", thread, cpu, secs);
+			err_cont(s, "***setaffinity tid %lu on C %d pass %.2fs(%d)", thread, cpu, secs, base_cnt);
 			base_cnt++;
 		}
 		goto reset;
@@ -767,10 +785,12 @@ after adding:
 		//cpu_consumer();
 		if (mutex_lock(argp)) {
 			glob[0]++;
+#if 0
 			if (glob[0] == ~0UL) {
 				glob[1]++;
 				glob[0] = 0;
 			}
+#endif
 			mutex_unlock(argp);
 			i++;
 		}
