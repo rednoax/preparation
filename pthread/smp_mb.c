@@ -482,7 +482,7 @@ int spin_lock_bx_nb(struct arg *argp)//spin with auditing
 "1:	ldrex %0, [%2]\n"
 "	cmp %0, %3\n"
 "	bne 2f\n"
-"	b 3f"
+"	b 3f\n"
 "2:	mov %0, %3\n"
 "	strex %1, %0, [%2]\n"
 "	cmp %1, #0\n"
