@@ -775,18 +775,9 @@ x86 ver:
 https://stackoverflow.com/questions/8032372/how-can-i-see-which-cpu-core-a-thread-is-running-in
 */
 	for (i = 0; i < argp->loops; ) {
-/*
-1. why cpu_consumer is necessary:
-when it is removed:
-***Final 39999996 took 4.52s
-after adding:
-***Final 39999385 took 18.42s
-2. If you run this arm binary on ubuntu, NOT a single error can emit!AL 4000 0000!
-*/
-		//cpu_consumer();
 		if (mutex_lock(argp)) {
 			glob[0]++;
-#if 0
+#if 0//seems more error can emit after removing these higer writing
 			if (glob[0] == ~0UL) {
 				glob[1]++;
 				glob[0] = 0;
