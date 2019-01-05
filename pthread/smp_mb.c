@@ -248,6 +248,42 @@ int spin_lock_nb(struct arg *argp)//spin way
 	return !ret;
 }
 
+void audit(unsigned long *l)
+{
+	unsigned long local;
+	local = *l;
+	local++;
+	*l = local;
+}
+
+int spin_lock_bl_nb(struct arg *argp)//spin with auditing
+{
+	int val, ret;
+spin:
+	__asm__ __volatile__(
+"1:	ldrex %0, [%2]\n"
+"	cmp %0, %3\n"
+"#	beq 1b\n"
+"	beq 2f\n"
+"	mov %0, %3\n"
+"	strex %1, %0, [%2]\n"
+"	cmp %1, #0\n"
+"#	bne	1b\n"
+"	bne 3f\n"
+"	beq 4f\n"
+	: "=&r" (val), "=&r" (ret)
+	: "r" (&my_lock), "I"(LOCKED)
+	: "cc");
+	__asm__ __volatile("2:");
+	audit(argp->audit);
+	goto spin;
+	__asm__ __volatile("3:");
+	audit(&argp->audit[1]);
+	goto spin;
+	__asm__ __volatile("4:");
+	return !ret;
+}
+
 int spin_lock_audit_nb(struct arg *argp)//spin with auditing
 {
 	int val, ret;
@@ -621,7 +657,8 @@ mutex mutexes[][2] = {
 	{try_lock_nb, unlock_nb},//w/o cpu_consumer:***4(0.000000% 159999996<160000000)
 	//{spin_lock_dummy_nb, unlock_nb},//no error
 	{try_lock_nb, unlock_with_nop_nb},//***172324(0.004308% 39827676<40000000)
-	{spin_lock_audit_nb, unlock_with_nop_nb},//no error
+	//{spin_lock_audit_nb, unlock_with_nop_nb},//no error
+	{spin_lock_bl_nb, unlock_with_nop_nb},
 #endif
 };
 
