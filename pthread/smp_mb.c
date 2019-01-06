@@ -492,7 +492,7 @@ int spin_lock_simplified_nb(struct arg *argp)//spin way based on try lock way th
 }
 
 
-int spin_lock_simplified_bl_nb(struct arg *argp)
+int spin_lock_simplified_nop_nb(struct arg *argp)
 {
 	int ret;
 	__asm__ __volatile__(
@@ -509,6 +509,29 @@ int spin_lock_simplified_bl_nb(struct arg *argp)
 "		nop\n"
 "	bne 1b\n"
 "		nop\n"
+	: "=&r" (ret)
+	: "r" (&my_lock), "I"(UNLOCKED), "r"(LOCKED), "r" (argp->audit)
+	: "cc");
+	return !ret;
+}
+
+int spin_lock_simplified_bl_nb(struct arg *argp)//spin way based on try lock way that can emit much error
+{
+	int ret;
+	__asm__ __volatile__(
+"1:	ldrex %0, [%1]\n"
+"	cmp %0, %2\n"
+"	bne 1b\n"
+"	strex %0, %3, [%1]\n"
+"	cmp %0, #0\n"
+"	beq 2f\n"
+		"	push {r0, r1, r2, r3, r12, lr}\n"
+		"	mov r0, %4\n"
+		"	add r0, r0, #4\n"
+		"	bl audit\n"
+		"	pop {r0, r1, r2, r3, r12, lr}\n"
+"	b 1b\n"
+"2:\n"
 	: "=&r" (ret)
 	: "r" (&my_lock), "I"(UNLOCKED), "r"(LOCKED), "r" (argp->audit)
 	: "cc");
@@ -723,6 +746,7 @@ mutex mutexes[][2] = {
 	{spin_lock_simplified_nb, unlock_with_nop_nb},//**51412(0.001285% 39948588<40000000)
 	//{spin_lock_simplified_nb, unlock_nb},//not easy to emit error
 	//{spin_lock_simplified_nb, unlock_with_dummy_nb},//less than {spin_lock_simplified_nb, unlock_with_nop_nb}
+	//{spin_lock_simplified_nop_nb, unlock_with_nop_nb},//***10534(0.000263% 39989466<40000000)
 	{spin_lock_simplified_bl_nb, unlock_with_nop_nb},
 #endif
 };
