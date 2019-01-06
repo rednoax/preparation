@@ -647,6 +647,32 @@ int spin_lock_more_simple_bl_nb(struct arg *argp)
 	return !ret;
 }
 
+int spin_lock_more_more_simple_bl_dmb(struct arg *argp)
+{
+	int ret;
+	__asm__ __volatile__(
+"1:	ldrex %0, [%1]\n"
+"	cmp %0, %2\n"
+"	beq 1b\n"
+"	strex %0, %2, [%1]\n"
+"	cmp %0, #0\n"
+"	beq 2f\n"
+		"	push {r0, r1, r2, r3, r12, lr}\n"
+		"	mov r0, %3\n"
+		"	add r0, r0, #4\n"
+		"	bl audit\n"
+		"	pop {r0, r1, r2, r3, r12, lr}\n"
+"	b 1b\n"
+"2:	nop\n"
+"	nop\n"
+"	nop\n"
+"	dmb\n"
+	: "=&r" (ret)
+	: "r" (&my_lock), "r"(LOCKED), "r" (argp->audit)
+	: "cc");
+	return 1;
+}
+
 
 int spin_lock_more_more_simple_bl_nb(struct arg *argp)
 {
@@ -1038,7 +1064,7 @@ mutex mutexes[][2] = {
 	//{spin_lock_simplified_nb, unlock_nb},//not easy to emit error
 	//{spin_lock_simplified_nb, unlock_with_dummy_nb},//less than {spin_lock_simplified_nb, unlock_with_nop_nb}
 	//{spin_lock_simplified_nop_nb, unlock_with_nop_nb},//***10534(0.000263% 39989466<40000000)
-	{spin_lock_simplified_bl_nb, unlock_with_nop_nb},//***537906(0.013448% 39462094<40000000)
+	//{spin_lock_simplified_bl_nb, unlock_with_nop_nb},//***537906(0.013448% 39462094<40000000)
 	//{fake_spin_lock_nb, unlock_with_nop_nb},//hard to emit error
 	//{spin_lock_more_simple_bl_nb, unlock_with_nop_nb},//***510804(0.012770% 39489196<40000000)
 	//{spin_lock_simplified_bl_more_nb, unlock_with_nop_nb}//***455747(0.011394% 39544253<40000000)
@@ -1049,8 +1075,9 @@ mutex mutexes[][2] = {
 //{fake_spin_lock_NoDummyBetweenLDREXAndSTREX_nb_v0, unlock_with_nop_nb},//hardly no error
 	//{fake_spin_lock_NoDummyBetweenLDREXAndSTREX_shrinked_nb, unlock_with_nop_nb},//***171203(0.004280% 39828797<40000000)
 	{spin_lock_more_more_simple_bl_nb, unlock_with_nop_nb},//***677259(0.016931% 39322741<40000000)
+	{spin_lock_more_more_simple_bl_dmb, unlock_with_nop_nb},
 	//{spin_lock_more_more_simple_bl_nb_v0, unlock_with_nop_nb},//**265650(0.006641% 39734350<40000000)
-	{spin_lock_more_more_simple_bl_nb_v1, unlock_with_nop_nb}
+	//{spin_lock_more_more_simple_bl_nb_v1, unlock_with_nop_nb}//***673290(0.016832% 39326710<40000000)
 	//{spin_lock_more_more_simple_nb, unlock_with_nop_nb},//***209601(0.005240% 39790399<40000000)
 #endif
 };
