@@ -1022,6 +1022,19 @@ int unlock_with_dummy_nb(struct arg *argp)
 	return 0;
 }
 
+int unlock_with_nop_dmb(struct arg *argp)
+{
+	__asm__ __volatile__(
+	"dmb");
+	__asm__ __volatile__(
+"	nop\n"
+"	str %1, [%0]\n"
+"	nop\n"
+	:
+	: "r" (&my_lock), "r"(UNLOCKED)
+	: "cc");
+	return 0;
+}
 
 int unlock_with_nop_nb(struct arg *argp)
 {
@@ -1094,7 +1107,7 @@ mutex mutexes[][2] = {
 	//{fake_spin_lock_NoDummyBetweenLDREXAndSTREX_shrinked_nb, unlock_with_nop_nb},//***171203(0.004280% 39828797<40000000)
 	{spin_lock_more_more_simple_bl_nb, unlock_with_nop_nb},//***677259(0.016931% 39322741<40000000)
 	//{spin_lock_more_more_simple_bl_dmb, unlock_with_nop_nb},//1/10 batch can emit error
-	{spin_lock_more_more_simple_bl_dmb, unlock_with_nop_nb},
+	{spin_lock_more_more_simple_bl_nb, unlock_with_nop_dmb},
 	//{spin_lock_more_more_simple_bl_nb_v0, unlock_with_nop_nb},//**265650(0.006641% 39734350<40000000)
 	//{spin_lock_more_more_simple_bl_nb_v1, unlock_with_nop_nb}//***673290(0.016832% 39326710<40000000)
 	//{spin_lock_more_more_simple_nb, unlock_with_nop_nb},//***209601(0.005240% 39790399<40000000)
