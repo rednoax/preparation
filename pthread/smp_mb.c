@@ -281,6 +281,22 @@ int fake_spin_lock_NoDummyBetweenLDREXAndSTREX_nb(struct arg *argp)
 	return !ret;
 }
 
+int fake_spin_lock_NoDummyBetweenLDREXAndSTREX_nb_v0(struct arg *argp)
+{
+	volatile int val, ret;
+	__asm__ __volatile__(
+"1:	ldrex %1, [%2]\n"
+"	cmp %1, %3\n"
+"	beq 2f\n"
+"	#mov %0, %3\n"
+"	strex %1, %3, [%2]\n"
+"2:\n"
+	: "=&r" (val), "=&r" (ret)
+	: "r" (&my_lock), "r"(LOCKED)
+	: "cc");
+	return !ret;
+}
+
 int fake_spin_lock_NoDummyBetweenLDREXAndSTREX_shrinked_nb(struct arg *argp)
 {
 	volatile int ret;
@@ -969,6 +985,7 @@ mutex mutexes[][2] = {
 	//{spin_lock_simplified_tuned_nop_nb, unlock_with_nop_nb},//***36166(0.000904% 39963834<40000000)
 	//{spin_lock_simplified_bl_cpu_consumer_nb, unlock_with_nop_nb},//***1818(0.000045% 39998182<40000000)
 	//{fake_spin_lock_NoDummyBetweenLDREXAndSTREX_nb, unlock_with_nop_nb},//hardly no error
+{fake_spin_lock_NoDummyBetweenLDREXAndSTREX_nb_v0, unlock_with_nop_nb},
 	//{fake_spin_lock_NoDummyBetweenLDREXAndSTREX_shrinked_nb, unlock_with_nop_nb},//***171203(0.004280% 39828797<40000000)
 	{spin_lock_more_more_simple_bl_nb, unlock_with_nop_nb},//***677259(0.016931% 39322741<40000000)
 	//{spin_lock_more_more_simple_nb, unlock_with_nop_nb},//***209601(0.005240% 39790399<40000000)
