@@ -829,17 +829,17 @@ mutex mutexes[][2] = {
 	{try_lock_nb, unlock_with_nop_nb},//***172324(0.004308% 39827676<40000000)
 	//{spin_lock_audit_nb, unlock_with_nop_nb},//no error
 # endif
-	{spin_lock_bl_nb, unlock_with_nop_nb},//can get error even when glob is 32bits, but -t 8 should be used; 4 times error when 64billion(0.8 billion x 8 threads) in 64bits's glob
+	//{spin_lock_bl_nb, unlock_with_nop_nb},//can get error even when glob is 32bits, but -t 8 should be used; 4 times error when 64billion(0.8 billion x 8 threads) in 64bits's glob
 	//{try_lock_cpu_consumer_nb, unlock_nb},//no more error than {try_lock_nb, unlock_nb}
 	{spin_lock_simplified_nb, unlock_with_nop_nb},//**51412(0.001285% 39948588<40000000)
 	//{spin_lock_simplified_nb, unlock_nb},//not easy to emit error
 	//{spin_lock_simplified_nb, unlock_with_dummy_nb},//less than {spin_lock_simplified_nb, unlock_with_nop_nb}
 	//{spin_lock_simplified_nop_nb, unlock_with_nop_nb},//***10534(0.000263% 39989466<40000000)
 	{spin_lock_simplified_bl_nb, unlock_with_nop_nb},//***537906(0.013448% 39462094<40000000)
-	{fake_spin_lock_nb, unlock_with_nop_nb},//hard to emit error
+	//{fake_spin_lock_nb, unlock_with_nop_nb},//hard to emit error
 	//{spin_lock_simplified_bl_more_nb, unlock_with_nop_nb}//***455747(0.011394% 39544253<40000000)
 	//{spin_lock_simplified_pushpop_nb, unlock_with_nop_nb},//***94411(0.002360% 39905589<40000000)
-	{spin_lock_simplified_tuned_nop_nb, unlock_with_nop_nb},//
+	//{spin_lock_simplified_tuned_nop_nb, unlock_with_nop_nb},//***36166(0.000904% 39963834<40000000)
 #endif
 };
 
