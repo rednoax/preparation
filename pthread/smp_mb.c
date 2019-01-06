@@ -800,7 +800,7 @@ mutex mutexes[][2] = {
 	//{spin_lock_simplified_nop_nb, unlock_with_nop_nb},//***10534(0.000263% 39989466<40000000)
 	{spin_lock_simplified_bl_nb, unlock_with_nop_nb},//***537906(0.013448% 39462094<40000000)
 	//{spin_lock_simplified_bl_more_nb, unlock_with_nop_nb}//***455747(0.011394% 39544253<40000000)
-	{spin_lock_simplified_pushpop_nb, unlock_with_nop_nb},
+	//{spin_lock_simplified_pushpop_nb, unlock_with_nop_nb},//***94411(0.002360% 39905589<40000000)
 #endif
 };
 
