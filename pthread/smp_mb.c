@@ -648,8 +648,10 @@ int spin_lock_more_simple_bl_nb(struct arg *argp)
 }
 
 /*
+use this dmb lock with unlock_with_nop_nb cannot save the world:
 ./smp_mb.out -t 8 -l 20000000 -m 10000000
 when 120 batch has been finished, there are 12 times error:
+---------
 Search "0\.000.*%" (12 hits in 1 file)
   new 2 (12 hits)
 	Line 14: 	Line 1146: ***1(0.000000% 159999999<160000000)L:0.001816 W:29.463289 B:0.000147 J:29.357800 :0.000685 L:0.001560 W:0.129561 B:0.000020 J:32.986162 :0.000692 L:0.001160 W:0.031707 B:0.000023 J:29.061855 :0.000761
