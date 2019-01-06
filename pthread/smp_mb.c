@@ -658,6 +658,28 @@ int spin_lock_more_more_simple_bl_nb(struct arg *argp)
 	return 1;
 }
 
+int spin_lock_more_more_simple_bl_nb_v0(struct arg *argp)
+{
+	int ret;
+	__asm__ __volatile__(
+"1:	ldrex %0, [%1]\n"
+"	cmp %0, %2\n"
+"	beq 1b\n"
+"	strex %0, %2, [%1]\n"
+"	cmp %0, #0\n"
+"	beq 2f\n"
+		"	push {r0, r1, r2, r3, r12, lr}\n"
+		"	mov r0, %3\n"
+		"	bl audit\n"
+		"	pop {r0, r1, r2, r3, r12, lr}\n"
+"	b 1b\n"
+"2:\n"
+	: "=&r" (ret)
+	: "r" (&my_lock), "r"(LOCKED), "r" (argp->audit)
+	: "cc");
+	return 1;
+}
+
 int spin_lock_more_more_simple_nb(struct arg *argp)
 {
 	int ret;
@@ -988,6 +1010,7 @@ mutex mutexes[][2] = {
 //{fake_spin_lock_NoDummyBetweenLDREXAndSTREX_nb_v0, unlock_with_nop_nb},//hardly no error
 	//{fake_spin_lock_NoDummyBetweenLDREXAndSTREX_shrinked_nb, unlock_with_nop_nb},//***171203(0.004280% 39828797<40000000)
 	{spin_lock_more_more_simple_bl_nb, unlock_with_nop_nb},//***677259(0.016931% 39322741<40000000)
+	{spin_lock_more_more_simple_bl_nb_v0, unlock_with_nop_nb},
 	//{spin_lock_more_more_simple_nb, unlock_with_nop_nb},//***209601(0.005240% 39790399<40000000)
 #endif
 };
