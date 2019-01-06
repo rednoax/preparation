@@ -606,7 +606,7 @@ int spin_lock_more_simple_bl_nb(struct arg *argp)
 "	cmp %0, #0\n"
 "	beq 2f\n"
 		"	push {r0, r1, r2, r3, r12, lr}\n"
-		"	mov r0, %4\n"
+		"	mov r0, %3\n"
 		"	add r0, r0, #4\n"
 		"	bl audit\n"
 		"	pop {r0, r1, r2, r3, r12, lr}\n"
