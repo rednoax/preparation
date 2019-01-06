@@ -281,6 +281,21 @@ int fake_spin_lock_NoDummyBetweenLDREXAndSTREX_nb(struct arg *argp)
 	return !ret;
 }
 
+int fake_spin_lock_NoDummyBetweenLDREXAndSTREX_shrinked_nb(struct arg *argp)
+{
+	volatile int ret;
+	__asm__ __volatile__(
+"1:	ldrex %0, [%1]\n"
+"	cmp %0, %2\n"
+"	beq 2f\n"
+"	strex %0, %2, [%1]\n"
+"2:\n"
+	: "=&r" (ret)
+	: "r" (&my_lock), "r"(LOCKED)
+	: "cc");
+	return !ret;
+}
+
 void audit_consumer(unsigned long *l)
 {
 	unsigned long local;
@@ -580,6 +595,28 @@ int spin_lock_simplified_bl_nb(struct arg *argp)//spin way based on try lock way
 	return !ret;
 }
 
+int spin_lock_more_simple_bl_nb(struct arg *argp)
+{
+	int ret;
+	__asm__ __volatile__(
+"1:	ldrex %0, [%1]\n"
+"	cmp %0, %2\n"
+"	beq 1b\n"
+"	strex %0, %2, [%1]\n"
+"	cmp %0, #0\n"
+"	beq 2f\n"
+		"	push {r0, r1, r2, r3, r12, lr}\n"
+		"	mov r0, %4\n"
+		"	add r0, r0, #4\n"
+		"	bl audit\n"
+		"	pop {r0, r1, r2, r3, r12, lr}\n"
+"	b 1b\n"
+"2:\n"
+	: "=&r" (ret)
+	: "r" (&my_lock), "r"(LOCKED), "r" (argp->audit)
+	: "cc");
+	return !ret;
+}
 
 int spin_lock_simplified_bl_cpu_consumer_nb(struct arg *argp)
 {
@@ -886,11 +923,13 @@ mutex mutexes[][2] = {
 	//{spin_lock_simplified_nop_nb, unlock_with_nop_nb},//***10534(0.000263% 39989466<40000000)
 	{spin_lock_simplified_bl_nb, unlock_with_nop_nb},//***537906(0.013448% 39462094<40000000)
 	{fake_spin_lock_nb, unlock_with_nop_nb},//hard to emit error
+	{spin_lock_more_simple_bl_nb, unlock_with_nop_nb},//
 	//{spin_lock_simplified_bl_more_nb, unlock_with_nop_nb}//***455747(0.011394% 39544253<40000000)
 	//{spin_lock_simplified_pushpop_nb, unlock_with_nop_nb},//***94411(0.002360% 39905589<40000000)
 	//{spin_lock_simplified_tuned_nop_nb, unlock_with_nop_nb},//***36166(0.000904% 39963834<40000000)
 	//{spin_lock_simplified_bl_cpu_consumer_nb, unlock_with_nop_nb},//***1818(0.000045% 39998182<40000000)
-	{fake_spin_lock_NoDummyBetweenLDREXAndSTREX_nb, unlock_with_nop_nb},
+	//{fake_spin_lock_NoDummyBetweenLDREXAndSTREX_nb, unlock_with_nop_nb},//hardly no error
+	//{fake_spin_lock_NoDummyBetweenLDREXAndSTREX_shrinked_nb, unlock_with_nop_nb},//***171203(0.004280% 39828797<40000000)
 #endif
 };
 
