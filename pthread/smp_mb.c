@@ -1226,10 +1226,10 @@ mutex mutexes[][2] = {
 	//{spin_lock_more_more_simple_bl_nb, unlock_with_nop_dmb},//cannot emit error after mass test
 	//{spin_lock_more_more_simple_bl_nb, unlock_with_inc_dec_nb},//***25096(0.000627% 39974904<40000000)
 	//{spin_lock_more_more_simple_bl_nb, unlock_with_inc_dec_nb_v0}//***398547(0.009964% 39601453<40000000)
-	{spin_lock_more_more_simple_bl_nb, unlock_with_inc_dec_nb_v1},//***194(0.000005% 39999806<40000000)
-	{spin_lock_more_more_simple_bl_nb, unlock_with_inc_dec_nb_v2},//***18446744073709545223(461168601842.738647% 40006393<40000000)
-	{spin_lock_more_more_simple_bl_nb, unlock_with_inc_dec_nb_v3},//***18446744073709545209(461168601842.738647% 40006407<40000000)
-	{spin_lock_more_more_simple_bl_nb, unlock_with_inc_dec_nb_v4},
+	//{spin_lock_more_more_simple_bl_nb, unlock_with_inc_dec_nb_v1},//***194(0.000005% 39999806<40000000)
+	//{spin_lock_more_more_simple_bl_nb, unlock_with_inc_dec_nb_v2},//***7169(0.000179% 40007169<40000000)
+	{spin_lock_more_more_simple_bl_nb, unlock_with_inc_dec_nb_v3},//***5867(0.000147% 40005867<40000000)
+	//{spin_lock_more_more_simple_bl_nb, unlock_with_inc_dec_nb_v4},//***32(0.000001% 40000032<40000000)
 	//{spin_lock_more_more_simple_bl_nb_v0, unlock_with_nop_nb},//**265650(0.006641% 39734350<40000000)
 	//{spin_lock_more_more_simple_bl_nb_v1, unlock_with_nop_nb}//***673290(0.016832% 39326710<40000000)
 	//{spin_lock_more_more_simple_nb, unlock_with_nop_nb},//***209601(0.005240% 39790399<40000000)
@@ -1451,7 +1451,7 @@ next:
 	printf("t%lu sleep\n", thread);
 	pause();
 	*/
-	if (threads_nr * loops - *pglob > 0)
+	if (threads_nr * loops > *pglob)
 		delta = threads_nr * loops - *pglob;
 	else
 		delta = *pglob - threads_nr * loops;
