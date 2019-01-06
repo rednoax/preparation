@@ -248,6 +248,22 @@ int spin_lock_nb(struct arg *argp)//spin way
 	return !ret;
 }
 
+int fake_spin_lock_nb(struct arg *argp)//fake spin lock
+{
+	volatile int val, ret = 1;
+	__asm__ __volatile__(
+"1:	ldrex %0, [%2]\n"
+"	cmp %0, %3\n"
+"	beq 2f\n"
+"	mov %0, %3\n"
+"	strex %1, %0, [%2]\n"
+"2:\n"
+	: "=&r" (val), "=&r" (ret)
+	: "r" (&my_lock), "I"(LOCKED)
+	: "cc");
+	return !ret;
+}
+
 void audit(unsigned long *l)
 {
 	unsigned long local;
@@ -799,6 +815,7 @@ mutex mutexes[][2] = {
 	//{spin_lock_simplified_nb, unlock_with_dummy_nb},//less than {spin_lock_simplified_nb, unlock_with_nop_nb}
 	//{spin_lock_simplified_nop_nb, unlock_with_nop_nb},//***10534(0.000263% 39989466<40000000)
 	{spin_lock_simplified_bl_nb, unlock_with_nop_nb},//***537906(0.013448% 39462094<40000000)
+	{fake_spin_lock_nb, unlock_with_nop_nb},//hard to emit error
 	//{spin_lock_simplified_bl_more_nb, unlock_with_nop_nb}//***455747(0.011394% 39544253<40000000)
 	//{spin_lock_simplified_pushpop_nb, unlock_with_nop_nb},//***94411(0.002360% 39905589<40000000)
 #endif
