@@ -1052,11 +1052,9 @@ int unlock_with_nop_nb(struct arg *argp)
 
 int unlock_with_nop_cpu_consumer_nb(struct arg *argp)
 {
+	cpu_consumer();
 	__asm__ __volatile__(
 "	nop\n"
-"	push {%0, %1, lr}\n"
-"	bl cpu_consumer\n"
-"	pop {%0, %1, lr}\n"
 "	str %1, [%0]\n"
 "	nop\n"
 	:
@@ -1245,7 +1243,7 @@ mutex mutexes[][2] = {
 	//{spin_lock_more_more_simple_bl_nb, unlock_with_inc_dec_nb_v2},//***7169(0.000179% 40007169<40000000)
 	//{spin_lock_more_more_simple_bl_nb, unlock_with_inc_dec_nb_v3},//***5867(0.000147% 40005867<40000000)
 	//{spin_lock_more_more_simple_bl_nb, unlock_with_nop_cpu_consumer_nb},//cannot emit error in 1 time test
-	{spin_lock_more_more_simple_bl_nb, broken_unlock_v5p5},
+	//{spin_lock_more_more_simple_bl_nb, broken_unlock_v5p5},//====>OK:40000000:L:0.0009
 	//{spin_lock_more_more_simple_bl_nb, unlock_with_inc_dec_nb_v4},//***32(0.000001% 40000032<40000000)
 	//{spin_lock_more_more_simple_bl_nb_v0, unlock_with_nop_nb},//**265650(0.006641% 39734350<40000000)
 	//{spin_lock_more_more_simple_bl_nb_v1, unlock_with_nop_nb}//***673290(0.016832% 39326710<40000000)
