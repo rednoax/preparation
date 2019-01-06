@@ -1110,6 +1110,25 @@ int unlock_with_inc_dec_nb_v2(struct arg *argp)
 	return 0;
 }
 
+int unlock_with_inc_dec_nb_v3(struct arg *argp)
+{
+	int local = UNLOCKED;
+	__asm__ __volatile__(
+"	nop\n"
+"	ldr %1, [%2]\n"
+"	add %1, %1, #0xff\n"
+"	str %1, [%2]\n"
+"	ldr %1, [%2]\n"
+"	sub %1, %1, #0xff\n"
+"	str %1, [%2]\n"
+"	str %4, [%0]\n"
+"	nop\n"
+	:
+	: "r" (&my_lock), "r"(UNLOCKED), "r" (glob), "I"(UNLOCKED), "r"(local)
+	: "cc");
+	return 0;
+}
+
 int unlock_with_inc_dec_nb(struct arg *argp)
 {
 	glob[0]++;
@@ -1189,7 +1208,8 @@ mutex mutexes[][2] = {
 	//{spin_lock_more_more_simple_bl_nb, unlock_with_inc_dec_nb},//***25096(0.000627% 39974904<40000000)
 	//{spin_lock_more_more_simple_bl_nb, unlock_with_inc_dec_nb_v0}//***398547(0.009964% 39601453<40000000)
 	{spin_lock_more_more_simple_bl_nb, unlock_with_inc_dec_nb_v1},//***194(0.000005% 39999806<40000000)
-	{spin_lock_more_more_simple_bl_nb, unlock_with_inc_dec_nb_v2},//***18446744073709545223(461168601842.738647% 40006393<40000000)
+	//{spin_lock_more_more_simple_bl_nb, unlock_with_inc_dec_nb_v2},//***18446744073709545223(461168601842.738647% 40006393<40000000)
+	{spin_lock_more_more_simple_bl_nb, unlock_with_inc_dec_nb_v3}
 	//{spin_lock_more_more_simple_bl_nb_v0, unlock_with_nop_nb},//**265650(0.006641% 39734350<40000000)
 	//{spin_lock_more_more_simple_bl_nb_v1, unlock_with_nop_nb}//***673290(0.016832% 39326710<40000000)
 	//{spin_lock_more_more_simple_nb, unlock_with_nop_nb},//***209601(0.005240% 39790399<40000000)
