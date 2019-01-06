@@ -970,8 +970,8 @@ mutex mutexes[][2] = {
 	//{spin_lock_simplified_bl_cpu_consumer_nb, unlock_with_nop_nb},//***1818(0.000045% 39998182<40000000)
 	//{fake_spin_lock_NoDummyBetweenLDREXAndSTREX_nb, unlock_with_nop_nb},//hardly no error
 	//{fake_spin_lock_NoDummyBetweenLDREXAndSTREX_shrinked_nb, unlock_with_nop_nb},//***171203(0.004280% 39828797<40000000)
-	//{spin_lock_more_more_simple_bl_nb, unlock_with_nop_nb},//***677259(0.016931% 39322741<40000000)
-	{spin_lock_more_more_simple_nb, unlock_with_nop_nb},
+	{spin_lock_more_more_simple_bl_nb, unlock_with_nop_nb},//***677259(0.016931% 39322741<40000000)
+	//{spin_lock_more_more_simple_nb, unlock_with_nop_nb},//***209601(0.005240% 39790399<40000000)
 #endif
 };
 
