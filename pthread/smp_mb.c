@@ -788,6 +788,27 @@ int unlock_with_nop_nb(struct arg *argp)
 	return 0;
 }
 
+int spin_lock_simplified_tuned_nop_nb(struct arg *argp)
+{
+	int ret;
+	__asm__ __volatile__(
+"		nop\n"
+"1:	ldrex %0, [%1]\n"
+"	cmp %0, %2\n"
+"	bne 1b\n"
+"	strex %0, %3, [%1]\n"
+"		nop\n"
+"	cmp %0, #0\n"
+"		nop\n"
+"	bne 1b\n"
+"		nop\n"
+	: "=&r" (ret)
+	: "r" (&my_lock), "I"(UNLOCKED), "r"(LOCKED), "r" (argp->audit)
+	: "cc");
+	return !ret;
+}
+
+
 mutex mutexes[][2] = {
 #if 0
 	{broken_lock_v1, broken_unlock_v1},//spin way:no error
@@ -818,6 +839,7 @@ mutex mutexes[][2] = {
 	{fake_spin_lock_nb, unlock_with_nop_nb},//hard to emit error
 	//{spin_lock_simplified_bl_more_nb, unlock_with_nop_nb}//***455747(0.011394% 39544253<40000000)
 	//{spin_lock_simplified_pushpop_nb, unlock_with_nop_nb},//***94411(0.002360% 39905589<40000000)
+	{spin_lock_simplified_tuned_nop_nb, unlock_with_nop_nb},//
 #endif
 };
 
