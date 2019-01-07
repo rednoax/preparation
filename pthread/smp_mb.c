@@ -1113,6 +1113,22 @@ int unlock_with_nop_sev_nb(struct arg *argp)
 	return 0;
 }
 
+int unlock_with_nop_sev_dmb(struct arg *argp)
+{
+	__asm__ __volatile__("dmb\n");
+	__asm__ __volatile__(
+"	nop\n"
+"	nop\n"
+"	str %1, [%0]\n"
+"	nop\n"
+"	sev\n"
+"	nop\n"
+	:
+	: "r" (&my_lock), "r"(UNLOCKED)
+	: "cc");
+	return 0;
+}
+
 int unlock_with_nop_cpu_consumer_nb(struct arg *argp)
 {
 	cpu_consumer();
@@ -1299,7 +1315,8 @@ mutex mutexes[][2] = {
 	//{fake_spin_lock_NoDummyBetweenLDREXAndSTREX_shrinked_nb, unlock_with_nop_nb},//***171203(0.004280% 39828797<40000000)
 	{spin_lock_more_more_simple_bl_nb, unlock_with_nop_nb},//***677259(0.016931% 39322741<40000000)
 	//{spin_lock_more_more_simple_bl_wfe_nb, unlock_with_nop_sev_nb},//***1162253(0.029056% 38837747<40000000)
-	{spin_lock_more_more_simple_bl_wfe2_nb, unlock_with_nop_sev_nb},
+	//{spin_lock_more_more_simple_bl_wfe2_nb, unlock_with_nop_sev_nb},//***1308475(0.032712% 38691525<40000000)
+	{spin_lock_more_more_simple_bl_wfe2_nb, unlock_with_nop_sev_dmb},//
 	//{spin_lock_more_more_simple_bl_dmb, unlock_with_nop_nb},//1/10 batch can emit error
 	//{spin_lock_more_more_simple_bl_nb, unlock_with_nop_dmb},//cannot emit error after mass test
 	//{spin_lock_more_more_simple_bl_nb, unlock_with_inc_dec_nb},//***25096(0.000627% 39974904<40000000)
