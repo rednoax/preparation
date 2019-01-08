@@ -1414,9 +1414,9 @@ mutex mutexes[][2] = {
 	//{spin_lock_more_more_simple_bl_nb, unlock_with_nop_nb},//***677259(0.016931% 39322741<40000000)
 	//{spin_lock_more_more_simple_bl_wfe_nb, unlock_with_nop_sev_nb},//***1162253(0.029056% 38837747<40000000)
 	{spin_lock_more_more_simple_bl_wfe2_nb, unlock_with_nop_sev_nb},//***1308475(0.032712% 38691525<40000000)
-	{spin_lock_more_more_simple_bl_wfe2_dsb, unlock_with_nop_nb},//***924(0.000023% 39999076<40000000)
-	{spin_lock_more_more_simple_bl_wfe2_isb, unlock_with_nop_nb},//***1567(0.000039% 39998433<40000000)
-	{spin_lock_more_more_simple_bl_wfe2_dmb, unlock_with_nop_sev_nb},//
+	//{spin_lock_more_more_simple_bl_wfe2_dsb, unlock_with_nop_sev_nb},//***112733(0.002818% 39887267<40000000)
+	//{spin_lock_more_more_simple_bl_wfe2_isb, unlock_with_nop_sev_nb},//***753719(0.018843% 39246281<40000000)
+	{spin_lock_more_more_simple_bl_wfe2_dmb, unlock_with_nop_sev_nb},//***7(0.000000% 159999993<160000000) or ***1(0.000000% 159999999<160000000)
 	//{spin_lock_more_more_simple_bl_wfe2_nb, unlock_with_nop_sev_dmb},//./smp_mb.out -m 10000 -t 8 -l 4000000, when 160 batch fins, no error
 	//{spin_lock_more_more_simple_bl_wfe2_nb, unlock_with_inc_dec_sev_dmb},//cannot emit error in mass test
 	//{spin_lock_more_more_simple_bl_dmb, unlock_with_nop_nb},//1/10 batch can emit error
