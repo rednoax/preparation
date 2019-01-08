@@ -766,6 +766,31 @@ int spin_lock_more_more_simple_bl_wfe2_nb(struct arg *argp)
 	return 1;
 }
 
+int spin_lock_more_more_simple_bl_wfe2_dsb(struct arg *argp)
+{
+	int ret;
+	__asm__ __volatile__(
+"1:	ldrex %0, [%1]\n"
+"	cmp %0, %2\n"
+"	wfeeq\n"
+"	beq 1b\n"
+"	strex %0, %2, [%1]\n"
+"	cmp %0, #0\n"
+"	beq 2f\n"
+		"	push {r0, r1, r2, r3, r12, lr}\n"
+		"	mov r0, %3\n"
+		"	add r0, r0, #4\n"
+		"	bl audit\n"
+		"	pop {r0, r1, r2, r3, r12, lr}\n"
+"	wfe\n"
+"	b 1b\n"
+"2:	dsb\n"
+	: "=&r" (ret)
+	: "r" (&my_lock), "r"(LOCKED), "r" (argp->audit)
+	: "cc");
+	return 1;
+}
+
 int spin_lock_more_more_simple_bl_nb_v0(struct arg *argp)
 {
 	int ret;
@@ -1339,8 +1364,9 @@ mutex mutexes[][2] = {
 	//{spin_lock_more_more_simple_bl_nb, unlock_with_nop_nb},//***677259(0.016931% 39322741<40000000)
 	//{spin_lock_more_more_simple_bl_wfe_nb, unlock_with_nop_sev_nb},//***1162253(0.029056% 38837747<40000000)
 	{spin_lock_more_more_simple_bl_wfe2_nb, unlock_with_nop_sev_nb},//***1308475(0.032712% 38691525<40000000)
+	{spin_lock_more_more_simple_bl_wfe2_dsb, unlock_with_nop_nb},
 	//{spin_lock_more_more_simple_bl_wfe2_nb, unlock_with_nop_sev_dmb},//./smp_mb.out -m 10000 -t 8 -l 4000000, when 160 batch fins, no error
-	{spin_lock_more_more_simple_bl_wfe2_nb, unlock_with_inc_dec_sev_dmb},//
+	//{spin_lock_more_more_simple_bl_wfe2_nb, unlock_with_inc_dec_sev_dmb},//cannot emit error in mass test
 	//{spin_lock_more_more_simple_bl_dmb, unlock_with_nop_nb},//1/10 batch can emit error
 	//{spin_lock_more_more_simple_bl_nb, unlock_with_nop_dmb},//cannot emit error after mass test
 	//{spin_lock_more_more_simple_bl_nb, unlock_with_inc_dec_nb},//***25096(0.000627% 39974904<40000000)
