@@ -373,12 +373,12 @@
  373 00000000 g       .text  00000000 __TEXT_START__
  374 000057e8 g       .rodata    00000000 __PARSER_LIB_DESCS_START__
  375 000011b4 g     F .text  0000006c semihosting_file_read
- 376 
- 377 
- 378 
+ 376
+ 377
+ 378
  379 Disassembly of section .text:
  380
-;here cpu is in secure state PL1(svc), the initial state of which is specified in DDI0406B B1.6.10 reset 
+;here cpu is in secure state PL1(svc), the initial state of which is specified in DDI0406B B1.6.10 reset
 ;cpsr:0x400001d3:
 ;J.T:0.0-ISETSTATE(instruction set state) arm
 ;E:0-LE, A:1-async abort disabled, I:1-interrupt disabled, F:1-fiq disabled, mode:0x13-svc
@@ -4403,15 +4403,15 @@
 4391     3a94:   e1b0f00e    movs    pc, lr
 4392 
 4393 00003a98 <reset_handler>:
-4394     3a98:   e1a0a00e    mov sl, lr;sl==r10
+4394     3a98:   e1a0a00e    mov sl, lr; sl==r10
 4395     3a9c:   eb0000b1    bl  3d68 <plat_reset_handler>;dummy:bx lr
 4396     3aa0:   eb00000a    bl  3ad0 <get_cpu_ops_ptr>
-4397     3aa4:   e3500000    cmp r0, #0
+4397     3aa4:   e3500000    cmp r0, #0; r0:000057e8, ie:__CPU_OPS_START__, __CPU_OPS_END__ is __CPU_OPS_START__+12
 4398     3aa8:   1a000002    bne 3ab8 <reset_handler+0x20>
 4399     3aac:   e59f0018    ldr r0, [pc, #24]   ; 3acc <reset_handler+0x34>
 4400     3ab0:   e3a01022    mov r1, #34 ; 0x22
 4401     3ab4:   ea000038    b   3b9c <asm_assert>
-4402     3ab8:   e5901004    ldr r1, [r0, #4]
+4402     3ab8:   e5901004    ldr r1, [r0, #4]; cortex_a15_reset_func
 4403     3abc:   e3510000    cmp r1, #0
 4404     3ac0:   e1a0e00a    mov lr, sl
 4405     3ac4:   112fff11    bxne    r1
@@ -4423,10 +4423,11 @@
 4411     3ad4:   e59f5030    ldr r5, [pc, #48]   ; 3b0c <error_exit+0x8>
 4412     3ad8:   e3a00000    mov r0, #0
 4413     3adc:   ee102f10    mrc 15, 0, r2, cr0, cr0, {0}
+;0x412fc0f1:[31:24]implmenter code 0x41:ARM limited
 4414     3ae0:   e59f3028    ldr r3, [pc, #40]   ; 3b10 <error_exit+0xc>
 4415     3ae4:   e0022003    and r2, r2, r3
 4416     3ae8:   e1540005    cmp r4, r5
-4417     3aec:   2a000004    bcs 3b04 <error_exit>
+4417     3aec:   2a000004    bcs 3b04 <error_exit>;unsigned >=
 4418     3af0:   e494100c    ldr r1, [r4], #12
 4419     3af4:   e0011003    and r1, r1, r3
 4420     3af8:   e1510002    cmp r1, r2
@@ -4566,13 +4567,13 @@
 4554     3ca8:   e150000c    cmp r0, ip
 4555     3cac:   1afffffc    bne 3ca4 <zero_normalmem+0x24>
 4556     3cb0:   e3c1c007    bic ip, r1, #7
-4557     3cb4:   e150000c    cmp r0, ip
-4558     3cb8:   2a000003    bcs 3ccc <zero_normalmem+0x4c>
+4557     3cb4:   e150000c    cmp r0, ip; r0: __BSS_START__ ip: __BSS_END__
+4558     3cb8:   2a000003    bcs 3ccc <zero_normalmem+0x4c>; unsigned >=
 4559     3cbc:   e3a03000    mov r3, #0
 4560     3cc0:   e8a0000c    stmia   r0!, {r2, r3}
 4561     3cc4:   e150000c    cmp r0, ip
-4562     3cc8:   3afffffc    bcc 3cc0 <zero_normalmem+0x40>
-4563     3ccc:   e1500001    cmp r0, r1
+4562     3cc8:   3afffffc    bcc 3cc0 <zero_normalmem+0x40>; unsigned <
+4563     3ccc:   e1500001    cmp r0, r1; r1: __BSS_END__
 4564     3cd0:   0a000002    beq 3ce0 <zero_normalmem+0x60>
 4565     3cd4:   e4c02001    strb    r2, [r0], #1
 4566     3cd8:   e1500001    cmp r0, r1
