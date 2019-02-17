@@ -1204,6 +1204,22 @@ int unlock_with_nop_sev_dmb(struct arg *argp)
 	return 0;
 }
 
+int unlock_with_nop_sev_dsb(struct arg *argp)
+{
+	__asm__ __volatile__("dsb\n");
+	__asm__ __volatile__(
+"	nop\n"
+"	nop\n"
+"	str %1, [%0]\n"
+"	nop\n"
+"	sev\n"
+"	nop\n"
+	:
+	: "r" (&my_lock), "r"(UNLOCKED)
+	: "cc");
+	return 0;
+}
+
 int unlock_with_nop_cpu_consumer_nb(struct arg *argp)
 {
 	cpu_consumer();
@@ -1418,6 +1434,7 @@ mutex mutexes[][2] = {
 	//{spin_lock_more_more_simple_bl_wfe2_isb, unlock_with_nop_sev_nb},//***753719(0.018843% 39246281<40000000)
 	{spin_lock_more_more_simple_bl_wfe2_dmb, unlock_with_nop_sev_nb},//***7(0.000000% 159999993<160000000) or ***1(0.000000% 159999999<160000000)
 	//{spin_lock_more_more_simple_bl_wfe2_nb, unlock_with_nop_sev_dmb},//./smp_mb.out -m 10000 -t 8 -l 4000000, when 160 batch fins, no error
+	{spin_lock_more_more_simple_bl_wfe2_nb, unlock_with_nop_sev_dsb},//./smp_mb.out -m 160 -l 4000000, when 160 batch fins, no error!
 	//{spin_lock_more_more_simple_bl_wfe2_nb, unlock_with_inc_dec_sev_dmb},//cannot emit error in mass test
 	//{spin_lock_more_more_simple_bl_dmb, unlock_with_nop_nb},//1/10 batch can emit error
 	//{spin_lock_more_more_simple_bl_nb, unlock_with_nop_dmb},//cannot emit error after mass test
