@@ -89,6 +89,14 @@ void func()
 	strcpy(property, "0777");
 	value = strtoul(property, &endptr, 8);
 	printf("%lo, %ld, endptr[0] is %d\n", value, endptr - property, endptr[0]);
+	strcpy(property, "+0x10");
+	value = strtoul(property, &endptr, 0);
+	printf("%lx, %ld, endptr[0] is %d\n", value, endptr - property, endptr[0]);
+	strcpy(property, "a");
+	value = strtoul(property, &endptr, 0);
+	printf("%lx, %ld, endptr[0] is '%c'\n", value, endptr - property, endptr[0]);
+	value = strtoul(property, &endptr, 16);
+	printf("%lx, %ld, endptr[0] is %d\n", value, endptr - property, endptr[0]);
 }
 
 template<typename T>
