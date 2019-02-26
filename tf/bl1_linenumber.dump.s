@@ -4458,7 +4458,7 @@
 4445     3b3c:   e59f0004    ldr r0, [pc, #4]    ; 3b48 <plat_set_my_stack+0xc>
 4446     3b40:   e1a0d000    mov sp, r0
 4447     3b44:   e12fff1e    bx  lr
-4448     3b48:   0e02f0c0    .word   0x0e02f0c0
+4448     3b48:   0e02f0c0    .word   0x0e02f0c0;__BSS_START__
 4449 
 4450 00003b4c <do_panic>:
 4451     3b4c:   e24e6004    sub r6, lr, #4
