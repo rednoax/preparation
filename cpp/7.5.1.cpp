@@ -56,6 +56,9 @@ public:
 	The constructor of class B1 now uses initializer list to initialize its member ‘a’.
 	When Initializer list is used, the member ‘a’ of class B is initialized directly from the parameter.
 	So a call to A’s constructor is reduced.
+	**PAY ATTENTION: we don't study when the memory is allocated(in initializer list?). We
+	just needs to know that class member cons and base class cons can be put in initializer list
+	to avoid their default cons, if you don't use initializer list;
 	*/
 	B1(A &a): a(a)
 	{
@@ -66,7 +69,7 @@ public:
 class C: public A{
 	A a;
 public:
-	C(A &a)
+	C(A &a)//initializer list should be ClassName(...) for base class, membername(...) for class member
 	{
 		this->a = a;
 		REPORT_FUNC();
