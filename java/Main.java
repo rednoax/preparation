@@ -52,6 +52,10 @@ final class MyAction extends MyEnum {
         out.printf("+MyAction NON-static block: si0/1/2/3: %d %d %d %d%n", si0, si1, si2, si3);
         //myClass_3 = new MyClass("myClass3");
         //out.printf("-MyAction NON-static block: si0/1/2/3: %d %d %d %d%n", si0, si1, si2, si3);
+        //static var/ref can be accessed from non static block
+        out.printf("static myClass_3 %s%n", String.valueOf(myClass_3));
+        out.printf("myClass4 %s%n", String.valueOf(this.myClass4));
+        //out.println(myClass4);//illegal forward reference
     }
     static MyClass myClass0 = new MyClass("static myClass0");//will override the assignment in 1st static block
     static MyClass myClass_1;
@@ -65,7 +69,7 @@ final class MyAction extends MyEnum {
     //
     private MyClass myClass4 = new MyClass("myClass4");
     {
-        out.printf("2nd non-static block%n");
+        out.printf("2nd non-static block, myClass4 %s%n", String.valueOf(myClass4));
     }
     //public final MyAction STOP;
     MyAction(String s, int i) {
