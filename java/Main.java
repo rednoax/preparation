@@ -82,6 +82,9 @@ final class MyAction extends MyEnum {
         //STOP = new MyAction(i);
         out.printf("MyAction(%d)%n", i);
     }
+    {
+        out.printf("last non-static block%n");
+    }
 }
 /**
  *
