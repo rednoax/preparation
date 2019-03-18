@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">GeoQuiz</string>
+    <string name="question_text">Canberra is the capital of Austrilia.</string>
+    <string name="true_button">True</string>
+    <string name="false_button">False</string>
+    <string name="correct_toast">Correct!</string>
+    <string name="incorrect_toast">Incorrect!</string>
+    <string name="true_button2">TRUE</string>
+    <string name="false_button2">FALSE</string>
+    <string name="correct_toast2">CORRECT!!!</string>
+    <string name="incorrect_toast2">INCORRECT!!!</string>
+</resources>
