@@ -5,8 +5,13 @@
  */
 package cc.openhome;
 class Button {
+    private String s;
     Button(String s) {//so that there will be no default cons without argument
         System.out.println(s);
+        this.s = s;
+    }
+    public String showString() {
+        return s;
     }
 }
 
@@ -40,6 +45,19 @@ public class Array {
         Button[] array = new Button[100];//no Button cons can be called!
         O1 obj1 = new O1();
         O2 obj2 = new O2();
-    }
-    
+        Button[] bank = new Button[] {
+            new Button("true"),
+            new Button("false"),
+        };
+        Button[] bank2 = {
+            new Button("TRUE"),
+            new Button("FALSE"),
+        };
+        for (int i = 0; i < bank.length; i++) {
+            System.out.printf("%d: %s%n", i, bank[i].showString());
+        }
+        for (int i = 0; i < bank2.length; i++) {
+            System.out.printf("[%d:%s]%n", i, bank2[i].showString());
+        }
+    }    
 }
