@@ -40,7 +40,7 @@ public class GeoQuizActivity extends AppCompatActivity {
         mNextButton[1] = (Button)findViewById(R.id.next_button2);
         mNextImageButton = (ImageButton)findViewById(R.id.next_button3);
         mQuestionTextView = (TextView)findViewById(R.id.question_text_view);
-        updateQuestion(true);
+        updateQuestion(0);
         mTrueButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -57,41 +57,41 @@ public class GeoQuizActivity extends AppCompatActivity {
             mPrevButton[i].setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    updateQuestion(false);
+                    updateQuestion(-1);
                 }
             });
             mNextButton[i].setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    updateQuestion(true);//mQuestionTextView.setText(mQuestionBank[mCurrentIndex].getTextResId());
+                    updateQuestion(1);//mQuestionTextView.setText(mQuestionBank[mCurrentIndex].getTextResId());
                 }
             });
         }
         mPrevImageButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                updateQuestion(false);
+                updateQuestion(-1);
             }
         });
         mNextImageButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                updateQuestion(true);
+                updateQuestion(1);
             }
         });
         mQuestionTextView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                updateQuestion(true);
+                updateQuestion(1);
             }
         });
     }
-    private void updateQuestion(boolean inc) {
+    private void updateQuestion(int inc) {
         int oldIndex = mCurrentIndex;
-        if (inc)
-            mCurrentIndex = (mCurrentIndex + 1) % mQuestionBank.length;
+        if (inc > 0)
+            mCurrentIndex = (mCurrentIndex + inc) % mQuestionBank.length;
         else {
-            mCurrentIndex -= 1;
+            mCurrentIndex += inc;
             if (mCurrentIndex < 0)
                 mCurrentIndex = mQuestionBank.length - 1;
         }
