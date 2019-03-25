@@ -59,6 +59,7 @@ public class MainActivity extends AppCompatActivity {
                 mCurrentIndex = (mCurrentIndex + 1) % mQuestionBank.length;
                 if (mCurrentIndex == 0) {
                     mNextButton.setEnabled(false);
+                    setAnswerButtons(false);
                     displayScore();
                 } else {
                     updateQuestion();
