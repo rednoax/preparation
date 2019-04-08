@@ -9,11 +9,20 @@ import java.io.*;
 import java.util.*;
 
 class Resource implements AutoCloseable {
+    private int i = 0;
     @Override
     public void close() {
+        switch(i) {
+            case 3:
+                out.println("case 3: close");
+                throw new RuntimeException("RRE");
+        }
         out.println("close");
     }
     Resource(Object o) {
+    }
+    public void set(int i) {
+        this.i = i;
     }
 }
 /**
@@ -63,6 +72,14 @@ close
 fnfe
 main-
 BUILD SUCCESSFUL (total time: 4 seconds)
+        the output of input 3, whose close() will throw Exception:
+run:
+build.xml
+try+, input:3
+case 3: close
+fnfe
+main-
+BUILD SUCCESSFUL (total time: 3 seconds)
         */
         int i;
         try (Resource ms = new Resource(new FileInputStream(file))) {
@@ -70,8 +87,10 @@ BUILD SUCCESSFUL (total time: 4 seconds)
             i = console.nextInt();
             if (i == 1)
                 throw new RuntimeException("RE");
-            else if (i == 2)
+            else if (i >= 2) {
+                ms.set(i);
                 throw new FileNotFoundException("FNFE");
+            }
             out.println("try-");
         } catch (RuntimeException re) {
             out.println("re");
