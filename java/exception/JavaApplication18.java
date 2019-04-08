@@ -9,11 +9,19 @@ import java.io.*;
 import java.util.*;
 
 class Resource implements AutoCloseable {
+    private int i = 0;
     @Override
     public void close() {
+        switch (i) {
+            case 3:
+                throw new RuntimeException("RRE");
+        }
         out.println("close");
     }
     Resource(Object o) {
+    }
+    public void set(int i) {
+        this.i = i;
     }
 }
 /**
@@ -63,6 +71,17 @@ try+, input:2
 close
 Exception in thread "main" java.io.FileNotFoundException: FNFE
 	at javaapplication18.JavaApplication18.main(JavaApplication18.java:69)
+
+        the output of input 3: if the close throw Exception, add it to old Exception
+        generated in {} block of try
+run:
+build.xml
+try+, input:3
+Exception in thread "main" java.io.FileNotFoundException: FNFE
+	at javaapplication18.JavaApplication18.main(JavaApplication18.java:83)
+	Suppressed: java.lang.RuntimeException: RRE
+		at javaapplication18.Resource.close(JavaApplication18.java:17)
+		at javaapplication18.JavaApplication18.main(JavaApplication18.java:76)
         */
         int i;
         try (Resource ms = new Resource(new FileInputStream(file))) {
@@ -70,8 +89,10 @@ Exception in thread "main" java.io.FileNotFoundException: FNFE
             i = console.nextInt();
             if (i == 1)
                 throw new RuntimeException("RE");
-            else if (i == 2)
+            else if (i >= 2) {
+                ms.set(i);
                 throw new FileNotFoundException("FNFE");
+            }
             out.println("try-");
         } catch (RuntimeException re) {
             out.println("re");
