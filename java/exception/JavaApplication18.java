@@ -14,6 +14,7 @@ class Resource implements AutoCloseable {
     public void close() {
         switch (i) {
             case 3:
+                out.println("case 3: close");
                 throw new RuntimeException("RRE");
         }
         out.println("close");
@@ -77,7 +78,7 @@ Exception in thread "main" java.io.FileNotFoundException: FNFE
 run:
 build.xml
 try+, input:3
-Exception in thread "main" java.io.FileNotFoundException: FNFE
+Exception in thread "main" java.io.FileNotFoundException: FNFE<--close's RuntimeException will be added to Exception generated in try{} then it will be not thrown for the 2nd time! the catch after try cannot handle FileNotFoundException so just exit!
 	at javaapplication18.JavaApplication18.main(JavaApplication18.java:83)
 	Suppressed: java.lang.RuntimeException: RRE
 		at javaapplication18.Resource.close(JavaApplication18.java:17)
