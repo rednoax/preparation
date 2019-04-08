@@ -11,11 +11,14 @@ import java.util.*;
 class Resource implements AutoCloseable {
     private int i = 0;
     @Override
-    public void close() {
+    public void close() throws FileNotFoundException {
+        out.printf("case %d: close%n", i);
         switch (i) {
             case 3:
-                out.println("case 3: close");
+            case -1:
                 throw new RuntimeException("RRE");
+            case -2:
+                throw new FileNotFoundException("RFNFE");
         }
         out.println("close");
     }
@@ -46,7 +49,7 @@ Exception in thread "main" java.io.FileNotFoundException: a.txt (系统找不到
 	at java.base/java.io.FileInputStream.open(FileInputStream.java:219)
 	at java.base/java.io.FileInputStream.<init>(FileInputStream.java:157)
 	at java.base/java.io.FileInputStream.<init>(FileInputStream.java:112)
-	at javaapplication18.JavaApplication18.main(JavaApplication18.java:40)
+	at javaapplication18.JavaApplication18.main(JavaApplication18.java:93)
         2. "build.xml" that does exist under current dir
             then 0 or 1 to see different results;
         the output of input 0:
@@ -54,44 +57,72 @@ run:
 build.xml
 try+, input:0
 try-
+case 0: close
 close
 main-
-BUILD SUCCESSFUL (total time: 7 seconds)
+BUILD SUCCESSFUL (total time: 6 seconds)
         the output of input 1:
 run:
 build.xml
 try+, input:1
+case 1: close
 close
 re
 main-
-BUILD SUCCESSFUL (total time: 4 seconds)
+BUILD SUCCESSFUL (total time: 10 seconds)
         the output of input 2:
 run:
 build.xml
 try+, input:2
+case 2: close
 close
 Exception in thread "main" java.io.FileNotFoundException: FNFE
-	at javaapplication18.JavaApplication18.main(JavaApplication18.java:69)
+	at javaapplication18.JavaApplication18.main(JavaApplication18.java:101)
+C:\Users\Administrator\AppData\Local\NetBeans\Cache\10.0\executor-snippets\run.xml:111: The following error occurred while executing this line:
+C:\Users\Administrator\AppData\Local\NetBeans\Cache\10.0\executor-snippets\run.xml:68: Java returned: 1
+BUILD FAILED (total time: 4 seconds)
 
         the output of input 3: if the close throw Exception, add it to old Exception
         generated in {} block of try
 run:
 build.xml
 try+, input:3
-Exception in thread "main" java.io.FileNotFoundException: FNFE<--close's RuntimeException will be added to Exception generated in try{} then it will be not thrown for the 2nd time! the catch after try cannot handle FileNotFoundException so just exit!
-	at javaapplication18.JavaApplication18.main(JavaApplication18.java:83)
+case 3: close
+Exception in thread "main" java.io.FileNotFoundException: FNFE
+	at javaapplication18.JavaApplication18.main(JavaApplication18.java:105)
 	Suppressed: java.lang.RuntimeException: RRE
-		at javaapplication18.Resource.close(JavaApplication18.java:17)
-		at javaapplication18.JavaApplication18.main(JavaApplication18.java:76)
+		at javaapplication18.Resource.close(JavaApplication18.java:19)
+		at javaapplication18.JavaApplication18.main(JavaApplication18.java:98)
+C:\Users\Administrator\AppData\Local\NetBeans\Cache\10.0\executor-snippets\run.xml:111: The following error occurred while executing this line:
+C:\Users\Administrator\AppData\Local\NetBeans\Cache\10.0\executor-snippets\run.xml:68: Java returned: 1
+BUILD FAILED (total time: 5 seconds)
+        the output of -1, try {} block will not emit Exception but close() emits a catchable Exception:
+run:
+build.xml
+try+, input:-1
+try-
+case -1: close
+re
+main-
+BUILD SUCCESSFUL (total time: 5 seconds)
+        the output of -2, try {} block will not emit Exception but close() emits a UN-CATCHABLE Exception:
+run:
+build.xml
+try+, input:-2
+try-
+case -2: close
+Exception in thread "main" java.io.FileNotFoundException: RFNFE
+	at javaapplication18.Resource.close(JavaApplication18.java:21)
+	at javaapplication18.JavaApplication18.main(JavaApplication18.java:121)        
         */
         int i;
         try (Resource ms = new Resource(new FileInputStream(file))) {
             out.print("try+, input:");
             i = console.nextInt();
+            ms.set(i);
             if (i == 1)
                 throw new RuntimeException("RE");
             else if (i >= 2) {
-                ms.set(i);
                 throw new FileNotFoundException("FNFE");
             }
             out.println("try-");
