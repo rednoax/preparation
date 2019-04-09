@@ -113,7 +113,15 @@ try-
 case -2: close
 Exception in thread "main" java.io.FileNotFoundException: RFNFE
 	at javaapplication18.Resource.close(JavaApplication18.java:21)
-	at javaapplication18.JavaApplication18.main(JavaApplication18.java:121)        
+	at javaapplication18.JavaApplication18.main(JavaApplication18.java:121)
+        the output of -3:
+run:
+build.xml
+try+, input:-3
+before return
+case -3: close
+close
+BUILD SUCCESSFUL (total time: 4 seconds)
         */
         int i;
         try (Resource ms = new Resource(new FileInputStream(file))) {
@@ -124,6 +132,9 @@ Exception in thread "main" java.io.FileNotFoundException: RFNFE
                 throw new RuntimeException("RE");
             else if (i >= 2) {
                 throw new FileNotFoundException("FNFE");
+            } else if (i == -3) {
+                out.println("before return");
+                return;
             }
             out.println("try-");
         } catch (RuntimeException re) {
