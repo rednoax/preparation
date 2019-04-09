@@ -10,8 +10,63 @@ import java.io.FileNotFoundException;
 import java.io.FileInputStream;
 import static java.lang.System.*;
 /**
- *
- * @author Administrator
+1. if there is Exception before try, then try[catch]finally will be all skipped!
+run:
+a
+Exception in thread "main" java.util.InputMismatchException
+	at java.base/java.util.Scanner.throwFor(Scanner.java:939)
+	at java.base/java.util.Scanner.next(Scanner.java:1594)
+	at java.base/java.util.Scanner.nextInt(Scanner.java:2258)
+	at java.base/java.util.Scanner.nextInt(Scanner.java:2212)
+	at javaapplication16.JavaApplication16.func(JavaApplication16.java:26)
+	at javaapplication16.JavaApplication16.main(JavaApplication16.java:48)
+	
+2. no Exception in try, when try's {} finishes, finally 's {} will be called
+run:
+0
+before try
+try+
+try-
+f
+after finally
+BUILD SUCCESSFUL (total time: 2 seconds)
+
+3. try's {} throw a Exception that cannot be handled by catch, then before this throw, run finally's {} first
+run:
+1
+before try
+try+
+try throw an Exception that CANNOT be handled by catch
+f
+Exception in thread "main" java.lang.RuntimeException: tREt
+	at javaapplication16.JavaApplication16.func(JavaApplication16.java:32)
+	at javaapplication16.JavaApplication16.main(JavaApplication16.java:50)
+
+4. try's {} throw a Exception that can be handled by catch, catch will not throw any Exception, finally's {} will be
+   run before catch's finishes
+run:
+2
+before try
+try+
+try throw an Exception that can be handled by catch
+catch
+f
+after finally
+BUILD SUCCESSFUL (total time: 1 second)
+
+5. try's {} throw a Exception that can be handled by catch, catch will then throw new Exception, finally's {} will be
+   run before catch's throw
+run:
+3
+before try
+try+
+try throw an Exception that can be handled by catch
+catch
+catch>2
+f
+Exception in thread "main" java.lang.RuntimeException: catch2-REc
+	at javaapplication16.JavaApplication16.func(JavaApplication16.java:42)
+	at javaapplication16.JavaApplication16.main(JavaApplication16.java:51)
  */
 public class JavaApplication16 {
 
