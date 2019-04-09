@@ -43,13 +43,14 @@ Exception in thread "main" java.lang.RuntimeException: tREt
 	at javaapplication16.JavaApplication16.main(JavaApplication16.java:50)
 
 4. try's {} throw a Exception that can be handled by catch, catch will not throw any Exception, finally's {} will be
-   run before catch's finishes
+   run before catch's finishes(the finish is fin of code but not via return)
 run:
 2
 before try
 try+
 try throw an Exception that can be handled by catch
 catch
+before catch fin
 f
 after finally
 BUILD SUCCESSFUL (total time: 1 second)
@@ -67,6 +68,19 @@ f
 Exception in thread "main" java.lang.RuntimeException: catch2-REc
 	at javaapplication16.JavaApplication16.func(JavaApplication16.java:42)
 	at javaapplication16.JavaApplication16.main(JavaApplication16.java:51)
+
+6. try's {} throw a Exception that can be handled by catch, catch will not throw any Exception, finally's {} will be
+   run before catch's finishes(the finish is NOT fin of code but via return)
+run:
+4
+before try
+try+
+try throw an Exception that can be handled by catch
+catch
+catch>2
+before catch return
+f
+BUILD SUCCESSFUL (total time: 1 second)
  */
 public class JavaApplication16 {
 
@@ -77,7 +91,7 @@ public class JavaApplication16 {
         // TODO code application logic here
         new FileInputStream("build.xml");
         Scanner console = new Scanner(in);
-        //i: a, 0, 1, 2, 3
+        //i: a, 0, 1, 2, 3, 4
         int i = console.nextInt();
         out.println("before try");
         try {
@@ -94,8 +108,15 @@ public class JavaApplication16 {
             out.println("catch");
             if (i > 2) {
                 out.println("catch>2");
-                throw new RuntimeException("catch2-REc");
+                switch(i) {
+                    case 3:
+                        throw new RuntimeException("catch2-REc");
+                    case 4:
+                        out.println("before catch return");
+                        return;
+                }
             }
+            out.println("before catch fin");
         }
         finally {
             out.println("f");
