@@ -111,6 +111,8 @@ public class JavaApplication17 {
      */
     public static void main(String[] args) throws FileNotFoundException {
         // TODO code application logic here
+        Exception ex = new Exception("WillNotThrow");
+        ex.printStackTrace();
         Scanner console = new Scanner(System.in);
         String file = console.next();
 
