@@ -10,6 +10,12 @@ class C extends B {
 }
 class D {
 }
+/*//build error:? cannot be used in class template or function template DEFINATION
+class E<?> {
+}
+*/
+class E<T> {//ok
+}
 /**
  *
  * @author Administrator
@@ -30,7 +36,7 @@ public class FuncTemplate {
         elemOf(c);
         D[] d = new D[3];
         //elemOf(d);//wrong: cannot find method, for class D has no relation to class A
-        //C cObj = findViewById(c, 0);//Wrong: A cannot be converted to C, so cast is a MUST!
+        //C cObj = findViewById(c, 0);//wrong: A cannot be converted to C, so cast is a MUST!
         C cObj = (C)findViewById(c, 0);
         A aObj = findViewById(c, 0);//OK
     }
@@ -42,5 +48,7 @@ public class FuncTemplate {
     }
     public static A findViewById(A[] objs, int i) {
         return objs[i];
+    }
+    public static <T> void func(T arg) {//build error after replacing T with ? in function template defination!
     }
 }
