@@ -16,6 +16,8 @@ class E<?> {
 */
 class E<T> {//ok
 }
+class F<T extends A> {//T can be class A or its direct/indirect child class
+}
 /**
  *
  * @author Administrator
@@ -39,11 +41,15 @@ public class FuncTemplate {
         //C cObj = findViewById(c, 0);//wrong: A cannot be converted to C, so cast is a MUST!
         C cObj = (C)findViewById(c, 0);
         A aObj = findViewById(c, 0);//OK
+        F<A> f0 = new F<>();
+        F<B> f1 = new F<>();
+        F<C> f2 = new F<>();
+        //F<D> f3 = new F<>();//wrong!
     }
     public static <T> T elemOf(T[] objs, int index) {
         return objs[index];
     }
-    public static <T extends A> T elemOf(T[] objs) {
+    public static <T extends A> T elemOf(T[] objs) {//T can be class A or its direct/indirect child class
         return objs[0];
     }
     public static A findViewById(A[] objs, int i) {
