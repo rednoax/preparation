@@ -31,6 +31,18 @@ class TextView implements ViewTreeObserver.onPreDrawListener {
         return true;
     }
 }
+
+abstract class CompoundButton {
+    public static interface OnCheckedChangeListener {//static can be ignored
+        public void onCheckedChanged(CompoundButton buttonView, boolean isChecked);//public can be ignored
+    }
+    //the following can ignore "CompoundButton.", for the func is defined in class CompoundButton?
+    public void setOnCheckedChangeListener(OnCheckedChangeListener listener) {
+    }
+}
+
+class CheckBox extends CompoundButton {
+}
 /**
  *
  * @author Administrator
@@ -48,7 +60,16 @@ public class internal_interface {
     public static void main(String[] args) {
         TextView textView = new TextView();
         textView.onPreDraw();
-        // TODO code application logic here
+        CheckBox mSolvedCheckBox = new CheckBox();
+        /*cannot find symbol if ignoring outer class name:
+        mSolvedCheckBox.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+	Here we new a anonymous class outside class CompoundButton, so you need to add the outter class name!
+        */
+        mSolvedCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+            }
+        });
     }
     
 }
