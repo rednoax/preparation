@@ -46,9 +46,11 @@ public class FuncTemplate {
         F<C> f2 = new F<>();
         //F<D> f3 = new F<>();//wrong!
         F<? extends A> f4 = f0;
-        F<? extends A> f5 = f1;
-        F<? extends A> f6 = f2;
+        f4 = f1;
         f4 = f2;
+        F<A> f5 = f0;
+        //f5 = f1;//wrong: F<B> cannot be converted to F<A>
+        //f5 = f2;//wrong: F<C> cannot be converted to F<A>
         //F<C> f7 = f1;//wrong:F<B> cannot be converted to F<C>
     }
     public static <T> T elemOf(T[] objs, int index) {
