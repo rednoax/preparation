@@ -30,6 +30,7 @@ class G implements MyInterface {
 class H {
     H(String s) {
     }
+    MyInterface i;
 }
 /**
  *
@@ -45,7 +46,10 @@ public class FuncTemplate {
         //C.InnerC obj2  = obj.new InnerC();//wrong:C.InnerC is private in C
         G objG = new G();
         System.out.printf("%b\t%s%n", objG instanceof Object, objG);
-        H[] objH = new H[3];//OK
+        /*OK: even class H has no cons "H()"; besides, its member i is actually an interface ptr
+        which will not prevent the instantaion of class H
+        */
+        H[] objH = new H[3];
         //H objH2 = new H();//wrong!
         // TODO code application logic here
         A[] a = new A[3];
@@ -54,7 +58,7 @@ public class FuncTemplate {
         elemOf(b);
         C[] c = new C[3];
         elemOf(c, 0);
-        elemOf(c);
+        //C objC = (C)elemOf(c);//not wrong but no need since elemOf(c) return type is Class C
         D[] d = new D[3];
         //elemOf(d);//wrong: cannot find method, for class D has no relation to class A
         //C cObj = findViewById(c, 0);//wrong: A cannot be converted to C, so cast is a MUST!
