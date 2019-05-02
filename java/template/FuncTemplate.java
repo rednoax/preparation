@@ -7,6 +7,8 @@ class A {
 class B extends A {
 }
 class C extends B {
+    private class InnerC {
+    }
 }
 class D {
 }
@@ -18,6 +20,12 @@ class E<T> {//ok
 }
 class F<T extends A> {//T can be class A or its direct/indirect child class
 }
+
+interface MyInterface {
+}
+
+class G implements MyInterface {
+}
 /**
  *
  * @author Administrator
@@ -28,6 +36,10 @@ public class FuncTemplate {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
+        C obj = new C();
+        //C.InnerC obj2  = obj.new InnerC();//wrong:C.InnerC is private in C
+        G objG = new G();
+        System.out.printf("%b\t%s%n", objG instanceof Object, objG);
         // TODO code application logic here
         A[] a = new A[3];
         elemOf(a);
