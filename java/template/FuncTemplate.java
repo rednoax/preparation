@@ -26,6 +26,11 @@ interface MyInterface {
 
 class G implements MyInterface {
 }
+
+class H {
+    H(String s) {
+    }
+}
 /**
  *
  * @author Administrator
@@ -40,6 +45,8 @@ public class FuncTemplate {
         //C.InnerC obj2  = obj.new InnerC();//wrong:C.InnerC is private in C
         G objG = new G();
         System.out.printf("%b\t%s%n", objG instanceof Object, objG);
+        H[] objH = new H[3];//OK
+        //H objH2 = new H();//wrong!
         // TODO code application logic here
         A[] a = new A[3];
         elemOf(a);
