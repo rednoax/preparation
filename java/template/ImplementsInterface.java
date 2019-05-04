@@ -43,6 +43,29 @@ class StringComparator2<E> implements Comparator<E> {
     }
 }
 
+interface MyCollection<E> {
+    void myCollectionPrint();
+}
+
+interface MyList<E> extends MyCollection<E> {
+    void myListPrint();
+}
+
+/*
+Both 2 pure virtual funcs must be defined(but you can use empty func)
+if you don't want to add "abstract" before class MyArrayList<E>.
+*/
+class MyArrayList<E> implements MyList<E> {
+    @Override
+    public void myCollectionPrint() {
+        out.printf("MyArrayList<E>'s myCollectionPrint%n");
+    }
+    @Override
+    public void myListPrint() {
+        out.printf("MyArrayList<E>'s myListPrint%n");
+    }
+}
+
 class A {
     void findViewById(A obj) {
     }
@@ -75,6 +98,15 @@ public class ImplementsInterface {
         c0.compare("A", "B");
         Comparator<StringComparator0> c1 = new StringComparator2<>();
         c1.compare(new StringComparator0(), new StringComparator0());
+        MyList<String> ml = new MyArrayList<>();//MyArrayList extends MyList, so the assignment here is ok!
+        /*
+        here the argument of type "MyList<String>" to function test(MyCollection<?>) is OK:
+        MyList implements MyCollection. Besides, "String" conforms to "? extends Object"
+        */
+        test(ml);
     }
     
+    static void test(MyCollection<? extends Object> arg) {
+        arg.myCollectionPrint();
+    }
 }
