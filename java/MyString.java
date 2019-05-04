@@ -3,20 +3,31 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package javaapplication5;
+package mystring;
 import static java.lang.System.*;
 import java.util.Date;
 
 interface MyInterface {
     String myToString();
+    int hashCode();//Whether this line exists, the result of this program will no change at all
 }
 
 class MyObject {
-    String myToString() {
+    public String myToString() {
         String s = "MyObject";
         out.println(s);
         return s;
     }
+}
+
+class MyString2 extends MyObject implements MyInterface {
+    /*
+    both base class and interface has the same signature function;
+    You can skip overriding it since base class has do so.
+    That's WHY when u use Comparator<T>, among its only 2 instance methods:
+    equals and compare, u only need to override the latter. equals has
+    been override in class Object
+    */
 }
 /*
 If there is the same func in both inherited class and inherited interface:
@@ -41,6 +52,13 @@ public class MyString extends MyObject implements MyInterface {
         ms = (MyString)mo;//cast is must since small assigned to big
         ms.myToString();
         mo = new MyObject();
+        mo.myToString();
+        MyString2 ms2 = new MyString2();
+        mi = ms2;
+        mi.myToString();
+        //PAY ATTENTION: toString is not explicitly claimed in MyInterface! both hashCode and toString via interface will use implmentation from class Object
+        out.printf("%x:%s%n", mi.hashCode(), mi.toString());
+        mo = ms2;
         mo.myToString();
     }    
 }
