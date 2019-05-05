@@ -5,11 +5,12 @@
  */
 package mystring;
 import static java.lang.System.*;
-import java.util.Date;
+import java.util.*;
 
 interface MyInterface {
     String myToString();
     int hashCode();//Whether this line exists, the result of this program will no change at all
+    default void swim() {}//default function must has defination, build error otherwise!
 }
 
 class MyObject {
@@ -42,6 +43,7 @@ public class MyString extends MyObject implements MyInterface {
         return s;
     }
     public static void main(String[] args) {
+        int i$ = 0;//the name seems strange but it can contain $ indeed!
         Date date = new Date();
         out.printf("%s%n", date.toString());
         MyString ms = new MyString();
