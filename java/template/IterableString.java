@@ -40,7 +40,7 @@ interface Iterable<T> {
     one claas without abstract member func can still be marked "abstract", then this class cannot be instantiated object).
     */
     default void forEach(Consumer<? super T> action) {
-        Iterator<T> iterator = iterator();
+        Iterator<T> iterator = iterator();//compare the following static method forEach, here no need to use "this." to reference "iterator()"
         while (iterator.hasNext()) {
             T obj = iterator.next();
             action.accept(obj);
@@ -54,20 +54,21 @@ public class IterableString implements Iterable<String> {
      * @param args the command line arguments
      */
     private String mString;
-    private int mIndex;
+    //private int mIndex;
     IterableString(String str) {
         mString = str;
-        mIndex = 0;
+        //mIndex = 0;
     }
     
     void reset() {
-        mIndex = 0;
+        //mIndex = 0;//can be removed for it is contructred to 0 in each iterator instantiation
         out.printf("%n");
     }
     
     @Override
     public Iterator<String> iterator() {
         return new Iterator<>() {//all abstract method hasNext and next must be defined, build error otherwise.
+            private int mIndex;//default is 0 so ignoring "= 0;"
             @Override
             public boolean hasNext() {
                 boolean ret = true;
@@ -100,7 +101,8 @@ public class IterableString implements Iterable<String> {
     public static void main(String[] args) {
         IterableString is0 = new IterableString("1st test");
         forEach(is0);
-        is0.reset();//necessary, the next forEach will do nothing if u don't reset!
+        is0.reset();/*NOT necessary except used as "\n", for iterator() method in each forEach will construct its own index to 0
+        during each instantiation via "new Iterator<T>"*/
         is0.forEach(new Consumer<Object>() {
             @Override
             public void accept(Object o) {
@@ -111,7 +113,7 @@ public class IterableString implements Iterable<String> {
                 out.printf("[%c]", o.hashCode());
             }
         });
-        is0.reset();//necessary, the next forEach will do nothing if u don't reset!
+        is0.reset();
         is0.forEach(new Consumer<>() {/*here it's actually "Consumer<String>()", for is0
             is of type "IterableString" who implements "iteratable<String>". And default func
             forEach(Consumer<? super T> action) in iterable uses argument of "Consumer<? super String>"
@@ -121,7 +123,7 @@ public class IterableString implements Iterable<String> {
                 out.printf("<%c>", s.charAt(0));
             }
         });
-        is0.reset();//necessary, the next forEach will do nothing if u don't reset!
+        is0.reset();
         is0.forEach(s->out.printf("[%c]", s.charAt(0)));//lambda
     }
     
