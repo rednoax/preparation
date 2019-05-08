@@ -18,7 +18,7 @@ class E<?> {
 */
 class E<T> {//ok
 }
-class F<T extends A> {//T can be class A or its direct/indirect child class
+class F<T extends A> {//T can only be class A or its direct/indirect child class
 }
 
 interface MyInterface {
@@ -67,7 +67,7 @@ public class FuncTemplate {
         F<A> f0 = new F<>();
         F<B> f1 = new F<>();
         F<C> f2 = new F<>();
-        //F<D> f3 = new F<>();//wrong!
+        //F<D> f3 = new F<>();//wrong for D is not extended from A
         F<? extends A> f4 = f0;
         f4 = f1;
         f4 = f2;
