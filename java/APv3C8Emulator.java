@@ -109,7 +109,7 @@ class CrimeListFragment extends Fragment {
     private static void privateStaticFunc(){
         out.printf("privateStaticFunc%n");
     }
-    public CrimeListFragment() {
+    public CrimeListFragment() {//outter class CrimeListFragment must be instantiared before its inner class instantiation
         out.printf("CrimeListFragment:");
         getActivity();
         onCreateView();
@@ -118,7 +118,7 @@ class CrimeListFragment extends Fragment {
         updateUI();
     }
     public void updateUI() {
-        mAdapter = new CrimeAdapter();
+        mAdapter = new CrimeAdapter();//outter class can access its inner class(CrimeListFragment access CrimeAdapter)
         out.printf("Adapter %x updateUI:", mAdapter.hashCode());
         getActivity();
         for (int i = 0; i < 2; i++) {
@@ -146,7 +146,7 @@ class CrimeListFragment extends Fragment {
     private class CrimeAdapter extends RecyclerView.Adapter<CrimeHolder> {
         @Override
         public CrimeHolder onCreateViewHolder() {
-            return new CrimeHolder();
+            return new CrimeHolder();//inner class can access each other: Adapter new ViewHolder, both of which are inner class
         }
         @Override
         public void onBindViewHolder(CrimeHolder holder, int position) {
