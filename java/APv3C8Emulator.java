@@ -126,7 +126,17 @@ class CrimeListFragment extends Fragment {
             mAdapter.onBindViewHolder(ch, i);
         }
     }
+    public static class StaticCrimeHolder extends RecyclerView.ViewHolder {
+        private static int i0 = 0;//ok
+        //private static final int i1;//wrong:i1 is not initialized in default constructor
+        private static final int i1 = 1;//ok
+        static void internalTest() {}//OK
+    }
     private class CrimeHolder extends RecyclerView.ViewHolder {
+        //private static int i = 0;//wrong: "static" can only be used for constant variable declaration
+        //private static final int i;//wrong:ditto
+        //static void internalTest() {}//wrong:ditto
+        private static final int i = 0;//OK
         CrimeHolder() {
             /*
             if using this.getActivity(), build error: cannot find symbol
