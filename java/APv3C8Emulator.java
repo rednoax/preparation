@@ -136,13 +136,15 @@ class CrimeListFragment extends Fragment {
     no matter the non-static inner class is public/private/protected
     1. static variable/func is not permitted.
     2. static final can be used.
+    I think the reason is that the non-staic inner class's instantiation must be preceded with
+    the outter class's instantiation.
     */
     public class PublicCrimeHolder extends RecyclerView.ViewHolder {
         //private static int i0 = 0;//wrong: "static" can only be used for constant variable declaration
         //private static final int i1;//wrong:i1 is not initialized in default constructor
         private static final int i1 = 1;//ok
         //static void internalTest() {}//wrong: "static" can only be used for constant variable declaration
-    }    
+    }
     private class CrimeHolder extends RecyclerView.ViewHolder {
         //private static int i = 0;//wrong: "static" can only be used for constant variable declaration
         //private static final int i;//wrong:ditto
