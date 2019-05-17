@@ -35,10 +35,27 @@ public class CheatActivity extends AppCompatActivity {
     private boolean mVisiable = true;
     private int mCount = 0;
     static {
-        Log.d(TAG, "######static block called only once when CheatActivity instance is 1st geneated");
+        Log.d(TAG, "######static block called only once when CheatActivity instance is 1st geneated or its static func is called");
     }
+    public static void dummy() {
+        Log.d(TAG, "run dummy");
+    }
+    /*
+    Calling static func newIntent of Class CheatActivity from other class, ie MainActivity will trigger the class loading for CheatActivity
+    iff it has not been loaded. Once the class is loaded, it will never been reload unless the PID exit(). In other words, for a specified
+    PID, its class loading for CheatActivity or MainActivity can happen once at most (for CheatActivity, which is not launcher activity,
+    if no click on "Cheat" button, then CheatActivity class will not be loaded at all). So static func newIntent is actually run after loading
+    class CheatActivity. That's why "before new" is after Log.d in static block:
+2019-05-16 21:29:47.095 5642-5642/com.bignerdranch.android.geoquiz D/GeoQuiz: Resume:com.bignerdranch.android.geoquiz.MainActivity@76749f4
+2019-05-16 21:29:52.756 5642-5642/com.bignerdranch.android.geoquiz D/GeoQuiz***: ######static block called only once when CheatActivity instance is 1st geneated
+2019-05-16 21:29:52.756 5642-5642/com.bignerdranch.android.geoquiz D/GeoQuiz***: before new
+2019-05-16 21:29:52.756 5642-5642/com.bignerdranch.android.geoquiz D/GeoQuiz***: after new
+2019-05-16 21:29:52.782 5642-5642/com.bignerdranch.android.geoquiz D/GeoQuiz: Pause:com.bignerdranch.android.geoquiz.MainActivity@76749f4
+    */
     public static Intent newIntent(Context packageContext, boolean answerIsTrue, int index) {
+        Log.d(TAG, "before new");
         Intent intent = new Intent(packageContext, CheatActivity.class);
+        Log.d(TAG, "after new");
         intent.putExtra(EXTRA_ANSWER_IS_TRUE, answerIsTrue);
         intent.putExtra(EXTRA_MAIN_INDEX, index);
         return intent;

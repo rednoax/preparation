@@ -161,6 +161,15 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         String s = String.format("Resume:%s", String.valueOf(this));
         Log.d(TAG, s);
+        /*
+        If the following CheatActivity's static func calling from MainActivity is opened, it will trigger loading class CheatActivity iff
+        CheatActivity class has not been loaded for this PID.Then U will see CheatActivity is loaded(its static block runs) even "Cheat"
+        button has not been clicked:
+2019-05-16 21:32:02.313 5781-5781/com.bignerdranch.android.geoquiz D/GeoQuiz: Resume:com.bignerdranch.android.geoquiz.MainActivity@76749f4
+2019-05-16 21:32:02.318 5781-5781/com.bignerdranch.android.geoquiz D/GeoQuiz***: ######static block called only once when CheatActivity instance is 1st geneated
+2019-05-16 21:32:02.318 5781-5781/com.bignerdranch.android.geoquiz D/GeoQuiz***: run dummy
+        */
+        //CheatActivity.dummy();
     }
     @Override
     protected void onPause() {
