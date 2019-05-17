@@ -95,6 +95,24 @@ final class MyAction extends MyEnum {
         out.printf("last non-static block%n");
     }
 }
+
+class MyClass0 {
+    static {
+        out.printf("class MyClass0 loaded:");
+    }
+    public MyClass0() {
+        out.printf("new MyClass0 instantiation will trigger loading MyClass0 iff it has not been loaded%n");
+    }
+}
+
+class MyClass1 {
+    static {
+        out.printf("class MyClass1 loaded:");
+    }
+    public static void dummy() {
+        out.printf("MyClass1 static func dummy() calling will trigger loading MyClass1 iff it has not been loaded%n");
+    }
+}
 /**
  *
  * @author Administrator
@@ -115,6 +133,14 @@ public class InitialSequence {
         MyAction ma1 = new MyAction("ma1");
         out.printf("%ntestEnum 2:%n");
         MyAction ma2 = new MyAction(2);
+        /*
+        2 ways to load some class iff this class hasnot been loaded:
+        1/2. call its static func(no new its instantiation in the process)
+        2/2. new one instantiation of this class
+        */
+        out.printf("How to trigger loading some class: new or call its static func:%n");
+        MyClass1.dummy();
+        new MyClass0();
     }    
 }
 
