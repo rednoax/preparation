@@ -6,6 +6,7 @@
 package mystring;
 import static java.lang.System.*;
 import java.util.*;
+import java.util.function.*;
 
 interface MyInterface {
     String myToString();
