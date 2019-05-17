@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package cc.openhome;
+package initialsequence;
 
 import static java.lang.System.out;
 
@@ -99,7 +99,7 @@ final class MyAction extends MyEnum {
  *
  * @author Administrator
  */
-public class Main {
+public class InitialSequence {
 
     /**
      * @param args the command line arguments
@@ -117,3 +117,4 @@ public class Main {
         MyAction ma2 = new MyAction(2);
     }    
 }
+
