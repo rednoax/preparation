@@ -7,6 +7,9 @@ package getclass;
 import static java.lang.System.*;
 
 abstract class A0 {
+    Class<?> getClass2() {
+        return getClass();
+    }
 }
 
 class A1 extends A0 {
@@ -47,5 +50,6 @@ public class GetClass {
         compare(classes, cls);
         cls = ((A0)oA2).getClass();
         compare(classes, cls);
+        compare(classes, oA2.getClass2());
     }   
 }
