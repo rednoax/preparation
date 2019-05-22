@@ -52,6 +52,7 @@ public class MyString extends MyObject implements MyInterface {
         mi.myToString();
         MyObject mo = ms;//no cast is needed since big assigned to small
         mo.myToString();
+        out.printf("%b%n", mo == mi);
         ms = (MyString)mo;//cast is must since small assigned to big
         ms.myToString();
         mo = new MyObject();
@@ -63,5 +64,7 @@ public class MyString extends MyObject implements MyInterface {
         out.printf("%x:%s%n", mi.hashCode(), mi.toString());
         mo = ms2;
         mo.myToString();
+        //Object:public final Class<?> getClass() will return final derived class's Class<?>
+        out.printf("%s %b%n", mo.toString(), mo == ms2);
     }    
 }
