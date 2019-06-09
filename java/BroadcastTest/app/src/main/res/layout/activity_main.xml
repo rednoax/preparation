@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:orientation="vertical"
+    tools:context=".MainActivity">
+    <Button
+        android:id="@+id/start_intent_service0"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="start intent service heavy" />
+    <Button
+        android:id="@+id/start_intent_service1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="start intent service timer" />
+    <Button
+        android:id="@+id/post_to_main"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="post to main" />
+    <Button
+        android:id="@+id/post_to_thread"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="post to thread" />
+    <Button
+        android:id="@+id/start_timer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="start timer from non main thread" />
+    <Button
+        android:id="@+id/start_task"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="start task on non main thread" />
+    <Button
+        android:id="@+id/start_service"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="start Service" />
+    <Button
+        android:id="@+id/stop_service"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="stop Service" />
+    <Button
+        android:id="@+id/reg_broadcast"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="reg Broadcast" />
+    <Button
+        android:id="@+id/send_broadcast"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="send Broadcast" />
+    <Button
+        android:id="@+id/start_heavy_service"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="start heavy Service" />
+    <Button
+        android:id="@+id/stop_heavy_service"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="stop heavy Service" />
+</LinearLayout>
