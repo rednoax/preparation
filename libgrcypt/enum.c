@@ -64,5 +64,6 @@ int main()
 	printf("%p\n", _gcry_vcontrol);//print function address like 0x55de40b786aa
 	//printf("%d\n", use_pthread_p0());//enum.c:19:29: error: '_NoSuchFunc' undeclared (first use in this function)
 	printf("%d\n", use_pthread_p1());//1
+	printf("%ld\n", sizeof(unsigned long int));
 	return 0;
 }
