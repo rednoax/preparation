@@ -76,6 +76,15 @@ public:
 	}
 };
 
+class D: public A {
+	A a;
+public:
+	D(A &a): a(a), A(a)//warning will emit, the real cons sequnce is still "A(a), a(a)"
+	{
+		this->a = a;
+		REPORT_FUNC();
+	}
+};
 int main()
 {
 	A a;
@@ -97,5 +106,12 @@ int main()
                       C::C(A&): 0x7fff94061166
 	*/
 	C c(a);
+	/*
+					A::A(const A&): 0x7ffe7114fdf6
+					A::A(const A&): 0x7ffe7114fdf7
+		 A& A::operator=(const A&): 0x7ffe7114fdf7
+						  D::D(A&): 0x7ffe7114fdf6
+	*/
+	D d(a);
 	return 0;
 }
