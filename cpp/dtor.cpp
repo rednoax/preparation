@@ -110,6 +110,12 @@ public:
 	{
 		report_func();
 	}
+/*
+https://stackoverflow.com/questions/8970466/is-there-a-use-for-making-a-protected-destructor-virtual
+If the destructor is protected, then calling code cannot destroy through a base class pointer and
+the destructor does not need to be virtual; it does need to be protected, not private, so that
+derived destructors can invoke it.
+*/
 protected:
 	~LightRefBase()//protected/private dtor make LightRefBase cannot be instantiated directly. LightRefBase can only be derived!
 	{
