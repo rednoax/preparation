@@ -25,7 +25,7 @@ public:
 	{
 		REPORT_FUNC();
 	}
-#if 10
+#if 0
 /*
 1. when enabled:
 Blob<T>::Blob(T*) [with T = int]:0x7ffcee33ccc2
@@ -33,6 +33,7 @@ Blob<T>::Blob(U*) [with U = char; T = int]:0x7ffcee33ccc3
 ---
 Blob<T>::Blob(T*) [with T = A]:0x7ffcee33ccd6
 Blob<T>::Blob(U*) [with U = B; T = A]:0x7ffcee33ccd7
+
 
 2. when disabled:
 Blob<T>::Blob(U*) [with U = int; T = int]:0x7ffd7fc45602
@@ -82,11 +83,26 @@ A& A::operator=(const A&):0x7ffdce450a97
 	a2 = a1;//will call operator= for a2 has been instantiated
 }
 
+void func3()
+{
+/*
+1. when Blob(T* other) enabled:
+Blob<T>::Blob(T*) [with T = int]:0x7ffd030772a3
+
+2. when Blob(T* other) disabled:
+Blob<T>::Blob(U*) [with U = int; T = int]:0x7ffd05a1ad73
+*/
+	REPORT_LINE();
+	int i = 0;
+	Blob<int> b0 = &i;//is equal to Blob<int> b0(&i);
+}
+
 int main()
 {
 	func0();
 	func1();
 	func2();
+	func3();
 	return 0;
 }
 
