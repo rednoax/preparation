@@ -3,6 +3,16 @@
 #define REPORT_LINE() printf("%s:%d\n\n", __PRETTY_FUNCTION__, __LINE__)
 class A {
 public:
+	A(const A& other) {
+		REPORT_FUNC();
+	}
+	A() {//once the above copy ctor is defined, there will be no compiler ver of "A()", if you want to A a(); you must define your own A() ctor explicitely
+		REPORT_FUNC();
+	}
+	A& operator=(const A& other) {
+		REPORT_FUNC();
+		return *this;
+	}
 };
 
 class B {
@@ -57,10 +67,26 @@ void func1()
 	Blob<A> b1(&b);
 }
 
+void func2()
+{
+/*
+				   A::A():0x7ffdce450a95
+		   A::A(const A&):0x7ffdce450a96
+		   A::A(const A&):0x7ffdce450a97
+A& A::operator=(const A&):0x7ffdce450a97
+*/
+	REPORT_LINE();
+	A a0;
+	A a1 = a0;//is equal to A a1(a0);
+	A a2(a1);//is equal to A a2 = a1;
+	a2 = a1;//will call operator= for a2 has been instantiated
+}
+
 int main()
 {
 	func0();
 	func1();
+	func2();
 	return 0;
 }
 
