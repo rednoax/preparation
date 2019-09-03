@@ -1,0 +1,58 @@
+$git clone https://gitlab.denx.de/u-boot/u-boot
+$cd u-boot/
+$export ARCH=arm CROSS_COMPILE= ~/OP-TEE/toolchains/aarch32/bin/arm-linux-gnueabihf-
+$make vexpress_ca9x4_defconfig && make -j4
+
+$rednoah@ubuntu:~/u-boot$ file u-boot*
+u-boot:             ELF 32-bit LSB executable, ARM, EABI5 version 1 (SYSV), dynamically linked, with debug_info, not stripped
+u-boot-nodtb.bin:   COM executable for DOS
+u-boot.bin:         COM executable for DOS
+u-boot.cfg:         ASCII text, with very long lines
+u-boot.cfg.configs: ASCII text
+u-boot.lds:         assembler source, ASCII text
+u-boot.map:         assembler source, ASCII text
+u-boot.srec:        Motorola S-Record; binary data in text format
+u-boot.sym:         ASCII text
+
+u-boot.bin CANNOT boot!
+
+persist.bin is an ext4 image that can be checked via
+$mount -o loop persist.bin dir
+$qemu-system-arm -M vexpress-a9 -nographic -m 512M -kernel u-boot -sd ~/log/persist.bin
+
+=> ext4ls mmc 0 /misc
+<DIR>       4096 .
+<DIR>       4096 ..
+             115 random
+
+=> bdinfo
+arch_number = 0x000008e0
+boot_params = 0x60002000
+DRAM bank   = 0x00000000
+-> start    = 0x60000000	<---
+-> size     = 0x20000000
+DRAM bank   = 0x00000001
+-> start    = 0x80000000
+-> size     = 0x00000004
+eth0name    = smc911x-0
+ethaddr     = 52:54:00:12:34:56
+current eth = smc911x-0
+ip_addr     = <NULL>
+baudrate    = 38400 bps
+TLB addr    = 0x7fff0000
+relocaddr   = 0x7ff8a000
+reloc off   = 0x1f78a000
+irq_sp      = 0x7fe89ee0
+sp start    = 0x7fe89ed0
+
+=> ext4load mmc 0 0x60000000 /misc/random
+115 bytes read in 125 ms (0 Bytes/s)
+=> crc32 0x60000000 115
+CRC32 for 60000000 ... 60000114 ==> 8570d8d0
+
+
+ref:
+https://blog.csdn.net/aggresss/article/details/54945726
+https://dev.to/rulyrudel/how-to-execute-u-boot-on-qemu-system-arm-2b22
+https://blog.csdn.net/sxw1002/article/details/53011310
+https://blog.csdn.net/hbuxiaofei/article/details/81357654
