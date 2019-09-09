@@ -1,0 +1,282 @@
+1. Settings:
+
+activiy or activity-alias protection:
+
+am start -n com.android.settings/.Settings
+am start -n com.android.settings/.wifi.WifiSettings
+am start -a android.intent.action.wifi_test
+am start -a android.settings.WIFI_SETTINGS
+
+the above 4 will fail due to "java.lang.SecurityException: Permission Denial" if none of the following is run first:
+a. adb root
+b. su
+c. su system
+
+in other words, you must becomes root or system before using "am start" a permisstion protected activity
+
+activity-alias StorageUse is not protected by permission and u can start it NORMALLY:
+am start -n com.android.settings/.applications.StorageUse
+
+apk test which including the following equivalent:
+am start -n com.android.settings/.Settings
+am start -a android.settings.WIFI_SETTINGS
+
+A. app-debug_user_No_USE_SETTINGS.apk: run in unprivileged user and has no uses-permission USE_SETTINGS:
+FAIL:
+09-08 15:02:50.125  8861  8861 E AndroidRuntime: java.lang.SecurityException: Permission Denial: starting Intent { act=android.intent.action.VIEW flg=0x10000000 cmp=com.android.settings/.Settings } from ProcessRecord{8fa872a 8861:com.example.permission/u0a99} (pid=8861, uid=10099) REquires com.spectra.permission.USE_SETTINGS
+
+09-08 15:04:19.498  9055  9055 E AndroidRuntime: FATAL EXCEPTION: main
+09-08 15:04:19.498  9055  9055 E AndroidRuntime: Process: com.example.permission, PID: 9055
+09-08 15:04:19.498  9055  9055 E AndroidRuntime: java.lang.SecurityException: Permission Denial: starting Intent { act=android.settings.WIFI_SETTINGS cmp=com.android.settings/.Settings$WifiSettingsActivity } from ProcessRecord{cb0554 9055:com.example.permission/u0a99} (pid=9055, uid=10099) REquires com.spectra.permission.USE_SETTINGS
+
+
+B. app-debug_user_USE_SETTINGS.apk: run in unprivileged user but has uses-permission USE_SETTINGS:
+both OK:
+
+C. app-debug_user_platform_signed_START_ANY_ACTIVITY_but_no_USE_SETTINGS:run in unprivileged user but signed in platform
+it has uses-permission START_ANY_ACTIVITY but has no uses-permission USE_SETTINGS
+
+pm dump com.example.permission shows it has been granted START_ANY_ACTIVITY:<---the platform signature is the key, if the apk is not signed by platform, pm dump shows START_ANY_ACTIVITY is requested but not granted! see the following 14th
+      requested permissions:
+        android.permission.START_ANY_ACTIVITY
+        android.permission.BATTERY_STATS
+      install permissions:
+        android.permission.START_ANY_ACTIVITY: granted=true
+
+ps shows it runs in a unprivileged user:
+u0_a100   10065 393   838816 43648 SyS_epoll_ b13e2508 S com.example.permission
+
+after test, its two lunch button can start corresponding activity normally.
+
+D. app-system_platform_signed_no_USE_SETTINGS_NO_START_ANY_ACTIVITY.apk:
+it has:
+system uid via android:sharedUserId="android.uid.system" in manifest
+platform signed, which is mandatory once you add android:sharedUserId="android.uid.system", install will fail otherwise
+
+it has not:
+START_ANY_ACTIVITY
+USE_SETTINGS
+
+once it runs in a system uid, ABSOLUTELY no need to add permissions for they will be bypassed(see checkComponentPermission in ActivityManager.java
+checkComponentPermission is called by checkStartAnyActivityPermission in frameworks\base\services\core\java\com\android\server\am\ActivityStackSupervisor.java):
+
+pm dump to show install permission, there is no START_ANY_ACTIVITY or USE_SETTINGS, but this apk's 2 buttons 
+can lunch corresponding activity normally.
+
+
+2.  the main "ps" diff before and after the am start Settings activity, a new process is launched:
+system    7224  395   861000 67004 SyS_epoll_ 00000000 S com.android.settings
+
+launch one activity belongs to setting, no new pid then:
+$sudo adb shell am start -n com.android.settings/.applications.StorageUse
+
+there still one pid setting for it, no new pid for StorageUse
+
+3. if no setting pid, run one of sub activity of settings, there will be a setting pid launched
+system    8295  395   876636 68912 SyS_epoll_ 00000000 S com.android.settings
+
+4. to verify if an apk is signed
+jarsigner -verify -verbose -certs ~/log/FactoryKit.apk
+
+or use the other way:
+rednoah@ubuntu:~/A10$ jarsigner -verify  ~/log/app-debug.apk
+
+jar is unsigned.
+rednoah@ubuntu:~/A10$ jarsigner -verify  ~/log/FactoryKit.apk
+
+jar verified.
+
+Warning:
+This jar contains entries whose certificate chain is invalid. Reason: PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target
+This jar contains signatures that do not include a timestamp. Without a timestamp, users may not be able to validate this jar after any of the signer certificates expire (as early as 2050-01-01).
+
+Re-run with the -verbose and -certs options for more details.
+
+5. signed an apk
+java -Djava.library.path=out/host/linux-x86/lib64 -jar out/host/linux-x86/framework/signapk.jar build/target/product/security/platform.x509.pem build/target/product/security/platform.pk8 ~/log/app-debug.apk ~/log/app-signed.apk
+
+6 install it if adb install fails: use "-t: allow test packages"
+rednoah@ubuntu:~/A10$ sudo adb push ~/log/app-signed.apk /data
+/home/rednoah/log/app-signed.apk: 1 file pushed. 3.3 MB/s (1352888 bytes in 0.395s)
+rednoah@ubuntu:~/A10$ sudo adb shell pm install -t /data/app-signed.apk
+Success
+
+or:
+
+rednoah@ubuntu:~/A10$ sudo adb install -t ~/log/app-debug.apk
+Success
+
+use the following if U don't want to uninstall it 1st:
+sudo adb install -t -r ~/log/app-debug.apk
+
+7. Add android:sharedUserId="android.uid.system" in manifest tag of AndroidManifest.xml is not enough if apk is not signed
+by platform. The install will fail then you must sign it using platform.
+
+8. when start Settings Activity from launcher3, activity manager will check permission against laucher3.
+see -----use launcher to start Settings will fail---- as below.
+
+9 uninstall apk
+sudo adb uninstall com.example.permission
+
+10. [cmd package list packages] to get package name: com.example.permission, then uninstall it using 9
+
+11. search ANY in the pm dump and "install permission" shows START_ANY_ACTIVITY is granted
+#pm dump com.android.systemui
+
+      supportsScreens=[small, medium, large, xlarge, resizeable, anyDensity]
+        android.permission.START_ANY_ACTIVITY
+        android.permission.START_ANY_ACTIVITY: granted=true
+        android.permission.START_ANY_ACTIVITY: granted=true
+
+
+12. sudo adb shell pm install-create -r /home/rednoah/A10/out/target/product/A10/system/priv-app/SystemUI/SystemUI.apk
+
+***no improvement, still "android.permission.START_ANY_ACTIVITY: granted=true" in pm dump 
+
+13. make systemimage then replace it
+***no improvement
+
+then replace: system cache userdata persist privdata1 privdata2: START_ANY_ACTIVITY will disappear from pm dump, SystemUI cannot start settings now
+//make userdataimage
+make -j4
+
+14. my app com.example.permission generated by android studio and is not signed. But it declares 
+<uses-permission android:name="android.permission.START_ANY_ACTIVITY" />
+<uses-permission android:name="android.permission.BATTERY_STATS" />
+<uses-permission android:name="com.spectra.permission.USE_SETTINGS"/>
+
+after installed, pm dump com.example.permission show only 1 permission is granted
+      requested permissions:
+        android.permission.START_ANY_ACTIVITY
+        android.permission.BATTERY_STATS
+        com.spectra.permission.USE_SETTINGS
+      install permissions:
+        com.spectra.permission.USE_SETTINGS: granted=true
+
+15 |A10:/ # ps |grep system_server
+system    2520  393   1175940 104240 SyS_epoll_ b13e2508 S system_server
+ps -t 2520
+
+16. pm list permissions [-s]
+-s will make it readable
+-----test result---
+1. no [android:sharedUserId="android.uid.system"] and [uses-permission...], but signed with platform key
+u0_a102   12286 376   838776 43316 SyS_epoll_ b3bba508 S com.example.permission
+
+class start: FAIL
+
+2. add [android:sharedUserId="android.uid.system"] in 1, others are the same as before
+rednoah@ubuntu:~/A10$ sudo adb install ~/log/app-debug.apk
+adb: failed to install /home/rednoah/log/app-debug.apk: Failure [INSTALL_FAILED_SHARED_USER_INCOMPATIBLE: Package couldn't be installed in /data/app/com.example.permission-1: Package com.example.permission has no signatures that match those in shared user android.uid.system; ignoring!]
+
+so sign it then install again:
+rednoah@ubuntu:~/A10$ sudo adb install ~/log/app-signed.apk
+Success
+
+class start:OK
+
+-----use launcher to start Settings will fail----
+09-06 16:30:53.665  2572  2618 I ActivityManager: START u0 {act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10200000 cmp=com.android.settings/.Settings bnds=[476,684][592,894] (has extras)} from uid 10060 on display 0
+09-06 16:30:53.665  2572  2618 W ActivityManager: Permission Denial: starting Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10200000 cmp=com.android.settings/.Settings bnds=[476,684][592,894] (has extras) } from ProcessRecord{fab584 4504:com.android.launcher3/u0a60} (pid=4504, uid=10060) requires com.spectra.permission.USE_SETTINGS
+............
+09-06 16:30:53.695  4504  4504 E Launcher: Unable to launch. tag=ShortcutInfo(id=10 type=0 container=-100 screen=0 cellX=4 cellY=3 spanX=1 spanY=1 minSpanX=1 minSpanY=1 rank=0 user=UserHandle{0} title=Settings) intent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10200000 cmp=com.android.settings/.Settings bnds=[476,684][592,894] (has extras) }
+09-06 16:30:53.695  4504  4504 E Launcher: java.lang.SecurityException: Permission Denial: starting Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10200000 cmp=com.android.settings/.Settings bnds=[476,684][592,894] (has extras) } from ProcessRecord{fab584 4504:com.android.launcher3/u0a60} (pid=4504, uid=10060) requires com.spectra.permission.USE_SETTINGS
+09-06 16:30:53.695  4504  4504 E Launcher:      at android.os.Parcel.readException(Parcel.java:1684)
+09-06 16:30:53.695  4504  4504 E Launcher:      at android.os.Parcel.readException(Parcel.java:1637)
+09-06 16:30:53.695  4504  4504 E Launcher:      at android.app.ActivityManagerProxy.startActivity(ActivityManagerNative.java:3101)
+09-06 16:30:53.695  4504  4504 E Launcher:      at android.app.Instrumentation.execStartActivity(Instrumentation.java:1520)
+09-06 16:30:53.695  4504  4504 E Launcher:      at android.app.Activity.startActivityForResult(Activity.java:4269)
+09-06 16:30:53.695  4504  4504 E Launcher:      at com.android.launcher3.Launcher.startActivityForResult(Launcher.java:2039)
+09-06 16:30:53.695  4504  4504 E Launcher:      at android.app.Activity.startActivity(Activity.java:4562)
+09-06 16:30:53.695  4504  4504 E Launcher:      at com.android.launcher3.Launcher.startActivitySafely(Launcher.java:2890)
+09-06 16:30:53.695  4504  4504 E Launcher:      at com.android.launcher3.Launcher.startAppShortcutOrInfoActivity(Launcher.java:2640)
+09-06 16:30:53.695  4504  4504 E Launcher:      at com.android.launcher3.Launcher.onClickAppShortcut(Launcher.java:2631)
+09-06 16:30:53.695  4504  4504 E Launcher:      at com.android.launcher3.Launcher.onClick(Launcher.java:2452)
+09-06 16:30:53.695  4504  4504 E Launcher:      at android.view.View.performClick(View.java:5637)
+09-06 16:30:53.695  4504  4504 E Launcher:      at android.view.View$PerformClick.run(View.java:22433)
+09-06 16:30:53.695  4504  4504 E Launcher:      at android.os.Handler.handleCallback(Handler.java:751)
+09-06 16:30:53.695  4504  4504 E Launcher:      at android.os.Handler.dispatchMessage(Handler.java:95)
+09-06 16:30:53.695  4504  4504 E Launcher:      at android.os.Looper.loop(Looper.java:154)
+09-06 16:30:53.695  4504  4504 E Launcher:      at android.app.ActivityThread.main(ActivityThread.java:6121)
+09-06 16:30:53.695  4504  4504 E Launcher:      at java.lang.reflect.Method.invoke(Native Method)
+09-06 16:30:53.695  4504  4504 E Launcher:      at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:889)
+09-06 16:30:53.695  4504  4504 E Launcher:      at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:779)
+
+-----launch from rooted adb shell am:ok----
+09-06 16:20:23.470  6843  6843 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 0 <<<<<<
+09-06 16:20:23.480  6843  6843 D AndroidRuntime: CheckJNI is OFF
+09-06 16:20:23.638  6843  6843 I libmdmdetect: ESOC framework not supported
+09-06 16:20:23.639  6843  6843 I libmdmdetect: Found internal modem: modem
+09-06 16:20:23.655  6843  6843 D ICU     : No timezone override file found: /data/misc/zoneinfo/current/icu/icu_tzdata.dat
+09-06 16:20:23.751  6843  6843 I Radio-JNI: register_android_hardware_Radio DONE
+09-06 16:20:23.786  6843  6843 D AndroidRuntime: Calling main entry com.android.commands.am.Am
+09-06 16:20:23.796  2572  3928 I ActivityManager: START u0 {flg=0x10000000 cmp=com.android.settings/.Settings} from uid 0 on display 0
+09-06 16:20:23.804  2572  3928 D ActivityTrigger: ActivityTrigger activityPauseTrigger
+09-06 16:20:23.809  2572  3242 V BoostFramework: BoostFramework() : mPerf = com.qualcomm.qti.Performance@c1593e5
+09-06 16:20:23.809  6843  6843 D AndroidRuntime: Shutting down VM
+09-06 16:20:23.809  2572  3242 V BoostFramework: BoostFramework() : mPerf = com.qualcomm.qti.Performance@5deeba
+09-06 16:20:23.809  2572  2618 V BoostFramework: BoostFramework() : mPerf = com.qualcomm.qti.Performance@497816b
+09-06 16:20:23.834  2572  2618 I ActivityManager: Start proc 6865:com.android.settings/1000 for activity com.android.settings/.Settings
+09-06 16:20:23.834  2572  2618 V BoostFramework: BoostFramework() : mPerf = com.qualcomm.qti.Performance@f758574
+09-06 16:20:23.837  6865  6865 W SELinux : uid 1000, policy_index 0, err 2002, selinux_mnt /sys/fs/selinux
+09-06 16:20:23.928  6865  6865 I art     : Starting a blocking GC AddRemoveAppImageSpace
+09-06 16:20:23.932  6865  6865 W System  : ClassLoader referenced unknown path: /system/priv-app/Settings/lib/arm
+
+--------------launched from non root adb shell am:fail
+rednoah@ubuntu:~/A10$ sudo adb shell am start -n com.android.settings/.Settings
+Starting: Intent { cmp=com.android.settings/.Settings }
+java.lang.SecurityException: Permission Denial: starting Intent { flg=0x10000000 cmp=com.android.settings/.Settings } from null (pid=7129, uid=2000) requires com.spectra.permission.USE_SETTINGS
+        at android.os.Parcel.readException(Parcel.java:1684)
+        at android.os.Parcel.readException(Parcel.java:1637)
+        at android.app.ActivityManagerProxy.startActivityAsUser(ActivityManagerNative.java:3137)
+        at com.android.commands.am.Am.runStart(Am.java:643)
+        at com.android.commands.am.Am.onRun(Am.java:394)
+        at com.android.internal.os.BaseCommand.run(BaseCommand.java:51)
+        at com.android.commands.am.Am.main(Am.java:124)
+        at com.android.internal.os.RuntimeInit.nativeFinishInit(Native Method)
+        at com.android.internal.os.RuntimeInit.main(RuntimeInit.java:262)
+===========its logcat
+09-06 16:22:41.866  7129  7129 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+09-06 16:22:41.878  7129  7129 D AndroidRuntime: CheckJNI is OFF
+09-06 16:22:42.366  7129  7129 I libmdmdetect: ESOC framework not supported
+09-06 16:22:42.367  7129  7129 E libmdmdetect: Failed to open /sys/bus/msm_subsys/devices/subsys0/name: Permission denied
+09-06 16:22:42.382  7129  7129 D ICU     : No timezone override file found: /data/misc/zoneinfo/current/icu/icu_tzdata.dat
+09-06 16:22:42.359  7129  7129 W main    : type=1400 audit(0.0:36): avc: denied { read } for name="name" dev="sysfs" ino=10356 scontext=u:r:shell:s0 tcontext=u:object_r:sysfs:s0 tclass=file permissive=0
+09-06 16:22:42.467  7129  7129 I Radio-JNI: register_android_hardware_Radio DONE
+09-06 16:22:42.499  7129  7129 D AndroidRuntime: Calling main entry com.android.commands.am.Am
+09-06 16:22:42.510  2572  3913 I ActivityManager: START u0 {flg=0x10000000 cmp=com.android.settings/.Settings} from uid 2000 on display 0
+09-06 16:22:42.510  2572  3913 W ActivityManager: Permission Denial: starting Intent { flg=0x10000000 cmp=com.android.settings/.Settings } from null (pid=7129, uid=2000) requires com.spectra.permission.USE_SETTINGS
+09-06 16:22:42.521  7129  7129 I art     : System.exit called, status: 1
+09-06 16:22:42.521  7129  7129 I AndroidRuntime: VM exiting with result code 1.
+09-06 16:22:46.642   495   495 E VM_BMS  : failed to set wake_lock rc=-13
+09-06 16:22:46.642   495   495 D VM_BMS  : New BMS data - Size=56
+-------start settings from top ui:ok----
+
+09-06 16:33:31.502  2572  3913 I ActivityManager: START u0 {act=android.settings.SETTINGS flg=0x14000000 cmp=com.android.settings/.Settings} from uid 10031 on display 0
+..........
+09-06 16:33:31.518  2572  3913 D ActivityTrigger: ActivityTrigger activityPauseTrigger
+..........
+09-06 16:33:31.533  2572  3928 E ActivityManager: applyOptionsLocked: Unknown animationType=0
+.......
+09-06 16:33:31.563  7487  7487 W SELinux : uid 1000, policy_index 0, err 2002, selinux_mnt /sys/fs/selinux
+09-06 16:33:31.575  2572  3928 I ActivityManager: Start proc 7487:com.android.settings/1000 for activity com.android.settings/.Settings
+09-06 16:33:31.575  2572  3928 V BoostFramework: BoostFramework() : mPerf = com.qualcomm.qti.Performance@e84406b
+09-06 16:33:31.704  7487  7487 I art     : Starting a blocking GC AddRemoveAppImageSpace
+09-06 16:33:31.710  7487  7487 W System  : ClassLoader referenced unknown path: /system/priv-app/Settings/lib/arm
+/////////
+09-06 16:33:32.036  2572  3915 I ActivityManager: Setting hasTopUi=false for pid=3606
+09-06 16:33:32.041  3606  3606 D PhoneStatusBar: disable: < expand icons* alerts system_info* back home recent clock search quick_settings >
+09-06 16:33:32.041  7487  7503 E ActivityThread: Failed to find provider info for com.qti.smq.qualcommFeedback.provider
+09-06 16:33:32.059  7487  7506 W System  : ClassLoader referenced unknown path:
+09-06 16:33:32.060  7487  7506 W System  : ClassLoader referenced unknown path: /system/priv-app/CellBroadcastReceiver/lib/arm
+09-06 16:33:32.062  7487  7506 D ApplicationLoaders: ignored Vulkan layer search path /system/priv-app/CellBroadcastReceiver/lib/arm:/system/lib:/vendor/lib for namespace 0xa581b0d0
+
+----after add debug
+09-07 11:53:36.737  4963  4963 E Launcher: Unable to launch. tag=ShortcutInfo(id=10 type=0 container=-100 screen=0 cellX=4 cellY=3 spanX=1 spanY=1 minSpanX=1 minSpanY=1 rank=0 user=UserHandle{0} title=Settings) intent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10200000 cmp=com.android.settings/.Settings bnds=[476,684][592,894] (has extras) }
+09-07 11:53:36.737  4963  4963 E Launcher: java.lang.SecurityException: Permission Denial: starting Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10200000 cmp=com.android.settings/.Settings bnds=[476,684][592,894] (has extras) } from ProcessRecord{bdedf66 4963:com.android.launcher3/u0a60} (pid=4963, uid=10060) REquires com.spectra.permission.USE_SETTINGS
+
+09-07 11:54:18.959  3457  4098 I ActivityManager: START u0 {act=android.settings.SETTINGS flg=0x14000000 cmp=com.android.settings/.Settings} from uid 10031 on display 0
+09-07 11:54:18.960  3457  4098 W ActivityManager: **passed:Intent { act=android.settings.SETTINGS flg=0x14000000 cmp=com.android.settings/.Settings }, 4010 10031
+09-07 11:54:18.976   381   711 E audio_hw_dolby: audio_extn_dolby_set_license Could not set DS1 License. Status: -1
+09-07 11:54:18.977   381   711 D soundtrigger: audio_extn_sound_trigger_update_stream_status: uc_id 1 of type 0 for Event 3, with Raise=0
+09-07 11:54:18.977   381   711 D ACDB-LOADER: ACDB -> send_audio_cal, acdb_id = 14, path =  0
