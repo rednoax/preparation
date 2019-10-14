@@ -33,6 +33,22 @@ public:
 	}
 };
 
+class C: public A
+{
+public:
+	//A a;
+	C()
+	{
+		report_func();
+	}
+#if 0
+	~C()
+	{
+		report_func();
+	}
+#endif
+};
+
 void func0()
 {
 /*
@@ -159,11 +175,27 @@ void func3()
 	delete lc;
 }
 
+void func4()
+{
+/*
+		 A::A(): 0x55e2cad57280
+		 C::C(): 0x55e2cad57280
+virtual A::~A(): 0x55e2cad57280<--C's dtor is not defined so only the last defined virt func in inherition
+chain is called.
+---
+in real programming, C's dtor should be defined to do delete. Here it is not defined to just test.
+*/
+	report_line();
+	A *pA = new C();
+	delete pA;
+}
+
 int main()
 {
 	func0();
 	func1();
 	func2();
 	func3();
+	func4();
 	return 0;
 }
