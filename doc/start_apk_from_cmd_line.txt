@@ -1,0 +1,55 @@
+https://stackoverflow.com/questions/33441138/how-to-find-out-activity-names-in-a-package-android-adb-shell
+https://stackoverflow.com/questions/5494764/how-to-run-a-specific-android-app-using-terminal
+1.mfg
+rednoah@ubuntu:~/sc20$ sudo adb shell cmd package list package com.spectr
+package:com.spectratech.update
+package:com.spectratech.apollosettings
+package:com.spectratech.mpos.stresstest
+package:com.spectratech.bootsys
+package:com.spectratech.agentsign
+package:com.spectratech.mpos.testapi_loopinf
+package:com.spectratech.smallsystem
+package:com.spectratech.scfservice
+package:com.spectratech.mpos.mfgtest
+package:com.spectratech.launcher
+package:com.spectratech.devmode
+package:com.spectratech.selftestservice
+package:com.spectratech.mpos.peddll
+package:com.spectratech.mposloader
+
+rednoah@ubuntu:~/sc20$ sudo adb shell dumpsys package | grep -i com.spectratech.mpos.mfgtest
+      com.spectratech.mpos.mfgtest.sc.ScMainActivity:
+        c9d3827 com.spectratech.mpos.mfgtest/.sc.ScMainActivity
+      com.spectratech.mpos.mfgtest.c1.C1MainActivity:
+        c378630 com.spectratech.mpos.mfgtest/.c1.C1MainActivity
+        46a0bbe com.spectratech.mpos.mfgtest/.MfgMainActivity<--------------
+        5bd35ee com.spectratech.mpos.mfgtest/.PhoneSecretCodeReceiver
+    com.spectratech.mpos.mfgtest
+  [com.spectratech.mpos.mfgtest]
+  Package [com.spectratech.mpos.mfgtest] (a205972):
+    pkg=Package{561241a com.spectratech.mpos.mfgtest}
+    applicationInfo=ApplicationInfo{9787b4b com.spectratech.mpos.mfgtest}
+    dataDir=/data/user/0/com.spectratech.mpos.mfgtest
+  [com.spectratech.mpos.mfgtest]
+  [com.spectratech.mpos.mfgtest]
+
+rednoah@ubuntu:~/sc20$ sudo adb shell am start -n com.spectratech.mpos.mfgtest/.MfgMainActivity
+Starting: Intent { cmp=com.spectratech.mpos.mfgtest/.MfgMainActivity }
+
+rednoah@ubuntu:~/sc20$ sudo adb shell ps |grep mfg
+system    8580  353   854768 49188 SyS_epoll_ ae143508 S com.spectratech.mpos.mfgtest
+
+2. mposloader
+rednoah@ubuntu:~/sc20$ sudo adb shell dumpsys package|grep -i com.spectratech.mposloader
+        49c47e2 com.spectratech.mposloader/.MainActivity
+        49c47e2 com.spectratech.mposloader/.MainActivity<------
+        c12aa8f com.spectratech.mposloader/.PhoneSecretCodeReceiver
+        f2f1c88 com.spectratech.mposloader/.BootCompleteReceiver
+  [com.spectratech.mposloader]
+  Package [com.spectratech.mposloader] (7df3214):
+    pkg=Package{ac29abd com.spectratech.mposloader}
+    applicationInfo=ApplicationInfo{b2fa8b2 com.spectratech.mposloader}
+    dataDir=/data/user/0/com.spectratech.mposloader
+  [com.spectratech.mposloader]
+  [com.spectratech.mposloader]
+
