@@ -36,13 +36,13 @@ class B {
 	A a;
 public:
 	B(A &a)
-	/*
-	class member "a" has been constructed before running the following function body!
-	That's why "this" can be used in the function body;
-	the constructor of class B is not efficient as member ‘a’ is first constructed with default constructor,
-	and then the values from the parameter are copied using assignment operator.
-	In general, it is a good idea to use Initializer List to initialize all members of a class, because it saves one extra assignment of members. 
-	*/
+/*
+class member "a" has been constructed before running the following function body!
+That's why "this" can be used in the function body(Actually, "this" can be used in initializer list as well)
+the constructor of class B is not efficient as member 'a' has finished construction with default constructor
+before ctor's {}; and then the values from the parameter are copied using assignment operator.
+In general, it is a good idea to use Initializer List to initialize all members of a class, because it saves one extra assignment of members. 
+*/
 	{
 		REPORT_FUNC();
 		this->a = a;
@@ -85,6 +85,37 @@ public:
 		REPORT_FUNC();
 	}
 };
+
+class E{
+private:
+	A* const m_pA;
+public:
+/*
+7.5.1.cpp: In constructor 'E::E(A*)':
+7.5.1.cpp:93:2: error: uninitialized const member in 'class A* const' [-fpermissive]
+  E(A* pA)
+  ^
+7.5.1.cpp:91:11: note: 'A* const E::m_pA' should be initialized
+  A* const m_pA;
+		   ^~~~
+7.5.1.cpp:95:10: error: assignment of read-only member 'E::m_pA'
+   m_pA = pA;
+		  ^~
+	//wrong initialization that emits error of the above
+	E(A* pA)
+	{
+		m_pA = pA;
+	}
+	//
+*/
+/*
+https://www.geeksforgeeks.org/when-do-we-use-initializer-list-in-c/
+1.For initialization of non-static const data members:const data members must be initialized
+using Initializer List.
+*/
+	E(A* pA):m_pA(pA){}//right
+};
+
 int main()
 {
 	A a;
@@ -100,10 +131,10 @@ int main()
 	*/
 	B1 b1(a);
 	/*object c's base part address == c's address but c's member address != c's address
-                        A::A(): 0x7fff94061166
-                        A::A(): 0x7fff94061167
-     A& A::operator=(const A&): 0x7fff94061167
-                      C::C(A&): 0x7fff94061166
+                        A::A(): 0x7fff94061166<--class C and A should be of the same "this"
+                        A::A(): 0x7fff94061167<--- member a's ctor report member a's this
+     A& A::operator=(const A&): 0x7fff94061167<--- member a's member func whose reported "this" should==member a's this
+                      C::C(A&): 0x7fff94061166<--class C and A should be of the same "this"
 	*/
 	C c(a);
 	/*
