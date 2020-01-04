@@ -16,6 +16,29 @@ class RefBase2
 {
 public:
 	class weakref_type{};
+protected:
+	RefBase2(): mRefs(NULL){}
+	virtual ~RefBase2()
+	{
+/*
+typename.cpp:22:11: error: assignment of read-only member 'RefBase2::mRefs'
+   mRefs = NULL;
+           ^
+		//mRefs = NULL;//wrong,see above
+*/
+/*
+why const_cast<weakref_impl*>(mRefs) = NULL is error in cpp:
+https://stackoverflow.com/questions/8766109/lvalue-required-as-left-operand-of-assignment-in-odd-place-c
+C pointer casts create an lvalue; C++ pointer casts do not unless you cast to a reference type
+*/
+		//const_cast<weakref_impl*>(mRefs) = NULL;//error: lvalue required as left operand of assignment
+		const_cast<weakref_impl*&>(mRefs) = NULL;
+	}
+private:
+	class weakref_impl: public weakref_type
+	{
+	};
+	weakref_impl *const mRefs;
 };
 //template <typename T>//to prove "typedef typename" here has no relation to template, remove template!
 class wp
