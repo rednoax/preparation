@@ -42,7 +42,7 @@ public:
 		report_func();
 	}
 #if 0
-	~C()
+	~C()//it is virtual defaultly as A's destructor is virtual, you need not specify "virtual" explicitely
 	{
 		report_func();
 	}
@@ -190,6 +190,16 @@ in real programming, C's dtor should be defined to do delete. Here it is not def
 	delete pA;
 }
 
+void func5()
+{
+	report_line();
+	A *pA1 = new A;//seems no difference between "new A" and "new A()"
+	delete pA1;
+	report_line();
+	A *pA2 = new A();
+	delete pA2;
+}
+
 int main()
 {
 	func0();
@@ -197,5 +207,6 @@ int main()
 	func2();
 	func3();
 	func4();
+	func5();
 	return 0;
 }
