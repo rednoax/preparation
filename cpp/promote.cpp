@@ -118,9 +118,17 @@ void func1()
 	spA3.print_var();
 }
 
+void func2()
+{
+	sp sp1;
+	sp sp2(sp1);
+	sp sp3 = sp1;//equivalent to copy ctor
+}
+
 int main()
 {
 	func0();
 	func1();
+	func2();
 	return 0;
 }
