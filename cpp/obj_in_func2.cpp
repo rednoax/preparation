@@ -1,6 +1,6 @@
 #include <stdio.h>
 #define report_func() printf("%s %p\n", __PRETTY_FUNCTION__, this)
-
+#define report_line() printf("%s %d\n", __PRETTY_FUNCTION__, __LINE__)
 template<typename T>
 class sp
 {
@@ -79,6 +79,21 @@ private:
 	int mCount;
 };
 
+class IPCThreadState
+{
+public:
+	IPCThreadState():mProcess(ProcessState::self())
+	{
+		report_func();
+	}
+	~IPCThreadState()
+	{
+		report_func();
+	}
+private:
+	sp<ProcessState> mProcess;
+};
+
 sp<ProcessState> gProcess;
 sp<ProcessState> ProcessState::self()
 {
@@ -109,10 +124,24 @@ void func1()
 	ProcessState::self()->getContextObject();
 }
 
-sp<ProcessState> &func3()
+/*
+IPCThreadState* func3() 138
+bool sp<T>::operator!=(const T*) const [with T = ProcessState] 0x561fab317020
+sp<T>::sp(const sp<T>&) [with T = ProcessState] 0x561fac4a52a0<--a temp obj is constructed with copy cons and "the temp object" is used as member @mProcess
+inc 1=2<--the gProcess object's mCount will be incremented by 1 because of copy ctor
+IPCThreadState::IPCThreadState() 0x561fac4a52a0<---IPCThreadState's ctor, whose this==the 1st member mProcess's this
+IPCThreadState::~IPCThreadState() 0x561fac4a52a0<---IPCThreadState's dtor
+sp<T>::~sp() [with T = ProcessState] 0x561fac4a52a0<--the mProcess obj is destructed with dtor
+dec 2=1<---~sp() will decrement ProcessState object pointed by mProcess
+*/
+IPCThreadState* func3()
 {
-	return *(&gProcess);
+	report_line();
+	IPCThreadState* p = new IPCThreadState;
+	delete p;
+	return NULL;
 }
+
 void func2()
 {
 	sp<ProcessState> &ref = *(&gProcess);
@@ -125,5 +154,6 @@ int main()
 {
 	func1();
 	func2();
+	func3();
 	return 0;
 }
