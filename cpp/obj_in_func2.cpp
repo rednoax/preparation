@@ -109,8 +109,21 @@ void func1()
 	ProcessState::self()->getContextObject();
 }
 
+sp<ProcessState> &func3()
+{
+	return *(&gProcess);
+}
+void func2()
+{
+	sp<ProcessState> &ref = *(&gProcess);
+	sp<ProcessState> &ref2 = gProcess;
+	sp<ProcessState> *p0 = &ref, *p1 = &ref2;
+	printf("%p, %p %p; %p %p\n", &gProcess, p0, p1, &ref, &ref2);//all==&gProcess
+}
+
 int main()
 {
 	func1();
+	func2();
 	return 0;
 }
