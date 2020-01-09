@@ -30,6 +30,10 @@ public:
 		REPORT_FUNC();
 		return *this;
 	}
+	~A()
+	{
+		REPORT_FUNC();
+	}
 };
 
 class B {
@@ -119,12 +123,15 @@ using Initializer List.
 int main()
 {
 	A a;
-	/*3 times
-                        A::A(): 0x7fff94061165
-                      B::B(A&): 0x7fff94061165
-     A& A::operator=(const A&): 0x7fff94061165
+	/*4 times
+					   A::A(): 0x7ffe33a4dd06
+					 B::B(A&): 0x7ffe33a4dd06
+	A& A::operator=(const A&): 0x7ffe33a4dd06
+					  A::~A(): 0x7ffe33a4dd06
 	*/
-	B b(a);
+	{
+		B b(a);
+	}
 	/*2 times:
                 A::A(const A&): 0x7ffde70bc005
                     B1::B1(A&): 0x7ffde70bc005
