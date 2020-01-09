@@ -184,6 +184,27 @@ void splat_type()
 	free(storage);
 }
 
+struct handle_entry
+{
+	int i;
+	handle_entry()
+	{
+		report_func();
+	}
+	~handle_entry()
+	{
+		report_func();
+	}
+};
+/*
+handle_entry::handle_entry() 0x7fff4b302624
+handle_entry::~handle_entry() 0x7fff4b302624
+*/
+void struct_ctor()
+{
+	handle_entry e;
+}
+
 int main()
 {
 	func1();
@@ -191,5 +212,6 @@ int main()
 	func3();
 	func4();
 	splat_type();
+	struct_ctor();
 	return 0;
 }
