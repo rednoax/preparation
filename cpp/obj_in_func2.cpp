@@ -90,10 +90,15 @@ public:
 	{
 		report_func();
 	}
+	static int mVar;//=1 is error:ISO C++ forbids in-class initialization of non-const static member 'IPCThreadState::mVar'
+	enum
+	{
+		is_pointer = 3,//it is just like static var, which can be accessed even no IPCThreadState object is instantiated
+	};//build error if no ';'
 private:
 	sp<ProcessState> mProcess;
 };
-
+int IPCThreadState::mVar = 1;
 sp<ProcessState> gProcess;
 sp<ProcessState> ProcessState::self()
 {
@@ -150,10 +155,16 @@ void func2()
 	printf("%p, %p %p; %p %p\n", &gProcess, p0, p1, &ref, &ref2);//all==&gProcess
 }
 
+void func4()//enum test
+{
+	printf("mVar %d, is_pointer %d\n", IPCThreadState::mVar, IPCThreadState::is_pointer);
+}
+
 int main()
 {
 	func1();
 	func2();
 	func3();
+	func4();
 	return 0;
 }
