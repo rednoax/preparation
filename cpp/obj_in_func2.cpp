@@ -1,4 +1,7 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <new>//build error otherwise
 #define report_func() printf("%s %p\n", __PRETTY_FUNCTION__, this)
 #define report_line() printf("%s %d\n", __PRETTY_FUNCTION__, __LINE__)
 template<typename T>
@@ -41,6 +44,7 @@ public:
 		report_func();
 		return m_ptr;
 	}
+	T* get() const {return m_ptr;}
 private:
 	T *m_ptr;
 };
@@ -160,11 +164,32 @@ void func4()//enum test
 	printf("mVar %d, is_pointer %d\n", IPCThreadState::mVar, IPCThreadState::is_pointer);
 }
 
+/*
+0x55778201e2a0 (nil)<--storage is the same as placement new's this
+sp<T>::sp(const sp<T>&) [with T = ProcessState] 0x55778201e2a0<--this is the same as below, and @storage
+inc 1=2
+0x55778201e280==0x55778201e280
+sp<T>::~sp() [with T = ProcessState] 0x55778201e2a0<--this is the same as the above, and @storage
+dec 2=1
+*/
+void splat_type()
+{
+	int size = sizeof(sp<ProcessState>);
+	void * storage = malloc(size);
+	memset(storage, 0, size);
+	printf("%p %p\n", storage, static_cast<sp<ProcessState>*>(storage)->get());//should be null
+	new (static_cast<sp<ProcessState>*>(storage)) sp<ProcessState>(gProcess);//copy cons
+	printf("%p==%p\n", static_cast<sp<ProcessState>*>(storage)->get(), gProcess.get());
+	static_cast<sp<ProcessState>*>(storage)->~sp();//You are also solely responsible for destructing the placed object. This is done by explicitly calling the destructor:
+	free(storage);
+}
+
 int main()
 {
 	func1();
 	func2();
 	func3();
 	func4();
+	splat_type();
 	return 0;
 }
