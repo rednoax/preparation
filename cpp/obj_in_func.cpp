@@ -12,8 +12,15 @@ public:
 	{
 		report_func();
 	}
+	sp(T* o)
+	{
+		report_func();
+	}
 	~sp()
 	{
+		report_func();
+	}
+	T* get(){
 		report_func();
 	}
 };
@@ -46,6 +53,17 @@ sp func2()
 	return sp();
 }
 
+sp getContexObject(const sp &)
+{
+	report_line("");
+	return NULL;
+}
+void func3()
+{
+	report_line("fun3 start\n");
+	getContexObject(NULL).get();
+	report_line("fun3 end\n");
+}
 /*
 sp::sp():0x5634615e0019<--global sp object ctor is called, 
 sp::sp():0x7ffef0c36507<--func0's returned object is not used, which conforms to 1+2
@@ -83,5 +101,6 @@ int main()
 	sp o3 = func2();
 	(void)o3;
 	report_line("test6 fin\n");
+	func3();
 	return 0;
 }
