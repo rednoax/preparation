@@ -12,15 +12,16 @@ public:
 	{
 		report_func();
 	}
-	sp(T* o)
+	sp(sp* o)
 	{
+		report_line("%p\n", o);
 		report_func();
 	}
 	~sp()
 	{
 		report_func();
 	}
-	T* get(){
+	void get(){
 		report_func();
 	}
 };
@@ -53,11 +54,23 @@ sp func2()
 	return sp();
 }
 
-sp getContexObject(const sp &)
+sp getContexObject(const sp &caller)
 {
-	report_line("");
+	report_line("\n");
 	return NULL;
 }
+/*
+void func3() 64:fun3 start
+sp::sp(sp*) 17:(nil)
+sp::sp(sp*):0x7ffc18760076<--a temp obj is constucted for argument
+sp getContexObject(const sp&) 59:
+sp::sp(sp*) 17:(nil)
+sp::sp(sp*):0x7ffc18760077<--a temp obj is constucted for returned sp object
+void sp::get():0x7ffc18760077<--sp.get show the returned sp object's this == the above line
+sp::~sp():0x7ffc18760077<--the returned object's dtor is called when it is not used any more
+sp::~sp():0x7ffc18760076<--the argument obj's dtor, which is mirrored
+void func3() 66:fun3 end
+*/
 void func3()
 {
 	report_line("fun3 start\n");
