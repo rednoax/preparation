@@ -72,6 +72,24 @@ class IServiceManager: public IInterface
 public:
 	static const String descriptor;
 	static const String descriptor2;
+	/*error: a storage class can only be specified for objects and functions
+	static enum {
+		IServiceManager_SENUM = 0,
+	};
+	*/
+/*
+1.you can declare an enumeration within a class.An enumeration given in a class
+declaration has class scope, so you can use enumerations to provide class scope symbolic
+names for integer constants.
+2.Note that declaring an enumeration in this fashion does not create a class data mem-
+ber.That is, each individual object does not carry an enumeration in it. So the following
+IServiceManager_ENUM is just a symbolic name that the compiler replaces with 1 when it
+encounters it in code in class scope.
+3.the equivalent:static int IServiceManager_ENUM = 1;
+*/
+	enum {
+		IServiceManager_ENUM = 1,
+	};
 	static sp<IServiceManager> asInterface(const sp<IBinder>&obj)
 	{
 		report_line("\n");
@@ -109,10 +127,21 @@ sp<IBinder> getContexObject(const sp<IBinder>&)
 	return getStrongProxyForHandler(0);
 }
 
+void enum_test()
+{
+	IServiceManager o0;
+	IServiceManager o1(o0);
+	const int &i = o0.IServiceManager_ENUM;
+	const int &j = o1.IServiceManager_ENUM;
+	printf("%s: %d %d;%p %p, %d\n", __func__, o0.IServiceManager_ENUM, o1.IServiceManager_ENUM,
+		&i, &j, IServiceManager::IServiceManager_ENUM);
+}
+
 int main()
 {
 	report_line("\n");
 	interface_cast<IServiceManager>(getContexObject(NULL));
+	enum_test();
 	return 0;
 }
 /*
