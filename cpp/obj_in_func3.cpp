@@ -70,13 +70,19 @@ protected:
 class IServiceManager: public IInterface
 {
 public:
+/*
+initialization and declaration for static member in class must be separated. the former should has no
+"static" while the latter has "static";
+*/
 	static const String descriptor;
 	static const String descriptor2;
-	/*error: a storage class can only be specified for objects and functions
+	//static const String descriptor3("xx");//error
+#if 0
+	//error: a storage class can only be specified for objects and functions
 	static enum {
 		IServiceManager_SENUM = 0,
 	};
-	*/
+#endif
 /*
 1.you can declare an enumeration within a class.An enumeration given in a class
 declaration has class scope, so you can use enumerations to provide class scope symbolic
