@@ -10,7 +10,7 @@ public:
 	sp(T* other): m_ptr(other) {report_func();printf("%p\n", other);}
 	~sp() {report_func();}
 	T* get() const {report_func();return m_ptr;}
-	sp& operator=(T*other)
+	sp<T>& operator=(T*other)//if return type:sp<T>&,no error and no difference in result
 	{
 		report_func();
 		m_ptr = other;
