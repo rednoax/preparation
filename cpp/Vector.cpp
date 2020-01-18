@@ -56,11 +56,22 @@ public:
 		return this->VectorImpl::size();
 	}
 };
+struct BufferState {};
 
+template<typename T>
+class sp
+{
+private:
+	T * m_ptr;
+};
 
 int main()
 {
 	Vector<int> o;
 	o.size();
+	printf("%s:traits<sp<BufferState>>::has_trival_ctor %d\n"
+		"traits<sp<<BufferState>*>>::has_trivial_ctor %d\n",
+		__func__, traits<sp<BufferState>>::has_trivial_ctor,
+		traits<sp<BufferState>*>::has_trivial_ctor);
 	return 0;
 }
