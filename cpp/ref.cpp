@@ -51,9 +51,9 @@ int main()
 	report_line();
 	TextOutput &alog(gBufferedTextOutput);//equivalent to the next line
 	//alog.func();//error: 'class TextOutput' has no member named 'func'
-	alog.moveIndent(1);//ok:this is gBufferedTextOutput's
+	alog.moveIndent(1);//ok:printed this is gBufferedTextOutput's
 	TextOutput &alog2 = alog;
-	alog2.moveIndent(2);//this is gBufferedTextOutput's
+	alog2.moveIndent(2);//printed this is gBufferedTextOutput's
 	report_line();
 	return 0;
 }
