@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <sys/types.h>
+#define report_func() printf("%s:%p\n", __PRETTY_FUNCTION__, this)
+#define report_line() printf("%s:%d\n", __FUNCTION__, __LINE__)
+
 typedef unsigned int uint32_t;
 template <typename T>
 struct trait_pointer
@@ -37,6 +40,11 @@ public:
 		printf("%s: %ld\n", __PRETTY_FUNCTION__, mCount);
 		return mCount;
 	}
+	int add(const void *item)
+	{
+		printf("%s: %p\n", __func__, item);
+		return 0;
+	}
 private:
 	size_t mCount;
 	const uint32_t mFlags;
@@ -55,12 +63,30 @@ public:
 		printf("%s\n", __PRETTY_FUNCTION__);
 		return this->VectorImpl::size();
 	}
+	int add(const TYPE& item)
+	{
+		report_func();
+		printf("from %p\n", &item);
+		return VectorImpl::add(&item);
+	}
 };
 struct BufferState {};
 
 template<typename T>
 class sp
 {
+public:
+	sp():m_ptr(0){report_func();}
+	sp(T*o): m_ptr(o)
+	{
+		printf("from %p:", o);
+		report_func();
+	}
+	T* get() const
+	{
+		return m_ptr;
+	}
+	~sp(){report_func();}
 private:
 	T * m_ptr;
 };
@@ -73,5 +99,16 @@ int main()
 		"traits<sp<<BufferState>*>>::has_trivial_ctor %d\n",
 		__func__, traits<sp<BufferState>>::has_trivial_ctor,
 		traits<sp<BufferState>*>::has_trivial_ctor);
+	Vector<sp<BufferState>> states;
+	states.add(NULL);//see comment0
+	report_line();
 	return 0;
 }
+/*comment 0
+from (nil):sp<T>::sp(T*) [with T = BufferState]:0x7ffda86a65d8<--a temp sp<BufferState> object is constructed, whose .m_ptr==NULL
+int Vector<TYPE>::add(const TYPE&) [with TYPE = sp<BufferState>]:0x7ffda86a6600<--Vector<sp<BufferState>> @states's this
+from 0x7ffda86a65d8<--add's argument is the temp object constructed in the above
+add: 0x7ffda86a65d8<---Vector's base class VectorImpl's add show the source this is the same as the above, it is not NULL even the most beginning call is add(NULL)
+sp<T>::~sp() [with T = BufferState]:0x7ffda86a65d8<---when add(NULL) finished, the temp object is not used any more so its dtor is called before main returns
+main:104
+*/
