@@ -41,7 +41,7 @@ struct BufferedTextOutput::BufferState
 
 struct BufferedTextOutput::ThreadState
 {
-	std::vector<BufferState> states;
+	std::vector<BufferState> states;//"BufferedTextOutput::" can be ignored
 	std::vector<BufferedTextOutput::BufferState> state2;
 };
 static BufferedTextOutput gBufferedTextOutput;
@@ -49,11 +49,13 @@ static BufferedTextOutput gBufferedTextOutput;
 int main()
 {
 	report_line();
-	TextOutput &alog(gBufferedTextOutput);//equivalent to the next line
+	TextOutput &alog(gBufferedTextOutput);//equivalent:TextOutput &alog = gBufferedTextOutput;
+//then alog can only reference the TextOutput's member;alog can NOT reference TextOutput's derived class's member
 	//alog.func();//error: 'class TextOutput' has no member named 'func'
 	alog.moveIndent(1);//ok:printed this is gBufferedTextOutput's
-	TextOutput &alog2 = alog;
+	TextOutput &alog2 = alog;//think reference assignment to be a const ptr's assignment
 	alog2.moveIndent(2);//printed this is gBufferedTextOutput's
 	report_line();
+	printf("%p==%p?\n", &alog, &alog2);
 	return 0;
 }
