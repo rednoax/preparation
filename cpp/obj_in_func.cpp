@@ -40,8 +40,8 @@ func2:temp object
 sp func0()
 {
 	sp o;
-	return o;
-}
+	return o;//there is a equivalent example in no_elide_constructor.cpp, g++ will omit
+}//creating a temporary that is only used to initialize another object of the same type, unless -fno-elide-constructors is specified.
 
 sp g_o;
 sp func1()
