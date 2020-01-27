@@ -26,6 +26,12 @@ public:
 		report_func();
 		return *this;
 	}
+	Base& operator=(Base *o)
+	{
+		report_func();
+		printf("from %p\n", o);
+		return *this;
+	}
 };
 
 Base getTemporyBase() {
@@ -59,9 +65,38 @@ void test() {
 
  In C++17, the compiler is required to omit these temporaries, but this option still affects trivial member functions.
 */
+
+void _test(const Base &o)
+{
+	report_line();
+	printf("from %p\n", &o);
+}
+
+void test2()
+{
+	printf("test2 start\n");
+	_test(getTemporyBase());
+	printf("test2 end\n");
+}
+
+Base getTemporyBase2() {
+	Base tmp;
+	tmp = new Base();
+	return tmp;//when return a non reference object, a temp obj will be created
+}
+
+void test3()
+{
+	printf("%s start\n", __func__);
+	_test(getTemporyBase2());
+	printf("%s end\n", __func__);
+}
+
 int main()
 {
 	test();
+	test2();
+	test3();
 	return 0;
 }
 

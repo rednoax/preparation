@@ -8,6 +8,12 @@ public:
 	sp(): m_ptr(0) {report_func();}
 	sp(const sp<T>& other): m_ptr(other.m_ptr) {report_func();}
 	sp(T* other): m_ptr(other) {report_func();printf("%p\n", other);}
+	//
+	sp(sp<T> && o):m_ptr(o.m_ptr){
+		report_func();
+		o.m_ptr = nullptr;
+	}
+	//
 	~sp() {report_func();}
 	T* get() const {report_func();return m_ptr;}
 	sp<T>& operator=(T*other)//if return type:sp<T>&,no error and no difference in result

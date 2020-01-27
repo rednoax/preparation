@@ -52,9 +52,23 @@ void test() {
 
  In C++17, the compiler is required to omit these temporaries, but this option still affects trivial member functions.
 */
+
+void _test(const Base &o)
+{
+	report_line();
+	printf("from %p\n", &o);
+}
+
+void test2()
+{
+	printf("test2 start\n");
+	_test(getTemporyBase());
+	printf("test2 end\n");
+}
 int main()
 {
 	test();
+	test2();
 	return 0;
 }
 
