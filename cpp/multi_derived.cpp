@@ -3,9 +3,15 @@
 #include <stdlib.h>
 #define report_func() printf("%s: %p\n", __PRETTY_FUNCTION__, this)
 #if 0
+dtor of RefBase is claimed to be virtual, and at last the dtor of BpServiceManager is virtual too;
+virtual in dtor of child can be ignored.It is virtual by default.
+So the dtor function address in RefBase is actually the dtor of BpServiceManager.
+delete some ptr of some base class, here the base class selects IServiceManager, will call dtor
+of BpServiceManager.
+
 BpServiceManager--->BpInterface<IServiceManager>-------------------------->BpRefBase--->RefBase
-                                                |                                           /|\
-                                                |_\IServiceManager_\IInterface_______________|
+                                                |                                         /|\
+                                                |_\IServiceManager_\IInterface_____________|
 							                      /                /
 #endif
 class RefBase
@@ -42,14 +48,14 @@ class IServiceManager: public IInterface
 {
 public:
 	IServiceManager() {report_func();}
-	~IServiceManager() {report_func();}
+	~IServiceManager() {report_func();}//no virtual but it is actually virtual
 };
 
 class BpServiceManager: public BpInterface<IServiceManager>
 {
 public:
 	BpServiceManager() {report_func();}
-	~BpServiceManager() {report_func();}
+	~BpServiceManager() {report_func();}//no virtual but it is actually virtual
 };
 int multi_test()
 {
