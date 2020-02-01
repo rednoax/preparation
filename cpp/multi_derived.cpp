@@ -17,14 +17,15 @@ BpServiceManager--->BpInterface<IServiceManager>-------------------------->BpRef
 class RefBase
 {
 protected:
-	RefBase()	{ report_func(); }
+	RefBase(int i = 0)	{ report_func(); printf("%d\n", i);}
 	virtual ~RefBase() { report_func(); }
 };
-
+//even BpRefBase and IInterface has explicitely use RefBase() in initializer list, the
+//virtual base class RefBase is only constructed once
 class BpRefBase: public virtual RefBase
 {
 protected:
-	BpRefBase() {report_func();}
+	BpRefBase(): RefBase(1)     {report_func();}
 	virtual ~BpRefBase() {report_func();}
 };
 
@@ -32,38 +33,51 @@ template <typename INTERFACE>
 class BpInterface: public INTERFACE, public BpRefBase
 {
 public:
-	BpInterface() {report_func();}
+	BpInterface():RefBase(2) {report_func();}
 	virtual ~BpInterface() {report_func();}
 };
 
 class IInterface: public virtual RefBase
 {
 public:
-	IInterface() {report_func();}
-protected:
+	IInterface():RefBase(3) {report_func();}
+//protected:
 	virtual ~IInterface() {report_func();}
 };
 
 class IServiceManager: public IInterface
 {
 public:
-	IServiceManager() {report_func();}
+	IServiceManager()/*:RefBase(4)*/ {report_func();}//will call RefBase(0) by default
 	~IServiceManager() {report_func();}//no virtual but it is actually virtual
 };
 
 class BpServiceManager: public BpInterface<IServiceManager>
 {
 public:
-	BpServiceManager() {report_func();}
+	BpServiceManager():RefBase(5) {report_func();}
 	~BpServiceManager() {report_func();}//no virtual but it is actually virtual
 };
 int multi_test()
 {
 	printf("cons start\n");
+/*
+1.https://www.learncpp.com/cpp-tutorial/128-virtual-base-classes/
+if a class inherits >=1 classes that have virtual parents, the most derived class is
+responsible for constructing the virtual base class. this is true even in a single
+inheritance chain. The other cons in middle class will be completely ignored.
+2. However, if we were to create an instance of middle class, those constructor calls would be used,
+and normal inheritance rules apply.
+*/
 	IServiceManager *intr = new BpServiceManager();//malloc mem, then ctor from base class to derived class
 	printf("cons end, delete start\n");
 	delete intr;//dtor from derived class to base class, then free mem
 	printf("delete end\n");
+	intr = new IServiceManager();//a single chain example:IServiceManager is the most derived class so its cons for virtual base class will take effect, IInterface's cons for RefBase is ignored
+	delete intr;
+	printf("delete end2\n");
+	IInterface *p = new IInterface();//IInterface's cons for RefBase will take effect.
+	delete p;
 	return 0;
 }
 
