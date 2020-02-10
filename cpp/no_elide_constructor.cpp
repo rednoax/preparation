@@ -27,7 +27,7 @@ Base getTemporyBase() {
 g++ -Wall no_elide_constructor.cpp -fno-elide-constructors
 Base: 0x7ffca3eaa027<--Base tmp calls ctor
 Base: 0x7ffca3eaa057<--return tmp will call copy ctor to construct a temp obj
-from 0x7ffca3eaa027<--the copt ctor uses @tmp as source
+from 0x7ffca3eaa027<--the copy ctor uses @tmp as source
 ~Base: 0x7ffca3eaa027<--@tmp's dtor
 Base: 0x7ffca3eaa056<--Base a's copy ctor
 from 0x7ffca3eaa057<--a's copy ctor uses the returned temp obj as souces
