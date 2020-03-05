@@ -1,0 +1,34 @@
+1.sudo adb shell cmd package list packages -f
+  -f: see their associated file
+eg:
+package:/system/app/NetworkSetting/NetworkSetting.apk=com.qualcomm.qti.networksetting
+
+this package's LOCAL_PACKAGE_NAME := NetworkSetting so it is NetworkSetting.apk
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.qualcomm.qti.networksetting"<---
+    android:sharedUserId="android.uid.phone" >
+
+    <application
+        android:icon="@drawable/ic_launcher_phone"
+        android:process="com.android.phone"<---
+        android:supportsRtl="true" >
+
+when android settings->more->Mobile networks is triggered, the following process is generated.
+A10:/ # ps|grep phone
+radio     6973  377   911568 80320 SyS_epoll_ ad99c508 S com.android.phone
+
+A10:/ # cat /proc/6973/maps|grep apk
+...
+92587000-925b3000 r--s 00001000 fe:00 137        /system/app/NetworkSetting/NetworkSetting.apk
+...
+9401e000-9401f000 r--s 00039000 fe:00 137        /system/app/NetworkSetting/NetworkSetting.apk
+...
+96474000-965a7000 r--s 0003b000 fe:00 2141       /system/priv-app/TeleService/TeleService.apk
+...
+a1e30000-a1e37000 r--s 00224000 fe:00 2141       /system/priv-app/TeleService/TeleService.apk
+a1e89000-a1e8c000 r--s 00008000 fe:00 2147       /system/priv-app/TelephonyProvider/TelephonyProvider.apk
+a1e90000-a1e92000 r--s 00032000 fe:00 2147       /system/priv-app/TelephonyProvider/TelephonyProvider.apk
+a1f97000-a23ef000 r--s 00bd0000 fe:00 1364       /system/framework/framework-res.apk
+a24e9000-a2589000 r--s 01154000 fe:00 1364       /system/framework/framework-res.apk
+
+2. sudo adb shell dumpsys power
