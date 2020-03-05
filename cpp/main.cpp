@@ -97,6 +97,10 @@ void func()
 	printf("%lx, %ld, endptr[0] is '%c'\n", value, endptr - property, endptr[0]);
 	value = strtoul(property, &endptr, 16);
 	printf("%lx, %ld, endptr[0] is %d\n", value, endptr - property, endptr[0]);
+	strcpy(property, "0");
+	value = strtoul(property, &endptr, 0);
+	printf("%lx, %ld, endptr[0] is %d\n", value, endptr - property, endptr[0]);
+	printf("test end\n");
 }
 
 template<typename T>
