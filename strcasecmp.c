@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <ctype.h>
+#include <ctype.h>//for int tolower(int), int toupper(int)
 /*	s1		s2		return
 "a"			"ab"	<0(0-'b')
 "ab"		"a"		>0('b')
@@ -8,10 +8,18 @@ int strcasecmp(const char *s1, const char *s2)
 {
 	char c1;
 	char c2;
-	for (c1 = *s1, c2 = *s2; c1 && c2 && c1 == c2; c1 = *s1, c2 = *s2) {		
+#if 0//v1: cannot work for "abc" vs "ABC"
+	for (c1 = *s1, c2 = *s2; c1 && c2 && c1 == c2; c1 = *s1, c2 = *s2) {
 		s1++;
 		s2++;
 	}
+#endif
+#if 1//v2: too verbose
+	for (c1 = tolower(*s1), c2 = tolower(*s2); c1 && c2 && c1 == c2; c1 = tolower(*s1), c2 = tolower(*s2)) {
+		s1++;
+		s2++;
+	}
+#endif
 	return c1 - c2;
 }
 
