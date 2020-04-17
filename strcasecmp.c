@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <ctype.h>//for int tolower(int), int toupper(int)
-/*	s1		s2		return
+/*strcasecmp is like strcmp except that it ignores lower/upper
+s1			s2		return
 "a"			"ab"	<0(0-'b')
 "ab"		"a"		>0('b')
 "abc"		"ABC"	0
