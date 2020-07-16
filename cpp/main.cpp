@@ -100,6 +100,11 @@ void func()
 	strcpy(property, "0");
 	value = strtoul(property, &endptr, 0);
 	printf("%lx, %ld, endptr[0] is %d\n", value, endptr - property, endptr[0]);
+	//
+	strcpy(property, "57600n8");
+	value = strtoul(property, &endptr, 10);
+	printf("%ld, [%ld], endptr[0] is '%c'\n", value, endptr - property, endptr[0]);
+	//
 	printf("test end\n");
 }
 
