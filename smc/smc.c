@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <sys/mman.h>
 
-#define COUNT 0x10000
+#define COUNT (0x20000-2)
 char buf[1024*1024];
 int g_var;
 //char *__buf = buf[0];
