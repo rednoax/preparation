@@ -4,8 +4,9 @@
 #include <unistd.h>
 #include <sys/mman.h>
 
-#define COUNT 10000
+#define COUNT 0x10000
 char buf[1024*1024];
+int g_var;
 //char *__buf = buf[0];
 /*
 https://stackoverflow.com/questions/4156585/how-to-get-the-length-of-a-function-in-bytes
@@ -17,19 +18,17 @@ smc.c:8:2: error: attributes should be specified before the declarator in a func
   ^~~~
 
 #endif
-__attribute__((section("mysection1"))) void f1()
+__attribute__((section("mysection1"))) void f1(int *p)
 {
-	strcat(buf, __func__);
-	strcat(buf, "\n");
+	*p += 1;
 }
 
-__attribute__((section("mysection2"))) void f2()
+__attribute__((section("mysection2"))) void f2(int *p)
 {
-	strcat(buf, __func__);
-	strcat(buf, "\n");
+	*p += 1<<16;
 }
 
-typedef void (*func)(void);
+typedef void (*func)(int*);
 void dump_mem(const char *base, int size)
 {
 	int i;
@@ -66,10 +65,10 @@ int main()
 	int i;
 	p = mmap(0, getpagesize(), PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 	printf("%d %d: %p\n", f1_size, f2_size, p);
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < COUNT; i++) {
 		char *start, *end;
 		int size;
-		func f;
+		func f = (func)p;
 		start = __start_mysection1;
 		end = __stop_mysection1;
 		size = end - start;
@@ -77,18 +76,16 @@ int main()
 			start = __start_mysection2;
 			end = __stop_mysection2;
 		}
-		printf("%p-%p:%d\n", end, start, size);
+		//printf("%p-%p:%d\n", end, start, size);
 		memcpy(p, start, size);
 		/*
 		dump_mem(p, size);
 		dump_mem(start, size);
 		*/
-		f = (func)p;
-		sleep(150);
-		(*f)();//ok
-		//f();//ok
+		//sleep(150);
+		(*f)(&g_var);//ok f()is also ok
 	}
-	printf("[%s]", buf);
+	printf("[%08x]", g_var);
 	munmap(p, getpagesize());
 	return 0;
 }
