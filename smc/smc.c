@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <sys/mman.h>
 
 #define COUNT 10000
 char buf[1024*1024];
@@ -28,6 +30,16 @@ __attribute__((section("mysection2"))) void f2()
 }
 
 typedef void (*func)(void);
+void dump_mem(const char *base, int size)
+{
+	int i;
+	for (i = 0; i < size; i++) {
+		printf("%02x ", base[i] & 0xff);
+		if ( (i + 1) % 16 == 0)
+			printf("\n");
+	}
+	printf("\n");
+}
 int main()
 {
 /*readelf -a a.out
@@ -49,25 +61,34 @@ int main()
 	extern char __start_mysection1[], __stop_mysection1[];
 	extern char __start_mysection2[], __stop_mysection2[];
 	char *p;
-	func f;
 	int f1_size = __stop_mysection1 - __start_mysection1;
 	int f2_size = __stop_mysection2 - __start_mysection2;
-	int i, max = f1_size > f2_size? f1_size: f2_size;
-	p = malloc(max);
-	f = (func)p;
-	printf("%d %d: %d, %p\n", f1_size, f2_size, max, p);
-	for (i = 0; i < 32; i++) {
+	int i;
+	p = mmap(0, getpagesize(), PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	printf("%d %d: %p\n", f1_size, f2_size, p);
+	for (i = 0; i < 2; i++) {
 		char *start, *end;
+		int size;
+		func f;
 		start = __start_mysection1;
 		end = __stop_mysection1;
+		size = end - start;
 		if ((i + 1) % 2) {
 			start = __start_mysection2;
 			end = __stop_mysection2;
 		}
-		printf("%p %p\n", start, end);
-		memcpy(p, start, end - start);
-		(*f)();
+		printf("%p-%p:%d\n", end, start, size);
+		memcpy(p, start, size);
+		/*
+		dump_mem(p, size);
+		dump_mem(start, size);
+		*/
+		f = (func)p;
+		sleep(150);
+		(*f)();//ok
+		//f();//ok
 	}
 	printf("[%s]", buf);
+	munmap(p, getpagesize());
 	return 0;
 }
