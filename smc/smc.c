@@ -82,10 +82,23 @@ int main()
 		dump_mem(p, size);
 		dump_mem(start, size);
 		*/
+#if 0
+arm's wrong result:
+A10:/data # ./smc.out                                                          
+52 52: 0xad12f000
+[fffe0000]
+A10:/data # ./smc.out                                                          
+52 52: 0xab98e000
+[be6f418f]
+ubuntu qemu's right result:
+rednoah@lucia:~/preparation/smc$ ./smc.out
+52 52: 0xff7ee000
+[ffffffff]
+#endif
 		//sleep(150);
 		(*f)(&g_var);//ok f()is also ok
 	}
-	printf("[%08x]", g_var);
+	printf("[%08x]\n", g_var);
 	munmap(p, getpagesize());
 	return 0;
 }
