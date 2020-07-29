@@ -77,7 +77,7 @@ int main()
 	https://stackoverflow.com/questions/14924469/does-pthread-cond-waitcond-t-mutex-unlock-and-then-lock-the-mutex
 	see its "Another way...": It is right to put pthread_cond_signal in critical area!
 	*/
-	pthread_cond_signal(&cond);
+	pthread_cond_signal(&cond);//APUEv3:wakeup at least one thread waiting on the condition;IMO, "signal" here actually looks like wait queue head in kernel(that can have >=1 thread waiting on it), pthread_cond_signal is like wake up the 1st thread in wait_queue_head_t
 	while (arg.flag == 1) {
 		static int cnt = 0;
 		debug("{%d;", cnt++);
