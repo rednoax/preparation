@@ -1,0 +1,9 @@
+#!/bin/sh
+#              `-bash,3165<---ssh tty shell
+#                  `-pstree,129277 -aps 129277
+[ -z $PREINIT ] && echo $$ && exec pstree -aps $$
+
+#PREINIT=1 ./preinit can arrive the following echo
+#./preinit cannot arrive the following echo
+
+echo "can arrive here?"
