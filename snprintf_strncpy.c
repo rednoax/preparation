@@ -72,20 +72,18 @@ size_t strlcpy(char *dest, const char *src, size_t size)
 	return ret;
 }
 /*
-suppose most common examples:
-len = strlen(src); len > 0 && n > 0
-1.len < n(at most len == (n - 1)):completely strcpy('\0' is included);
-2.len == n:	a non null-terminated src, but no missing, will be put in dest
-3.len > n:	[0, n - 1] of src will be put in dest and dest is not null-terminated
-special case:
-n == 0, then no strcpy and return dest directly;
-n == 1 && len == 0, then dest will be copied with one byte '\0';
-n == 1 && len == 1, then dest will be copied with one non-null byte only and then stops;
-n == 1 && len > 1, then dest will be copied with one non-null byte only and then stops;
-------
-math induction:
+char *strcpy(char *dest, const char *src);
+strcpy's FINAL result:if src is a null terminated string, then the dest will be the same as src and the copy don't take
+dest's space into account, so there may be overflow happens, that's why strncpy is introduced!
+
+char *strcat(char *dest, const char *src);
+strcat's FINAL result:similar to strcpy, it will append all src's null terminated string to the end of
+dest and it don't take account if dest has enough spare space to hold src, so there may be overflow happends,
+that's why strncat is introduced!
+
 char* strncpy(char *dest, const char *src, size_t n):
-n:0, no any copy option;
+math induction for strncpy and strlcpy:
+n:0, no any copy operation;
 n:1, 1 byte is copied:suppose strlen(src) is 0/1/2 respectively, which is <n,==n,>n respectively
 	src				dest		strlen(src) vs n
 	'\0'			'\0'		<
@@ -99,12 +97,13 @@ n:2, 2 bytes is copied:suppose strlen(src) is 0/1/2/3 respectively, which is <n,
 	'a''b''c'		'a''b'		>
 summarizaton:AL n (n>=0) bytes are copied;
 when n>=1, if:
-a. strlen(src) < n: the whole src is copied. And dest is appended with '\0', if strlen(src)<(n-1), to make n bytes copied
+a. strlen(src) < n: the whole src including its tailing '\0' is copied. The ending bytes of (n - strlen(src) - 1) of dest, if >0 rather
+than==0,will be appended with '\0' to make totally n bytes copied;
 b. strlen(src) == n:the whole src except its trailing '\0' is copied, and dest has no terminated '\0'
 c. strlen(src) > n:src's [0,n - 1] is copied, and dest has no terminated '\0'
----
-to solve the above b and c problem that the @dest is not null terminated after copy; strlcpy is raised:
-size_t strlcpy(char *dest, const char *src, size_t size)
+
+size_t strlcpy(char *dest, const char *src, size_t count)
+to solve the above b and c problem that the @dest is not null terminated after copy; strlcpy is introduced:
 a.count: 0, no copy happpened, return strlen(src); strlen(src)>=0 is AL true, which means truncating AL happens even strlen(src)==0 since no '\0' is appended to @dest)
 b.count:1 src		dest		return				trucated(strlen(src)>=count)?
 		'0'			'\0'		strlen(src):0		false
@@ -114,11 +113,71 @@ c.count:2	src			dest			return 		trucated(strlen(src)>=count)?
 		'\0'			'\0'		strlen(src):0	false
 		'a''\0'			'a''\0'		strlen(src):1	false
 		'a''b''\0'		'a''\0'		strlen(src):2	true
+when count>=1,if:
+a.strlen(src)<count:the whole src including trailing '\0' is copied to dest so no trucated;
+b.strlen(src)>=count:AL truncated and only src's [0,count-2] is copied and [count-1] is written with '\0';
 summarizaton:strlcpy AL make sure the dest is null terminated so there may be truncating occurred, to let the caller
 know if truncating happened, the return value is used. Besides, strlcpy will not repeat to write trailing '\0' once the 1st '\0'
 is written to @dest;
+
+char *strncat(char *dest, const char *src, size_t count),dest should has >=(count+1) spare bytes(dest's old '\0' before strncat is also spare byte)
+math induction for strncat and strlcat:
+n:0, no any append ops;
+n:1, suppose strlen(src) is 0/1/2 respectively, which is <n,==n,>n respectively
+	src				dest		strlen(src) vs n
+	'\0'			'\0'		<
+	'a' '\0'		'a''\0'		==
+	'a' 'b'			'a''\0'		>
+n:2, suppose strlen(src) is 0/1/2/3 respectively, which is <n,<n,==n,>n respectively
+	src				dest				strlen(src) vs n
+	'\0'			'\0'				<
+	'a''\0'			'a''\0'				<
+	'a''b''\0'		'a''b''\0'			==
+	'a''b''c'		'a''b''\0'			>
+summarizaton:n==0 is special case that nearly impossible for normal use.So we just remember n>=1
+when n>=1, if:
+a. strlen(src) < n: the whole src including the trailing '\0' is copied to dest. The ending bytes of (n - strlen(src) - 1), which >=0 and will not be touched.
+NOTE:strncpy's a is similar to strncat's a, except that the former will fill (n -strlen(src)-1),if any, with '\0' but the later will not touch them;
+b. strlen(src) >= n:src's [0,n - 1] is appended(no chance for src's trailing '\0' is appended since '\0' is at [n] at most(when
+strlen(src)==n)); then dest is written with a terminated '\0'; so totaly (n+1) bytes is written and the dest should have >=(n+1) spare
+ bytes;
+
+size_t strlcat(char *dest, const char *src, size_t count) count is sizeof dest; AL return strlen(dest)+strlen(src)
+note count <= strlen(dest) is forbidden so count - strlen(dest) >= 1;if we use n for (count-strlen(dest)):
+n:1, suppose strlen(src) is 0/1/2 respectively, which <,==,> n respectively;
+		src			dest		strlen(src) vs n (truncated)
+		'0'			'\0'		< (false)
+		'a''\0'		'\0'		== (true)
+		'a''b'		'\0'		> (true)
+n:2,suppose strlen(src) is 0,1,2,3 respectively, which <,<,==,>n respectively
+	src				dest			strlen(src) vs n (truncated)
+	'\0'			'\0'			< (false)
+	'a''\0'			'a''\0'			< (false)
+	'a''b''\0'		'a''\0'			> (true)
+	'a''b''c'		'a''\0'			> (true)
+summarazation when n>=1,if:
+a.strlen(src)<n:no truncated and the whole src include its trailing '\0' is appended to dest+strlen(dest)
+b.strlen(src)>=n:trucated happens and src's [0,n-1) is appened to dest[strlen(dest)], then dest[strlen(dest)+n-1] is written with '\0'
+
+for strncpy,strlcpy,strlcat:
+when n>=1(strncpy/strlcpy:n is sizeof dest, for strlcat:n is (count-strlen(dest)):
+to make the src 's all chars including its trailing '\0' is copied(strncpy/strlcpy) or appended(strlcat)
+to dest,the strlen(src) should be < n;
+
+for strncat(dest, src, count), to copy all src chars including trailing '\0' to dest, strlen(src) should <=count
 */
 /*
+suppose most common examples:
+len = strlen(src); len > 0 && n > 0
+1.len < n(at most len == (n - 1)):completely strcpy('\0' is included);
+2.len == n:	a non null-terminated src, but no missing, will be put in dest
+3.len > n:	[0, n - 1] of src will be put in dest and dest is not null-terminated
+special case:
+n == 0, then no strcpy and return dest directly;
+n == 1 && len == 0, then dest will be copied with one byte '\0';
+n == 1 && len == 1, then dest will be copied with one non-null byte only and then stops;
+n == 1 && len > 1, then dest will be copied with one non-null byte only and then stops;
+------
 for common case:len = strlen(src);len > 0 && n > 0
 1. len < n:(at most len == (n-1))completely copy('\0' included), return len;
 2. len == n, a non null-terminated src, but no missing, will be put in dest, return len;
