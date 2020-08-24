@@ -82,6 +82,41 @@ n == 0, then no strcpy and return dest directly;
 n == 1 && len == 0, then dest will be copied with one byte '\0';
 n == 1 && len == 1, then dest will be copied with one non-null byte only and then stops;
 n == 1 && len > 1, then dest will be copied with one non-null byte only and then stops;
+------
+math induction:
+char* strncpy(char *dest, const char *src, size_t n):
+n:0, no any copy option;
+n:1, 1 byte is copied:suppose strlen(src) is 0/1/2 respectively, which is <n,==n,>n respectively
+	src				dest		strlen(src) vs n
+	'\0'			'\0'		<
+	'a' '\0'		'a'			==
+	'a' 'b'			'a'			>
+n:2, 2 bytes is copied:suppose strlen(src) is 0/1/2/3 respectively, which is <n,<n,==n,>n respectively
+	src				dest		strlen(src) vs n
+	'\0'			'\0' '\0'	<
+	'a' '\0'		'a' '\0'	<
+	'a''b''\0'		'a''b'		==
+	'a''b''c'		'a''b'		>
+summarizaton:AL n (n>=0) bytes are copied;
+when n>=1, if:
+a. strlen(src) < n: the whole src is copied. And dest is appended with '\0', if strlen(src)<(n-1), to make n bytes copied
+b. strlen(src) == n:the whole src except its trailing '\0' is copied, and dest has no terminated '\0'
+c. strlen(src) > n:src's [0,n - 1] is copied, and dest has no terminated '\0'
+---
+to solve the above b and c problem that the @dest is not null terminated after copy; strlcpy is raised:
+size_t strlcpy(char *dest, const char *src, size_t size)
+a.count: 0, no copy happpened, return strlen(src); strlen(src)>=0 is AL true, which means truncating AL happens even strlen(src)==0 since no '\0' is appended to @dest)
+b.count:1 src		dest		return				trucated(strlen(src)>=count)?
+		'0'			'\0'		strlen(src):0		false
+		'a''\0'		'\0'		ditto:1				true
+		'a''b''\0'	'\0'		ditto:2				true
+c.count:2	src			dest			return 		trucated(strlen(src)>=count)?
+		'\0'			'\0'		strlen(src):0	false
+		'a''\0'			'a''\0'		strlen(src):1	false
+		'a''b''\0'		'a''\0'		strlen(src):2	true
+summarizaton:strlcpy AL make sure the dest is null terminated so there may be truncating occurred, to let the caller
+know if truncating happened, the return value is used. Besides, strlcpy will not repeat to write trailing '\0' once the 1st '\0'
+is written to @dest;
 */
 /*
 for common case:len = strlen(src);len > 0 && n > 0
