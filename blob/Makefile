@@ -1,3 +1,3 @@
 .PHONY:main.out
 main.out:blob.c utils.c main.c
-	gcc -Wall $^ -o $@
+	gcc -m32 -Wall -g $^ -o $@

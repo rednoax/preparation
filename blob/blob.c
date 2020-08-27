@@ -86,7 +86,12 @@ blob_add(struct blob_buf *buf, struct blob_attr *pos, int id, int payload)
 	blob_fill_pad(attr);
 	return attr;
 }
-//0:ok
+/*0:ok
+(&b,0):after this func fin:
+.head/.buf:malloced 256B & memset 0;this area is an (blob_attr) instance:its .id_len:4|(0<<24);0 is @id
+.buflen:256
+.grow:blob_buffer_grow
+*/
 int
 blob_buf_init(struct blob_buf *buf, int id)
 {
