@@ -1,0 +1,38 @@
+#!/bin/sh
+#the set -x only takes effect from where it is layed
+set -x
+
+#to make the following set -x enabled:INIT_TRACE=1 ./S00 boot
+${INIT_TRACE:+set -x}
+#./S00 boot:initscript:./S00 action: boot
+initscript=$1
+action=${2:-help}
+
+shift 2
+list_contains() {
+	local var="$1"
+	local str="$2"
+	local val
+
+	eval "val=\" \${$var} \""
+	[ "${val%% $str *}" != "$val" ]
+#./S00 sha echo 1
+#./S00 boot echo 0
+	echo $? >/dev/null
+}
+#set -x
+
+. $initscript
+#set -x
+ALL_COMMANDS="start stop reload restart boot shutdown enable disable enabled depends ${EXTRA_COMMANDS}"
+list_contains ALL_COMMANDS "$action" || action=help
+
+[ "$action" = "reload" ] && action='eval reload "$@" || restart "$@" && :'
+#there is no "source S00" in this script but it is ok to call boot() in S00
+#the reason is there is "!/bin/sh rc.common" in S00?
+#$@:all the positional parameters as separated string
+$action "$@"
+$action $@
+#"$*":all the positional parameters as a single word, must be quoted,otherwise it defaults to $@
+$action "$*"
+$action $*

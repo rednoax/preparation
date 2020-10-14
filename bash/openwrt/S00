@@ -1,0 +1,10 @@
+#!/bin/sh rc.common
+#./S00 boot 1 2
+#1.if boot() is called with $@ or "$@", it will show 1,2 in 2 lines
+#2.if boot() is called with "$*", it will show 1 2 in 1st line and nothing in 2nd line
+#3.if boot() is called with $* w/t quote, it is equals to $@
+boot() {
+	echo $1
+	echo $2
+}
+
