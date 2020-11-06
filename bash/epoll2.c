@@ -157,7 +157,7 @@ int main(int argc, char **argv)
 level triggered fd will make epoll_wait return 1 repeatly after pipe is closed by child process;
 During mass debug, there is never chance for -1 to be returned when level triggered, 1 is AL returned.
 It seems that errno needs to be checked only when -1 is returned; ie when >=0 is returned, no ANY
-need to check errno;
+need to check errno as errno is touched!
 */
 		ev.data.fd = pipefd[0];
 		close(pipefd[1]);
