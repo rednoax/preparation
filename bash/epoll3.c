@@ -157,9 +157,18 @@ int main(int argc, char **argv)
 		struct epoll_event ev = { 0 };
 		int ret;
 		ev.events = EPOLLIN | EPOLLRDHUP | EPOLLET;//1|0x2000|(1<<31)
-//level triggered fd will make epoll_wait return 1 repeatly after pipe is closed by child process
 		ev.data.fd = pipefd[0];
 		close(pipefd[1]);
+/*
+1. edge triggered fd will make epoll_wait return only once with -1 after pipe is closed
+by child process
+2. openwrt debug show epoll_ctl() can return >0 and signal is got during its blocking, but
+errno will not be touched.eg:
+[   22.250000] [1]procd: {4395
+[   22.470000] [1]procd: <=CHLD<--signal sent during epoll_wait as child exit
+[   22.470000] [1]procd: 1}11 11
+[   22.470000] [1]procd: **11=>11: 0[10]10(HUP), 45<--polled fd is closed by child process and EPOLLHUP got
+*/
 		ret = epoll_ctl(poll_fd, EPOLL_CTL_ADD, pipefd[0], &ev);
 		if (ret == -1) {
 			_printf("***epoll add -1: %d\n", errno);
@@ -191,7 +200,7 @@ int main(int argc, char **argv)
 		int t = 1;
 		close(pipefd[0]);//r
 		uloop_gettime(&tv1);
-#if 10
+#if 0
 		__printf("close wpipe then start sleep %ds\n", t);
 		close(pipefd[1]);//w
 #endif
