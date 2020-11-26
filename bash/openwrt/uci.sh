@@ -3,7 +3,7 @@ echo [${var0:+-1}]
 echo [${var1:+-2}]
 var1=1
 echo ${var1:+-3}
-set -xv
+set -x
 #empty is the same effect as undefined
 #NO_EXPORT=1 ./uci.sh; NO_EXPORT ./uci.sh will output different result
 export ${NO_EXPORT:+-n} CONFIG_NUM_SECTIONS=0
@@ -33,3 +33,8 @@ echo $func_var
 [ -n $old ]
 old=
 [ -n $old ]
+
+for _dev in /sys/class/ieee80211/*;do
+	[ -e $_dev ] || continue
+done
+:
