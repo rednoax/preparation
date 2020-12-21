@@ -5,8 +5,10 @@ varname=var0# #
 
 #value wil be var0<space>, strlen==5
 varname2=var0 #
+#value:var3<space>a=b<space>
+varname3=var3 a=b #
 
-$(info [$(varname)] [$(varname2)] $(shell pwd))
+$(info [$(varname)] [$(varname2)] [$(varname3)]$(shell pwd))
 all all0:
 	@echo ${var} $(a0) $$var
 	make -C sub -f sub.mk
