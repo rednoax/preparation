@@ -1,5 +1,5 @@
 #TO TEST:
-#1. there is =/<space> in value
+#1. there is = and <space> in value
 #2. one make process launch a child make process
 
 a0=0
