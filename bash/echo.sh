@@ -1,9 +1,9 @@
 echo [$0,$1,$2]
 
-#-c is to run command
+#-c is to read command from string and assign any arguments to the positional parameters
 #-e is to run shell script
 
-#rednoah@lucia:~/preparation/bash$ bash -c echo.sh
+#rednoah@lucia:~/preparation/bash$ bash -c echo.sh<--bash -c and source filename all uses PATH
 #bash: echo.sh: command not found
 
 #rednoah@lucia:~/preparation/bash$ bash -c "./echo.sh 1 2 3"
