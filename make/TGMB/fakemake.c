@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <unistd.h>
 
 int main(int argc, char ** argv, char **envp)
 {
@@ -6,7 +7,8 @@ int main(int argc, char ** argv, char **envp)
 	for (i = 0; argv[i] != NULL; i++) {
 		printf("%d: %s\n", i, argv[i]);
 	}
-	printf("VVVVARVVV\n");
+	printf("VVVVARVVV pid %d,ppid %d\n", getpid(), getppid());
+	sleep(30);
 	for (i = 0; envp[i] != NULL; i++) {
 		printf("%d: %s\n", i, envp[i]);
 	}
