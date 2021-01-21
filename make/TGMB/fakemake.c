@@ -14,3 +14,9 @@ int main(int argc, char ** argv, char **envp)
 	}
 	return 0;
 }
+/*
+if no export in setting PATH before launch make, make can work!
+to present in a simple test:
+$ PATH=$PATH:~/arm-2013.11/bin
+then ./dump.out's env will show changed PATH like the above
+*/
