@@ -16,7 +16,8 @@ SECTIONS
     .bss : {
         *(.bss)
     }
-    . = ALIGN(2);
+    /*should at least 4B aligned, ld script ALIGN unit is byte*/
+    . = ALIGN(4);
     . += 0x1000;
     stack_top = .;
 }
