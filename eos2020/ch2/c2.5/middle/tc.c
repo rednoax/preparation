@@ -79,13 +79,16 @@ void uprinti(UART *up, int x)
     }
     uprintu(up, x);
 }
-
+/*
+to make the following work, add -m32 to gcc!
+That's why va_xx macros are needed, as the way below is only apply to 32bit arch.
+*/
 void uprintf(char *fmt, ...)
 {
     char c;
     UART *up = NULL;//&uart[0];
     const char *fp = fmt;
-    int *sp = (int*)(&fmt + 4);
+    int *sp = (int*)(&fmt + 1);//fmt is char**, so to make stack go up, +1 rather than +4
     while ((c = *fp++)) {
         if (c == '%') {
             switch (*fp++) {
@@ -101,7 +104,7 @@ void uprintf(char *fmt, ...)
                 case 'x':
                     uprintx(up, *sp++);
                     break;
-                case 's':
+                case 's'://*sp here is an address,eg 0x56557074,
                     uprints(up, (const char *)(*sp++));
                     break;
             }
@@ -112,6 +115,27 @@ void uprintf(char *fmt, ...)
 int main(int argc, char **argv)
 {
     uprintx(NULL, 43981);
-    uprintf("[%c %d %u %x %s]", '1', 23, 45, 4660/*0x1234*/, "fin");
+/*
+the following 2 string is in .rodata
+	.section	.rodata<--
+	.align	2
+.LC1:
+	.ascii	"[%c %d %u %x %s %x]\000"<--
+	.align	2
+.LC2:
+	.ascii	"fin\000"<--
+	.text<--
+	.align	2
+	.global	main
+    ...
+then their addresses are put in reg or stack as argument, which are transfered to uprintf:
+in real world, their address is referenced by a label .L36, plus offset
+.L36:
+	.word	43981
+	.word	4660
+	.word	.LC2
+	.word	.LC1
+*/
+    uprintf("[%c %d %u %x %s %x]", '1', 23, 45, 4660/*0x1234*/, "fin", 16);
     return 0;
 }
