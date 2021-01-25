@@ -9,6 +9,8 @@ SECTIONS
     .data : {
         *(.data)
     }
+    /*the following stuff will not be included in t.bin.
+    readelf -a show .text/.data size in t.elf, their sum==t.bin's bytes size*/
     .bss : {
         *(.bss)
     }
