@@ -12,7 +12,7 @@ arm-none-linux-gnueabi-readelf -a tc.o|less
    26: 00000004     4 OBJECT  GLOBAL DEFAULT  COM uninit_var<---weak in COMMON, 4B for int
 
 so all uninitialized global var in d.c and tc.c are all "in COM block"!
-arm-none-linux-gnueabi-gcc -Wall tc.c d.c -o a.out  <--no err
+arm-none-linux-gnueabi-gcc -Wall tc.c d.c -o a.out  <--no err as uninit global var is WEAK!
 
 arm-none-linux-gnueabi-readelf -a a.out|less
 
