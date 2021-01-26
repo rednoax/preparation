@@ -5,6 +5,6 @@ reset:
     b .
 /*
 readelf -a ts.o:
-stop is NOTYPE LOCAL while reset is NOTYPE, GLOBAL. as stop is not .globl stop!
+stop is NOTYPE LOCAL while reset is NOTYPE, GLOBAL. as stop is claimed by .globl!
 */
 stop:

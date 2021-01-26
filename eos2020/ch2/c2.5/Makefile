@@ -10,7 +10,8 @@ ELF=t.elf
 all: $(BIN)
 $(BIN):$(ELF)
 	$(OBJCOPY) -O binary $< $@
-#to make the following sequence takes effect, t.ld will not specify sequence<-proved by objdump -d
+#objdump -d proves:the following sequence takes effect when t.ld does't specify sequence like:
+#ts.o(.text) *(.text)
 $(ELF): ts.o t.o
 	$(LD) -T t.ld -o $@ $^
 
@@ -24,6 +25,6 @@ clean:
 #nm to show address of c, then xp/8x to check it content in qemu monitor
 run:
 	$(NM) $(ELF)
-	qemu-system-arm -M realview-pbx-a9 -nographic -serial /dev/stdio -kernel $(BIN)
+	qemu-system-arm -M versatilepb -m 128M -nographic -serial /dev/stdio -kernel $(BIN)
 
 #objdump -x or readelf -a to show symbol tables

@@ -15,10 +15,10 @@ void uart_init()
 {
     int i;
     for (i = 0; i < ARRAY_SIZE(uart); i++) {
-        uart[i].base = 0x101f1000 + i * 0x1000;
+        uart[i].base = (char*)(0x101f1000 + i * 0x1000);
         uart[i].n = i;
     }
-    uart[3].base = 0x10009000;
+    uart[3].base = (char*)0x10009000;
 }
 
 void uputc(UART *up, char c)
@@ -100,7 +100,7 @@ void uprintf(char *fmt, ...)
     char c;
     UART *up = &uart[0];
     char *cp = fmt;
-    int *ip = &fmt + 1;//NOT +4
+    int *ip = (int*)&fmt + 1;//NOT +4
     while ((c = *cp++)) {
         if (c == '%') {
             switch (*cp++) {
