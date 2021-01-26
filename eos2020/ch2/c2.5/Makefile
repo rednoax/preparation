@@ -25,6 +25,6 @@ clean:
 #nm to show address of c, then xp/8x to check it content in qemu monitor
 run:
 	$(NM) $(ELF)
-	qemu-system-arm -M versatilepb -m 128M -nographic -serial /dev/stdio -kernel $(BIN)
+	qemu-system-arm -M versatilepb -m 128M -nographic -serial stdio -kernel $(BIN)
 
 #objdump -x or readelf -a to show symbol tables
