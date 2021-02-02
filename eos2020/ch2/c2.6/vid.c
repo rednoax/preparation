@@ -1,5 +1,6 @@
 #define FB_BASE (6 * 1024 * 1024)
 volatile int *fb = (int*)FB_BASE;
+extern char _binary_panda_bmp_end[];
 void fbuf_init(int mode)
 {
     int i;
@@ -24,7 +25,13 @@ void fbuf_init(int mode)
 void show_bmp(const char *p, int startRow, int startCol)
 {
     int size = *(int*)(p + 14);
-    int w = *(int*)(p + 18);
-    int h = *(int*)(p + 22);
-    uprintf("%d %dx%d\n", size, w, h);
+    int wp = *(int*)(p + 18);//width pixel
+    int hp = *(int*)(p + 22);//height pixel
+    const char *image = p + 54;
+    int data, pos = startCol + 640 * startRow;
+    uprintf("%d %dx%d\n", size, wp, hp);
+    for (; image < _binary_panda_bmp_end; image += 3) {
+        data = image[0] + (image[1] << 8) + (image[2] << 8);
+        fb[pos++] = data;
+    }
 }
