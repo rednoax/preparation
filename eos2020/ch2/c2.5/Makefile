@@ -26,5 +26,10 @@ clean:
 run:
 	$(NM) $(ELF)
 	qemu-system-arm -M versatilepb -m 128M -nographic -serial mon:stdio -kernel $(BIN)
+telnet:
+	qemu-system-arm -M versatilepb -m 128M -nographic -serial telnet::1234,server -kernel $(BIN)
+#before "make pts", do sleep 1000000 on pts3
+pts:
+	qemu-system-arm -M versatilepb -m 128M -nographic -serial /dev/pts/3 -kernel $(BIN)
 
 #objdump -x or readelf -a to show symbol tables
