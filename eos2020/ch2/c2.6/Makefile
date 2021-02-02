@@ -24,7 +24,7 @@ clean:
 	rm -rf *.{o,elf,bin}
 run:
 	$(NM) $(ELF)
-	qemu-system-arm -M versatilepb -m 128M -serial mon:stdio -kernel $(BIN) -S -s
+	qemu-system-arm -M versatilepb -m 128M -serial mon:stdio -kernel $(BIN)
 telnet:
 	qemu-system-arm -M versatilepb -m 128M -nographic -serial telnet::1234,server -kernel $(BIN)
 #before "make pts", do sleep 1000000 on pts3
