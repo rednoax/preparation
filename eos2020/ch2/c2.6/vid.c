@@ -31,13 +31,13 @@ void show_bmp(const char *pH, int startRow, int startCol)
     int x, y, rb;
     //uprintf("%d %dx%d\n", size, wp, hp);
     rb = ((3 * wp + 3) / 4) << 2;
-    p = image;
+    p = image + (hp - 1) * rb;
     for (y = startRow; y < startRow + hp; y++) {
         pp = p;
         for (x = startCol; x < startCol + wp; x++) {
             fb[x + y * 640] = (pp[2] & 0xff) + ((pp[1] & 0xff) << 8) + ((pp[0] & 0xff) << 16);
             pp += 3;
         }
-        p += rb;
+        p -= rb;
     }
 }
