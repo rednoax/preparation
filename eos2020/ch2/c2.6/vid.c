@@ -22,20 +22,22 @@ void fbuf_init(int mode)
         fb[i] = 0x0;
 }
 
-void show_bmp(const char *p, int startRow, int startCol)
+void show_bmp(const char *pH, int startRow, int startCol)
 {
-    int size = *(int*)(p + 14);
-    int wp = *(int*)(p + 18);//width pixel
-    int hp = *(int*)(p + 22);//height pixel
-    const char *image = p + 54;
-    int i, j, rsize, data, pos = startCol + 640 * startRow;
-    uprintf("%d %dx%d\n", size, wp, hp);
-    rsize = ((3 * wp + 3) / 4) << 2;
-    for (i = 0; i < rsize * hp; i += rsize) {
-        for (j = 0; j < wp; j++) {
-            const char *p = image + i + j * 3;
-            data = (p[2] & 0xff) + ((p[1] & 0xff) << 8) + ((p[0] & 0xff) << 16);
-            fb[pos++] = data;
+    //int size = *(int*)(pH + 14);
+    int wp = *(int*)(pH + 18);//width in pixel
+    int hp = *(int*)(pH + 22);//height in pixel
+    const char *image = pH + 54, *p, *pp;
+    int x, y, rb;
+    //uprintf("%d %dx%d\n", size, wp, hp);
+    rb = ((3 * wp + 3) / 4) << 2;
+    p = image;
+    for (y = startRow; y < startRow + hp; y++) {
+        pp = p;
+        for (x = startCol; x < startCol + wp; x++) {
+            fb[x + y * 640] = (pp[2] & 0xff) + ((pp[1] & 0xff) << 8) + ((pp[0] & 0xff) << 16);
+            pp += 3;
         }
+        p += rb;
     }
 }
