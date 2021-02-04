@@ -3,7 +3,9 @@ SECTIONS
 {
     . = 0x10000;
     .text : {
-        *(.text)
+        ts.o(.text)
+        *(.text) /* if a filename appears explicitly and is also matched by a wildcard pattern, the linke will use
+        the 1st matched*/
         *(.rodata)
     }
     .data : {
