@@ -137,7 +137,68 @@ in real world, their address is referenced by a label .L36, plus offset
 	.word	4660
 	.word	.LC2
 	.word	.LC1
+a full disassembly is:
+main:
+	@ Function supports interworking.
+	@ args = 0, pretend = 0, frame = 8
+	@ frame_needed = 1, uses_anonymous_args = 0
+	stmfd	sp!, {fp, lr}
+	add	fp, sp, #4
+	sub	sp, sp, #24
+	str	r0, [fp, #-8]
+	str	r1, [fp, #-12]
+	mov	r0, #0
+	ldr	r1, .L36
+	bl	uprintx
+	ldr	r3, .L36+4
+	str	r3, [sp]
+	ldr	r3, .L36+8
+	str	r3, [sp, #4]<--string argument "fin" transfered to uprintf is a 4B address("fin"'s address, ie symbol value in .rodata) put on stack
+	mov	r3, #16
+	str	r3, [sp, #8]
+	ldr	r0, .L36+12<--format string transfered to uprintf is a 4B address put in r0
+	mov	r1, #49<--'1' occupy 4B, not 1B even it is a char!then uprintf push the 4B,not 1B on stack!
+	mov	r2, #23
+	mov	r3, #45
+	bl	uprintf
+	mov	r3, #0
+	mov	r0, r3
+	sub	sp, fp, #4
+	@ sp needed
+	ldmfd	sp!, {fp, lr}
+	bx	lr
+.L37:
+	.align	2
+.L36:
+	.word	43981
+	.word	4660
+	.word	.LC2
+	.word	.LC1
+
 */
-    uprintf("[%c %d %u %x %s %x]", '1', 23, 45, 4660/*0x1234*/, "fin", 16);
+    uprintf("[%c %d %u %x %s %x]", '1', 23, 45, 4660/*0x1234*/, "fin", 16);//16 is at the stack higher and format string will be at the lower stack
     return 0;
+}
+/*
+	.align	2
+	.global	_printf
+	.type	_printf, %function
+_printf:
+	@ Function supports interworking.
+	@ args = 4, pretend = 16, frame = 0
+	@ frame_needed = 1, uses_anonymous_args = 1
+	@ link register save eliminated.
+	stmfd	sp!, {r0, r1, r2, r3}<--c function's args from left to right corresponds to stack lower to higher
+	str	fp, [sp, #-4]!
+	add	fp, sp, #0
+	sub	sp, fp, #0
+	@ sp needed
+	ldr	fp, [sp], #4
+	add	sp, sp, #16
+	bx	lr
+	.size	_printf, .-_printf
+	.ident	"GCC: (Sourcery CodeBench Lite 2013.11-24) 4.8.1"
+*/
+void _printf(const char *fmt, ...)
+{
 }
