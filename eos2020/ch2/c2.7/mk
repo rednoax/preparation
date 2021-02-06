@@ -1,0 +1,19 @@
+#CROSS_COMPILE=/home/rednoah/gcc-arm-9.2-2019.12-x86_64-arm-none-linux-gnueabihf/bin/arm-none-linux-gnueabihf-
+#CFLAGS="-c -Wall -g -mcpu=arm926ej-s -marm" #https://stackoverflow.com/questions/35132319/build-for-armv6-with-gnueabihf
+CROSS_COMPILE=~/arm-2013.11/bin/arm-none-eabi-
+CFLAGS="-c -Wall -g -mcpu=arm926ej-s"
+
+GCC=${CROSS_COMPILE}gcc
+LD=${CROSS_COMPILE}ld
+OBJCOPY=${CROSS_COMPILE}objcopy
+bfdname=elf32-littlearm
+bfdarch=arm
+
+${OBJCOPY} -I binary -O ${bfdname} -B ${bfdarch} font font.o
+${OBJCOPY} -I binary -O ${bfdname} -B ${bfdarch} logo logo.o
+${GCC} ${CFLAGS} ts.s -o ts.o
+${GCC} ${CFLAGS} t.c -o t.o
+${LD} -T t.ld ts.o t.o logo.o font.o -o t.elf
+${OBJCOPY} -O binary t.elf t.bin
+
+qemu-system-arm -M versatilepb -m 128M -kernel t.bin -serial mon:stdio 
