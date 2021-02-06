@@ -69,7 +69,7 @@ void scroll()
 {
     int oy = START_ROW;
     int i, j;
-    for (j = oy; j < ROW - oy - 2; j++)
+    for (j = oy; j < ROW - 1; j++)
         for (i = 0; i < WIDTH; i++)
             fb[i + WIDTH * j] = fb[i + WIDTH * (j + 1)];
     for (i = 0; i < WIDTH; i++)
