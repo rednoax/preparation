@@ -6,6 +6,10 @@
 /* Initialize new terminal i/o settings */
 static struct termios old, new1;
 /*
+hex dec	char
+0xa 10	'\n' new line
+0xd 13	'\r' carriage return
+press [enter] in scrt serial terminal and bushound show serial input is 0xd.
 stty -a show "...-igncr icrnl" so pressing [ENTER] show 10;
 to make [ENTER] show 13, either:
 1. uncomment new1.c_iflag &= ~ICRNL
