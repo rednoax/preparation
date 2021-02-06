@@ -69,11 +69,14 @@ void scroll()
 {
     int oy = START_ROW;
     int i, j;
-    for (j = oy; j < ROW - 1; j++)
+    for (j = oy * FROW; j < (MAX_ROW - 1) * FROW; j++)
         for (i = 0; i < WIDTH; i++)
-            fb[i + WIDTH * j] = fb[i + WIDTH * (j + 1)];
-    for (i = 0; i < WIDTH; i++)
-        fb[i + WIDTH * j] = 0;
+            fb[i + WIDTH * j] = fb[i + WIDTH * (j + FROW)];//+FROW rather than +1
+#if 10
+    for (j = (MAX_ROW - 1) * FROW; j < MAX_ROW * FROW; j++)
+        for (i = 0; i < WIDTH; i++)
+            fb[i + WIDTH * j] = 0;
+#endif
 }
 /*
 lcd pixel:640x480 font pixel:8x16
