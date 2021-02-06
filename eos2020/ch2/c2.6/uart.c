@@ -105,7 +105,7 @@ void uprintf(char *fmt, ...)
         if (c == '%') {
             switch (*cp++) {
                 case 'c':
-/*++ is higer than *,bu the actual increment/decrement of the operand is delayed,so
+/*++ is higer than *,but the actual increment/decrement of the operand is delayed,so
 *p++ is *ip first then ip++
 typecast and dereference * is at the same level, but associativity is from right-to-left, so
 (char)(*ip) is not needed!
@@ -121,6 +121,10 @@ typecast and dereference * is at the same level, but associativity is from right
                 case 'x':
                     uprintx(up, *ip++);
                     break;
+/*printf("%s", "abc");
+NOTE "abc" is in .rodata and its symbol value ie a 4B address is put on the stack for uprintf
+see c2.5/middle/t.c
+*/
                 case 's':
                     uprints(up, (const char *)*ip++);
                     break;
