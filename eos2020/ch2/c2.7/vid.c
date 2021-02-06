@@ -17,7 +17,7 @@ int row, col;
 char *font;
 void fbuf_init()
 {
-    int i;
+    int i, j;
     fb = (int*)0x200000;
     font = _binary_font_start;
     *(volatile unsigned int *)(0x1000001c) = 0x2C77;
@@ -27,8 +27,17 @@ void fbuf_init()
     *(volatile unsigned int *)(0x10120010) = (int)fb;
     *(volatile unsigned int *)(0x10120018) = 0x82B;
     cursor = 127;
-    for (i = 0; i < WIDTH * ROW; i++)
-        fb[i] = 0x00ffffff;
+    /*the following proves: in a row's corresponding area among fb[],
+    the left has lower address and the right has higher address
+    */
+    for (j = 0; j < ROW; j++) {
+        for (i = 0; i < WIDTH / 2; i++) {
+            fb[i + WIDTH * j] = 0xff;//red
+        }
+        for (i = WIDTH / 2; i < WIDTH; i++) {
+            fb[i + WIDTH * j] = 0xff << 16;//blue
+        }
+    }
 }
 
 void clrpix(int x, int y)//x/y all in pixel
