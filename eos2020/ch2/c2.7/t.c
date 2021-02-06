@@ -18,7 +18,7 @@ void show(const char *p, int startRow, int startCol)
         }
     }
 }
-#define kprintf uprintf
+//#define kprintf uprintf//just for debug
 int main()
 {
     char line[64];

@@ -40,7 +40,7 @@ void setpix(int x, int y)
 {
     int pos = x + WIDTH * y;
     int v = 0xffffff;
-    swithc (color) {
+    switch (color) {
     case RED: v = 0xff; break;
     case BLUE: v = 0xff << 16; break;
     case GREEN: v = 0xff << 8; break;
@@ -127,7 +127,7 @@ void kputc(int c)
         putcursor();
         return;
     }
-    if (c == '\b') {//backspace is 0x8 but ugets return decimal 127, reason unknown.
+    if (c == '\b') {//backspace is 0x8 but desktop terminal ugets return decimal 127, reason unknown.see ugets() comment
         if (col > 0) {
             col--;
             putcursor();
@@ -203,7 +203,7 @@ void kprintf(const char *fmt, ...)
     const char *cp = fmt;
     int *ip = (int*)&fmt + 1;
     char c;
-    while (c = *cp++) {
+    while ((c = *cp++)) {
         if (c != '%') {
             kputc(c);
             if (c == '\n')

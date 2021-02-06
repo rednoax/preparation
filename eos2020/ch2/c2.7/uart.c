@@ -31,7 +31,11 @@ int ugetc()
     while (*(up->base + FR) & 0x10) ;
     return *(up->base + DR);
 }
-
+/*
+when inputing '1' backspace '2' in different terminals, the return is different!
+Desktop terminal return: '1', 127 decimal, '2', and backspace echo back in ugets is NOT displayed at all.
+ssh moba terminal return:'1' '\b' '2', and backspace echo back in ugets is displayed but the old char will remain(not erased)
+*/
 void ugets(char *s)
 {
     char c;

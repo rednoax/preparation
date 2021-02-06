@@ -15,5 +15,5 @@ ${GCC} ${CFLAGS} ts.s -o ts.o
 ${GCC} ${CFLAGS} t.c -o t.o
 ${LD} -T t.ld ts.o t.o logo.o font.o -o t.elf
 ${OBJCOPY} -O binary t.elf t.bin
-
-qemu-system-arm -M versatilepb -m 128M -kernel t.bin -serial mon:stdio 
+#GDB="-S -s"
+qemu-system-arm -M versatilepb -m 128M -kernel t.bin -serial mon:stdio ${GDB}
