@@ -5,21 +5,22 @@
 #define START_ROW 4
 #define MAX_ROW (ROW / FROW)//30
 #define MAX_COL (WIDTH / FWIDTH)//80
+#include "font0"
 enum {
     BLUE, GREEN, RED,
 };
-extern char _binary_font_start[];
+//extern char _binary_font_start[];
 int color;
 char cursor;
 volatile int *fb;
 
 int row, col;
-char *font;
+const char *font;
 void fbuf_init()
 {
     int i, j;
     fb = (int*)0x200000;
-    font = _binary_font_start;
+    font = fonts0;//_binary_font_start;
     *(volatile unsigned int *)(0x1000001c) = 0x2C77;
     *(volatile unsigned int *)(0x10120000) = 0x3F1F3F9C;
     *(volatile unsigned int *)(0x10120004) = 0x090B61DF;
@@ -64,9 +65,9 @@ void __w(int c, int x, int y, funcp f)//x/y is in pixel
 {
     int i, j;
     //char *p =  font + c, l;
-    char *p = font + c * 16, l;
+    const char *p = font + c * 16;
     for (j = 0; j < FROW; j++) {//here the double loop is similar to progressive scan's double for loop
-        l = p[j];
+        char l = p[j];
         for (i = 0; i < FWIDTH; i++) {
             if (l & (1 << i))//if (l & (1 << (7 - i)))
                 f(x + i, y + j);

@@ -1,3 +1,5 @@
+const char tab[]="0123456789abcdef";
+
 #include "vid.c"
 
 void IRQ_handler()
@@ -18,6 +20,6 @@ int main()
 {
     color = RED;
     row = col = 0;
-    fb_init();
+    fbuf_init();
     return 0;
 }
