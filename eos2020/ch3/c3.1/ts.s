@@ -46,3 +46,9 @@ prefetch_abort_handler:
 data_abort_handler:
 fiq_handler:
     b .
+
+.global i, j, k
+i:
+j:
+k: .word 0xdeadbeef
+
