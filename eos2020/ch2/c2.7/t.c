@@ -26,7 +26,7 @@ int main()
     fbuf_init();
     show(_binary_logo_start, 0, 0);
     row = START_ROW;
-    uprintf("%s %x %d %u %x, %c, %s\n", "test", 0xab, -1580, 1580, 10240, 'a', "fin");
+    uprintf("%s %x %x %d %u %x, %c, %s\n", "test", 0xab, 0xdeadbeef, -1580, 1580, 10240, 'a', "fin");
     while (1) {
         color = GREEN;
         kprintf("enter a line from UART port : ");
