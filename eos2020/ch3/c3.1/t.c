@@ -18,12 +18,15 @@ void copy_vectors()
 
 void symbol_test()
 {
-    extern int i, *j, k[];
-    kprintf("%x==%x==%x %x==%x==%x\n", &i, j, k, i, *j, *k);
-    i = 0xa5;
-    kprintf("%x==%x\n", i, *j);
-    *j = 0x5a;
-    kprintf("%x==%x\n", i, *j);
+    extern int i, j[], *k;//i and k will refer to symbol value, ie address, but j will not refer to symbol value
+	//*k is wrong usage as it refers twice, 1st k is actually *(symbol value ie address in table) so k is 0xdeadbeef, then *k is *(0xdeadbeef) that gets 0
+	kprintf("%x==%x!=%x; %x==%x!=%x\n", &i, j, k, i, *j, *k);
+    i = 0xfaceb00c;
+    kprintf("%x==%x==%x\n", i, *j, *k);
+    *j = 0xcafecafe;
+    kprintf("%x==%x==%x\n", i, *j, *k);
+	*k = 0x80868086;
+    kprintf("%x==%x==%x\n", i, *j, *k);
 }
 
 int main()
@@ -31,6 +34,6 @@ int main()
     color = RED;
     row = col = 0;
     fbuf_init();
-    symbol_test();
+    //symbol_test();
     return 0;
 }
