@@ -165,8 +165,12 @@ void kprints(const char *s)
         kputc(*s++);
     }
 }
-
-void krpx(int i)
+/*
+signed int's / and % will results uncommon wrong value.
+(signed)0xdeadbeef/16:0xfdeadbef not 0xfdeadbee!
+(signed)0xffdeadbf % 16: -1, not 0xf
+*/
+void krpx(unsigned int i)
 {
     if (i) {
         krpx(i / 16);
@@ -184,7 +188,7 @@ void kprintx(int i)
     kputc(' ');
 }
 
-void krpu(int i)
+void krpu(unsigned int i)
 {
     if (i) {
         krpu(i / 10);

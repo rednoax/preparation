@@ -53,7 +53,7 @@ void uprints(const char *s)
     }
 }
 
-void urpx(int i)
+void urpx(unsigned int i)
 {
     if (i) {
         urpx(i / 16);
@@ -71,7 +71,7 @@ void uprintx(int i)
     uputc(' ');
 }
 
-void urpu(int i)
+void urpu(unsigned int i)
 {
     if (i) {
         urpu(i / 10);
