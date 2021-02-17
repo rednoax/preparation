@@ -9,8 +9,8 @@ func()
 }
 
 arm-none-eabi-gcc -c -g -Wall -mcpu=arm926ej-s ts.s -o ts.o
-arm-none-eabi-gcc -c -g -Wall -mcpu=arm926ej-s t.c -o t.o
-func arm-none-eabi-ld -T t.ld ts.o t.o -o t.elf -verbose
+arm-none-eabi-gcc -c -g -Wall -mcpu=arm926ej-s t.c -fno-builtin -o t.o
+func arm-none-eabi-ld -T t.ld ts.o t.o -o t.elf
 arm-none-eabi-objcopy -O binary t.elf t.bin
 
 echo "ready to go?"

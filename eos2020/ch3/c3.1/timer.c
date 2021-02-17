@@ -48,7 +48,7 @@ void timer_init()
 		base->cntl = 0x62;//0110 0010:DIS|periodic|IntEnabled|-,/1|32bit counter|wrapping(rather than one shot)
 		base->bgload = 0xf0000;//the value(to be decremented) used to reload the counter when periodic mode is enabled
 		tp->tick = tp->hh = tp->mm = tp->ss = 0;
-		strcpy((char*)tp->clock, "00:00:00");
+		strcpy((char*)tp->clock, "00:00:00");//-> is higher than (type)
 	}
 }
 
