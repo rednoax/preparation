@@ -75,7 +75,7 @@ void timer_handler(int n)
 	t->clock[3] = '0' + (t->mm / 10);
 	t->clock[1] = '0' + (t->hh % 10);
 	t->clock[0] = '0' + (t->hh / 10);
-	color = (n + 1) % RED;
+	color = GREEN;
 	for (i = 0; i < 8; i++)
 		kpchar(t->clock[i], n , 70 + i);
 	timer_clearInterrupt(n);
