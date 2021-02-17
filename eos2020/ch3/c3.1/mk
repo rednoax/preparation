@@ -1,6 +1,16 @@
+func()
+{
+	$*
+	ret=$?
+	if [ $ret -ne 0 ];then
+		echo "**$*: $ret"
+		exit 1
+	fi
+}
+
 arm-none-eabi-gcc -c -g -Wall -mcpu=arm926ej-s ts.s -o ts.o
 arm-none-eabi-gcc -c -g -Wall -mcpu=arm926ej-s t.c -o t.o
-arm-none-eabi-ld -T t.ld ts.o t.o -o t.elf
+func arm-none-eabi-ld -T t.ld ts.o t.o -o t.elf -verbose
 arm-none-eabi-objcopy -O binary t.elf t.bin
 
 echo "ready to go?"

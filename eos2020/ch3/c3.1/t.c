@@ -1,7 +1,10 @@
 const char tab[]="0123456789abcdef";
 
 #include "defines.h"
+//#include "string.c"
 #include "vid.c"
+#include "timer.c"
+
 TIMER *tp[4];
 void IRQ_handler()
 {
