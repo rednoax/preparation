@@ -59,7 +59,7 @@ exit:
 	free(env);
 	return retval;
 }
-//
+//"The strncpy() function is like strcpy(), but copies at most n bytes from src to dst. ... strlcpy() is similar to strncpy() but copies at most size-1 bytes from src to dst, and always adds a null terminator following the bytes copied to dst."
 //return value and behivor is similar to snprintf
 size_t strlcpy(char *dest, const char *src, size_t size)
 {
