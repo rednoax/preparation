@@ -27,7 +27,7 @@ int main(int argc, char **argv)
 	}
 	printf("optind %d, nflags %d, tflags %d, nsecs %d\n", optind, nflags, tflags, nsecs);
 	//the following is a very importand routine to test nonoption argument
-	if (optind >= argc) {
+	if (optind >= argc) {//optind is index of argv[], if ./a.out[enter], then optind is 1 here
 		fprintf(stderr, "expect argument after options\n");
 		exit(-1);
 	}
