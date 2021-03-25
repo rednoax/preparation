@@ -59,7 +59,26 @@ exit:
 	free(env);
 	return retval;
 }
-//"The strncpy() function is like strcpy(), but copies at most n bytes from src to dst. ... strlcpy() is similar to strncpy() but copies at most size-1 bytes from src to dst, and always adds a null terminator following the bytes copied to dst."
+/*"The strncpy() function is like strcpy(), but copies at most n bytes from src to dst. ... strlcpy()
+is similar to strncpy() but copies at most size-1 bytes from src to dst, and always adds a null terminator
+following the bytes copied to dst."
+https://lwn.net/Articles/507319/
+to summarize:
+1. if strcpy is used, there should be a if checking to ensure there is no overflowed buffer:
+char dst[DST_SIZE];
+if (strlen(src) < DST_SIZE )//not "<=" to enasure there is at least one byte extra byte for the null terminator.
+2. to relieve the programmer of burdensome prechecking, strncpy can be used to inform the library function of the
+size of the target buffer.
+char *strncpy(char *dst, const char *src, size_t n)
+at most `n` bytes copied from src to dst.As long as n doesnot exceed the space allocated in `dst`, a buffer overrun
+can never occur. Choose a suitable value for n ensures that strncpy() will never overrun dst.
+But strncpy() has problems of its own.Most notably, if there is no null terminator in the first `n` bytes of `src`,
+the strncpy() doesn't place a null terminator after the bytes copied to dst.
+If the programmer does not check for this event, and subsequent operations expect a null terminator to be present, then the program is once more vulnerable to attack. The vulnerability may be more difficult to exploit than a buffer overflow, but the security implications can be just as severe. so goto 3.
+3. size_t strlcpy(char *dst, const char *src, size_t size);
+strlcpy() is similar to strncpy() but copies at most size-1 bytes from src to dst, and always adds a null terminator following the bytes copied to dst.
+The essence of the argument against strlcpy() is that it fixes one problem—sometimes failing to terminate `dst` in the case of strncpy(), buffer overruns in the case of strcpy()—while leaving another: the loss of data that occurs when the string copied from `src` to `dst` is truncated because it exceeds `size`. 
+*/
 //return value and behivor is similar to snprintf
 size_t strlcpy(char *dest, const char *src, size_t size)
 {
