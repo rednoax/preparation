@@ -1,10 +1,13 @@
 #include <stdio.h>
+#include <string.h>//memset()
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/socket.h>//int getaddrinfo()
 #include <netdb.h>//getaddrinfo(), gai_strerror()
 #include <arpa/inet.h>//inet_ntop()
-int kflag, lflag, nflag, uflag;
+#include <errno.h>//for global var errno
+#include <err.h>//err() errx()
+int bflag, kflag, lflag, nflag, uflag;
 
 int family = AF_UNSPEC;
 
@@ -12,47 +15,179 @@ void usage(int ret)
 {
 	fprintf(stderr,
 		"usage: nc [-klu]\n"
-		"\t  [destination] [port]");
+		"\t  [destination] [port]\n");
 	if (ret)
 		exit(1);//`man 3 exit` show <stdlib.h> should be included.
 }
 
+void show_addrinfo(const struct addrinfo *res)
+{
+	char buf[INET6_ADDRSTRLEN];
+	void *addr = NULL;
+	const char *s;
+	in_port_t port;
+
+	printf("flags:");
+	if (res->ai_flags == 0) {
+		printf(" 0");
+	} else {
+		if (res->ai_flags & AI_PASSIVE)
+			printf(" passive");
+		if (res->ai_flags & AI_CANONNAME)
+			printf(" canon");
+		if (res->ai_flags & AI_NUMERICHOST)
+			printf(" numhost");
+		if (res->ai_flags & AI_NUMERICSERV)
+			printf(" numserv");
+		if (res->ai_flags & AI_V4MAPPED)
+			printf(" v4mapped");
+		if (res->ai_flags & AI_ALL)
+			printf(" all");
+	}
+	printf("\nfamily:");
+	switch (res->ai_family) {
+	case AF_INET:
+		printf(" inet");
+		break;
+	case AF_INET6:
+		printf(" inet6");
+		break;
+	case AF_UNIX:
+		printf(" unix");
+		break;
+	case AF_UNSPEC:
+		printf(" unspecified");
+		break;
+	default:
+		printf(" unknown");
+	}
+	printf("\ntype:");
+	switch (res->ai_socktype) {
+	case SOCK_STREAM:
+		printf(" stream");
+		break;
+	case SOCK_DGRAM:
+		printf(" datagram");
+		break;
+	case SOCK_SEQPACKET:
+		printf(" seqpacket");
+		break;
+	case SOCK_RAW:
+		printf(" raw");
+		break;
+	default:
+		printf(" unknow (%d)", res->ai_socktype);
+	}
+	printf("\nprotocol:");
+	switch (res->ai_protocol) {
+	case 0:
+		printf(" default");
+		break;
+	case IPPROTO_TCP:
+		printf(" tcp");
+		break;
+	case IPPROTO_UDP:
+		printf(" udp");
+		break;
+	case IPPROTO_RAW:
+		printf(" raw");
+		break;
+	default:
+		printf(" unknown (%d)", res->ai_protocol);
+		break;
+	}
+ 	printf("\ncanon name: %s\t", res->ai_canonname);
+	if (res->ai_family == AF_INET) {
+		struct sockaddr_in *sinp = (struct sockaddr_in*)res->ai_addr;
+		addr = &sinp->sin_addr;
+		port = ntohs(sinp->sin_port);
+	} else if (res->ai_family == AF_INET6) {
+		struct sockaddr_in6 *sinp = (struct sockaddr_in6*)res->ai_addr;
+		addr = &sinp->sin6_addr;
+		port = ntohs(sinp->sin6_port);
+	}
+	s = inet_ntop(res->ai_family, addr, buf, sizeof(buf));
+	if (s == buf)
+		printf("%s:%d\n", buf, port);
+	else if (s == NULL)//when error, s == 0
+		err(1, "inet_ntop error");
+}
+
+void set_common_sockopts(int s, struct sockaddr *sa)
+{
+	int x = 1;
+	if (bflag) {
+		if (setsockopt(s, SOL_SOCKET, SO_BROADCAST, &x, sizeof(x)) == -1)//if err, the return value needs not to be reserved as err() 's err info is strerror(errno) whose arg is global var!
+			err(1, "set SO_REUSEADDR error");
+	}		
+}
+
 int local_listen(const char *host, const char *port, struct addrinfo hints)
 {
+	int s = -1, ret = 0, x = 1;
 	int error;
 	struct addrinfo *res, *res0;
-	hints.ai_flags |= AI_PASSIVE;//allow what?
+	hints.ai_flags |= AI_PASSIVE;//allow node name to be NULL
 	if (host == NULL && hints.ai_family == AF_UNSPEC)
 		hints.ai_family = AF_INET;
-	if ((error = getaddrinfo(host, port, hints, &res0)))
+	if ((error = getaddrinfo(host, port, &hints, &res0)))
 //1.The errx() and warnx() functions do not append an error message.
 //2.The err(), verr(), warn(), and vwarn() functions append an error message obtained from strerror(3) based on the global variable errno
 //3.perror, strerror should not be used when getaddrinfo fails. gai_strerror() should be used.
 		errx(1, "getaddrinfo: %s", gai_strerror(error));
+/*
+`./a.out -l lucia 1080` return 127.0.0.1 if there is "127.0.0.1 lucia" in /etc/hosts
+`./a.out -l repo.or.cz ssh` can return both ipv4 & ipv6 address by dns, why the port is 22, see below
+$ ./a.out -l repo.or.cz ssh
+flags: passive
+family: inet
+type: stream<--
+protocol: tcp
+canon name: (null)      195.113.20.142:22
+flags: passive
+family: inet6<--ipv6
+type: stream<--not datagram, both ipv4 & ipv6 is stream
+protocol: tcp
+canon name: (null)      2001:718:1e03:801::8e:22
+`./a.out -l ssh` return 0.0.0.0 22 as /etc/services include entry "ssh 22/tcp"
+*/
 	for (res = res0; res; res = res->ai_next) {
-		printf("%x:%x:%x:%x:%s\n", res->ai_flags, res->ai_family,
-			res->ai_socktype, res->ai_protocol, res->ai_canonname);
-		if (res->ai_family == AF_INET) {
-			char buf[INET_ADDRSTRLEN];
-			struct sockaddr_in *sinp = (struct sockaddr_in*)res->ai_addr;
-			const char * s = inet_ntop(AF_INET, &sinp->sin_addr, buf, sizeof(buf));
-			if (s) {
-				printf("%p == %p?\n", s, buf);
-				printf("%s:%d\n", buf, ntohs(sinp->sin_port));
-			}
-		}
+		show_addrinfo(res);
+		if ((s = socket(res->ai_family, res->ai_socktype, res->ai_protocol) < 0))
+			continue;
+		//s = -1;//to test err after setsockopt fails
+		//ret = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &x, sizeof(x));
+/*
+The  err()	and  warn() family of functions display a formatted error message on the standard error output.  In all cases, the last
+component of the program name, a colon character, and a space are output.  If the fmt argument is not NULL, the printf(3)-like for‐
+matted error message is output.  The output is terminated by a newline character.
+
+The err(), verr(), warn(), and vwarn() functions append an error message obtained from strerror(3) based on the global variable er‐
+rno, preceded by another colon and space unless the fmt argument is NULL.
+
+The errx() and warnx() functions do not append an error message.
+*/
+		if (ret == -1)
+			//err(1, NULL);//if s==-1:"a.out: Bad file descriptor"
+			//err(1, "test");//if s==-1:"a.out: test: Bad file descriptor"
+			//errx(1, "test");//if s==-1:"a.out: test"
+			err(1, strerror(errno));//if s==-1:"a.out: Bad file descriptor: Bad file descriptor"
+		set_common_sockopts(s, res->ai_addr);
+		
 	}
-	return 0;
+	return s;
 }
 
 int main(int argc, char *argv[])
 {
 	int ch, s = -1;
-	char *host, **uport;
+	char *host = NULL, **uport = NULL;
 	struct addrinfo hints;
-	host = uport = NULL;
-	while ((ch = getopt(argc, argv, "klnu")) != -1) {
+	while ((ch = getopt(argc, argv, "bklnu")) != -1) {
 		switch (ch) {
+		case 'b':
+			bflag = 1;
+			break;
 		case 'k':
 			kflag = 1;
 			break;
@@ -96,7 +231,7 @@ preparing for getaddrinfo() since nc can be called with a host name like:
 		hints.ai_socktype = SOCK_DGRAM;
 		hints.ai_protocol = IPPROTO_UDP;
 	} else {
-		hints.ai_socktype = SOCK_DGRAM;
+		hints.ai_socktype = SOCK_STREAM;//`./a.out -l 1080` emits "a.out: getaddrinfo: ai_socktype not supported"
 		hints.ai_protocol = IPPROTO_TCP;
 	}
 	if (nflag)
