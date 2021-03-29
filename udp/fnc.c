@@ -122,6 +122,19 @@ void set_common_sockopts(int s, struct sockaddr *sa)
 	}		
 }
 
+void report_sock(const char *msg, const struct sockaddr *sa, socklen_t salen, char *path)
+{
+	char host[NI_MAXHOST], port[NI_MAXSERV];
+	int herr, flags = NI_NUMERICSERV;
+	//getnameinfo is the converse of getaddrinfo()
+	if (nflag)
+		flags |= NI_NUMERICHOST;
+	herr = getnameinfo(sa, salen, host, sizeof(host), port, sizeof(port));
+	if (herr)
+		warn("getnameinfo:%s", gai_strerror(herr));
+	fprintf(stderr, "%s on %s:%s\n", msg, host, port);
+}
+
 int local_listen(const char *host, const char *port, struct addrinfo hints)
 {
 	int s = -1, ret = 0, x = 1;
@@ -150,6 +163,8 @@ type: stream<--not datagram, both ipv4 & ipv6 is stream
 protocol: tcp
 canon name: (null)      2001:718:1e03:801::8e:22
 `./a.out -l ssh` return 0.0.0.0 22 as /etc/services include entry "ssh 22/tcp"
+$ ./a.out -ln baidu.com 1080<- show '-n' usage:'Do not do any DNS or service lookups on any specified addresses, hostnames or ports.'
+a.out: getaddrinfo: Name or service not known
 */
 	for (res = res0; res; res = res->ai_next) {
 		show_addrinfo(res);
@@ -177,13 +192,24 @@ The errx() and warnx() functions do not append an error message.
 			//warn("test");//if s==-1:"a.out: test: Bad file descriptor"<--warn() is superset of perror():1."filename:" added.2.perror cannot support c fmt string but warn can
 			//warnx("test");//if s==-1:"a.out: test"
 		set_common_sockopts(s, res->ai_addr);
-		if (bind(s, res->ai_addr, res->ai_addrlen) == 0)
+		if (bind(s, res->ai_addr, res->ai_addrlen) == 0)//for udp, `netstat -nap` can see 'udp 0 0 0.0.0.0:1080 0.0.0.0:* 4171/./a.out' after this call return successfully, but tcp cannot!
 			break;//errx(1, "bind err");
 		warn("bind err");//eg port<1024
 		close(s);
 		s = -1;
 	}
-	sleep(10);
+	if (!uflag && s != -1) {//if bind err, don't listen
+		if (listen(s, 1) == -1)//for tcp, `netstat -nap` can see 'tcp 0 0 0.0.0.0:1080 0.0.0.0:* LISTEN 4201/./a.out' after listen return ok
+			err(1, "listen err");
+	}		
+	if (s != -1) {
+		struct sockaddr addr;
+		socklen_t len = sizeof(addr);
+		if (getsockname(s, &addr, &len) == -1)
+			err(1, "getsockname");
+		report_sock(uflag? "Bound": "Listeing", &addr, len, NULL);
+	}
+	freeaddrinfo(res0);
 	return s;
 }
 
@@ -244,7 +270,7 @@ preparing for getaddrinfo() since nc can be called with a host name like:
 		hints.ai_protocol = IPPROTO_TCP;
 	}
 	if (nflag)
-		hints.ai_flags = AI_NUMERICHOST;
+		hints.ai_flags = AI_NUMERICHOST;//getaddrinfo's 1st arg host is forcely interpreted as a numeric address string even it is like 'baidu.com'
 	if (lflag) {
 		s = local_listen(host, *uport, hints);
 	} else {
