@@ -153,7 +153,8 @@ canon name: (null)      2001:718:1e03:801::8e:22
 */
 	for (res = res0; res; res = res->ai_next) {
 		show_addrinfo(res);
-		if ((s = socket(res->ai_family, res->ai_socktype, res->ai_protocol) < 0))
+		//if ((s = socket(res->ai_family, res->ai_socktype, res->ai_protocol) < 0))//compareing like '<' has precedentce over '=', bind(0,) cause 'Socket operation on non-socket'
+		if ((s = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0)
 			continue;
 		//s = -1;//to test err after setsockopt fails
 		//ret = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &x, sizeof(x));
