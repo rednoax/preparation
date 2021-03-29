@@ -168,13 +168,21 @@ rno, preceded by another colon and space unless the fmt argument is NULL.
 The errx() and warnx() functions do not append an error message.
 */
 		if (ret == -1)
-			//err(1, NULL);//if s==-1:"a.out: Bad file descriptor"
+			err(1, NULL);//if s==-1:"a.out: Bad file descriptor"
 			//err(1, "test");//if s==-1:"a.out: test: Bad file descriptor"
-			//errx(1, "test");//if s==-1:"a.out: test"
-			err(1, strerror(errno));//if s==-1:"a.out: Bad file descriptor: Bad file descriptor"
+			//errx(-1, "test");//if s==-1:"a.out: test";`echo $?` is 255
+			//err(1, strerror(errno));//if s==-1:"a.out: Bad file descriptor: Bad file descriptor"
+			//perror("test");//if s==-1:"test: Bad file descriptor"
+			//warn("test");//if s==-1:"a.out: test: Bad file descriptor"<--warn() is superset of perror():1."filename:" added.2.perror cannot support c fmt string but warn can
+			//warnx("test");//if s==-1:"a.out: test"
 		set_common_sockopts(s, res->ai_addr);
-		
+		if (bind(s, res->ai_addr, res->ai_addrlen) == 0)
+			break;//errx(1, "bind err");
+		warn("bind err");//eg port<1024
+		close(s);
+		s = -1;
 	}
+	sleep(10);
 	return s;
 }
 
