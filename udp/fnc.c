@@ -7,7 +7,8 @@
 #include <arpa/inet.h>//inet_ntop()
 #include <errno.h>//for global var errno
 #include <err.h>//err() errx()
-int bflag, kflag, lflag, nflag, uflag;
+int bflag, kflag, lflag, uflag;
+int nflag;//Do not do any DNS or service lookups on any specified addresses, hostnames or ports.
 
 int family = AF_UNSPEC;
 
@@ -121,15 +122,34 @@ void set_common_sockopts(int s, struct sockaddr *sa)
 			err(1, "set SO_REUSEADDR error");
 	}		
 }
+/*eg:
+$ ./a.out -nl 1080
+flags: passive numhost
+family: inet
+type: stream
+protocol: tcp
+canon name: (null)      0.0.0.0:1080
+Listeing on 0.0.0.0:1080<--
 
+comparing with:
+
+$ ./a.out -l 1080
+flags: passive
+family: inet
+type: stream
+protocol: tcp
+canon name: (null)      0.0.0.0:1080
+a.out: getnameinfo:Temporary failure in name resolution: Success<--
+Listeing on :
+*/
 void report_sock(const char *msg, const struct sockaddr *sa, socklen_t salen, char *path)
 {
-	char host[NI_MAXHOST], port[NI_MAXSERV];
-	int herr, flags = NI_NUMERICSERV;
+	char host[NI_MAXHOST] = {0}, port[NI_MAXSERV] = {0};
+	int herr, flags = NI_NUMERICSERV;//Return the numeric form of the host address instead of the name to avoid the inefficiency of unnecessarily searching /etc/services.
 	//getnameinfo is the converse of getaddrinfo()
 	if (nflag)
-		flags |= NI_NUMERICHOST;
-	herr = getnameinfo(sa, salen, host, sizeof(host), port, sizeof(port));
+		flags |= NI_NUMERICHOST;//Return the numeric form of the host address instead of the name to avoid a possibly time-consuming call to the DNS server
+	herr = getnameinfo(sa, salen, host, sizeof(host), port, sizeof(port), flags);
 	if (herr)
 		warn("getnameinfo:%s", gai_strerror(herr));
 	fprintf(stderr, "%s on %s:%s\n", msg, host, port);
