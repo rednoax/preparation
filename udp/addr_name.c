@@ -165,8 +165,8 @@ int main(int argc, char **argv)
 	if (argc == 1) {
 		port = argv[0];
 	} else if (argc == 2) {
-		host = argv[1];
-		port = argv[2];
+		host = argv[0];
+		port = argv[1];
 	}
 	if (port == NULL)
 		errx(1, "[-n] [addr] [port]\n");
