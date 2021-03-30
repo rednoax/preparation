@@ -155,7 +155,7 @@ void report_sock(const char *msg, const struct sockaddr *sa, socklen_t salen, ch
 	herr = getnameinfo(sa, salen, host, sizeof(host), port, sizeof(port), flags);
 	if (herr == EAI_SYSTEM)//system error returned in @errno
 		warn("getnameinfo");
-	else
+	else if (herr)
 		warnx("getnameinfo:%s", gai_strerror(herr));
 	fprintf(stderr, "%s on %s:%s\n", msg, host, port);
 }
