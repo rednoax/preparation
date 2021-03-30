@@ -108,12 +108,62 @@ void show_addrinfo(const struct addrinfo *res)
 As with gethostbyname(), getaddrinfo() may need to send a request to a DNS
 server, and this request may take some time to complete. The same applies for
 getnameinfo(), which we describe in Section 59.10.4.
+when getnameinfo() successes, the POed host and port can be numeric,eg:
+$ ./a.out baidu.com 80
+flags: passive
+family: inet
+type: stream
+protocol: tcp
+canon name: (null)      220.181.38.148:80        assert 2==2
+        220.181.38.148:80<--
+...
+sometimes the POed host and port can be presentation string,eg:
+$ ./a.out github.com 80
+flags: passive
+family: inet
+type: stream
+protocol: tcp
+canon name: (null)      13.250.177.223:80        assert 2==2
+        gist.github.com:80<--
+...
+----the following is to bypass time-consuming dns lookup
+NI_NUMERICHOST:skip time-consuming dns lookup, return numeric host address instead of name
+NI_NUMERICSERV:return the numeric form of the service port number instead of name.
+comparing the differences(both flags==NI_NUMERICSERV initially):
+$ ./a.out 13.250.177.223 22
+flags: passive
+family: inet
+type: stream
+protocol: tcp
+canon name: (null)      13.250.177.223:22        assert 2==2
+        gist.github.com:22<--the name is got
+...
+$ ./a.out -n 13.250.177.223 22
+flags: passive numhost
+family: inet
+type: stream
+protocol: tcp
+canon name: (null)      13.250.177.223:22        assert 2==2
+        13.250.177.223:22<--numeric host address rather than name is returned directly
 */
 void report_sock(const struct sockaddr *sa, socklen_t salen, char *path)
 {
 	char host[NI_MAXHOST], port[NI_MAXSERV];
-	int herr, flags = NI_NUMERICSERV;
-
+	int herr, flags = NI_NUMERICSERV;/*if flags=0:`./a.out -n 13.250.177.223 ssh`'s getnameinfo():
+	$ ./a.out -n 13.250.177.223 ssh
+	flags: passive numhost
+	family: inet
+	type: stream
+	protocol: tcp
+	canon name: (null)		13.250.177.223:22		 assert 2==2<--getaddrinfo translater ssh to 22 as AI_NUMERICSERV not specified
+			13.250.177.223:ssh<--but 22 is translated into 'ssh' as NI_NUMERICSERV specifed for getnameinfo()
+$ ./a.out -n 13.250.177.223 22
+flags: passive numhost
+family: inet
+type: stream
+protocol: tcp
+canon name: (null)      13.250.177.223:22        assert 2==2<--ditto
+        13.250.177.223:ssh<--ditto*/
 	if (nflag)
 		flags |= NI_NUMERICHOST;
 	memset(host, 0, sizeof(host));
@@ -181,6 +231,18 @@ int main(int argc, char **argv)
 	}
 	if (port == NULL)
 		errx(1, "[-n] [addr] [port]\n");
+/*
+$ ./a.out g.cn 1080
+flags: passive
+family: inet
+type: stream
+protocol: tcp
+canon name: (null)      203.208.50.66:1080       assert 2==2
+        203.208.50.66:1080
+...
+$ ./a.out -n g.cn 1080<-- -n to skip dns lookup
+a.out: getaddrinfo: Name or service not known
+*/
 	if (nflag)
 		hints.ai_flags |= AI_NUMERICHOST;
 	local_listen(host, port, &hints);
