@@ -5,7 +5,7 @@
 #include <netdb.h>
 #include <err.h>
 #include <arpa/inet.h>
-
+#include <string.h>
 int nflag;
 
 void show_addrinfo(const struct addrinfo *res)
@@ -128,10 +128,10 @@ you may get error like:
 a.out: getnameinfo:ai_family not supported: Success<--errno is 0
 */
 	if (herr == EAI_SYSTEM)//system error returned in @errno
-		warn("getnameinfo");
-	else
+		warn("getnameinfo ");
+	else if (herr)//to avoid gai_strerror(0) occur, which is "Uknown error"
 		warnx("getnameinfo:%s", gai_strerror(herr));
-	fprintf(stderr, "%s:%s\n", host, port);
+	fprintf(stderr, "\t%s:%s\n", host, port);
 }
 
 
@@ -144,7 +144,7 @@ int local_listen(const char *host, const char *port, struct addrinfo *hints)
 	if (host == NULL && hints->ai_family == AF_UNSPEC)
 		hints->ai_family = AF_INET;
 	if ((error = getaddrinfo(host, port, hints, &res0)))
-		err(1, "getaddrinfo: %s", gai_strerror(error));
+		errx(1, "getaddrinfo: %s", gai_strerror(error));//err should not be used as getaddrinfo do't use errno when it fails
 	for (res = res0; res; res = res->ai_next) {
 		show_addrinfo(res);
 		report_sock(res->ai_addr, res->ai_addrlen, NULL);
@@ -152,7 +152,8 @@ int local_listen(const char *host, const char *port, struct addrinfo *hints)
 	freeaddrinfo(res0);
 	return s;
 }
-
+/*eg:./a.out baidu.com 80
+*/
 int main(int argc, char **argv)
 {
 	char c;
