@@ -8,7 +8,7 @@
 
 int nflag;
 
-void show_addrinfo(const struct addrinfo *res, struct sockaddr *sa)
+void show_addrinfo(const struct addrinfo *res)
 {
 	char buf[INET6_ADDRSTRLEN];
 	void *addr = NULL;
@@ -85,7 +85,6 @@ void show_addrinfo(const struct addrinfo *res, struct sockaddr *sa)
 		break;
 	}
  	printf("\ncanon name: %s\t", res->ai_canonname);
-	sa = res->ai_addr;
 	//generic sockaddr* needs to be interpreted to be a sockaddr_XX* based on its family
 	if (res->ai_family == AF_INET) {
 		struct sockaddr_in *sinp = (struct sockaddr_in*)res->ai_addr;
@@ -112,11 +111,13 @@ getnameinfo(), which we describe in Section 59.10.4.
 */
 void report_sock(const struct sockaddr *sa, socklen_t salen, char *path)
 {
-	char host[NI_MAXHOST] = {0}, port[NI_MAXSERV] = {0};
+	char host[NI_MAXHOST], port[NI_MAXSERV];
 	int herr, flags = NI_NUMERICSERV;
 
 	if (nflag)
 		flags |= NI_NUMERICHOST;
+	memset(host, 0, sizeof(host));
+	memset(port, 0, sizeof(port));
 	herr = getnameinfo(sa, salen, host, sizeof(host), port, sizeof(port), flags);
 /*
 apue: if getaddrinfo fails, we can't use perror or strerror to genrate an error message.
@@ -145,10 +146,8 @@ int local_listen(const char *host, const char *port, struct addrinfo *hints)
 	if ((error = getaddrinfo(host, port, hints, &res0)))
 		err(1, "getaddrinfo: %s", gai_strerror(error));
 	for (res = res0; res; res = res->ai_next) {
-		struct sockaddr addr;
-		socklen_t len = sizeof(addr);
-		show_addrinfo(res, &addr);
-		report_sock(&addr, len, NULL);
+		show_addrinfo(res);
+		report_sock(res->ai_addr, res->ai_addrlen, NULL);
 	}
 	freeaddrinfo(res0);
 	return s;
