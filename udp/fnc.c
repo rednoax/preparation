@@ -27,7 +27,7 @@ void show_addrinfo(const struct addrinfo *res)
 	void *addr = NULL;
 	const char *s;
 	in_port_t port;
-
+	sa_family_t fm = -1;
 	printf("flags:");
 	if (res->ai_flags == 0) {
 		printf(" 0");
@@ -98,18 +98,21 @@ void show_addrinfo(const struct addrinfo *res)
 		break;
 	}
  	printf("\ncanon name: %s\t", res->ai_canonname);
+	//generic sockaddr* needs to be interpreted to be a sockaddr_XX* based on its family
 	if (res->ai_family == AF_INET) {
 		struct sockaddr_in *sinp = (struct sockaddr_in*)res->ai_addr;
+		fm = sinp->sin_family;
 		addr = &sinp->sin_addr;
 		port = ntohs(sinp->sin_port);
 	} else if (res->ai_family == AF_INET6) {
 		struct sockaddr_in6 *sinp = (struct sockaddr_in6*)res->ai_addr;
+		fm = sinp->sin6_family;
 		addr = &sinp->sin6_addr;
 		port = ntohs(sinp->sin6_port);
 	}
 	s = inet_ntop(res->ai_family, addr, buf, sizeof(buf));
 	if (s == buf)
-		printf("%s:%d\n", buf, port);
+		printf("%s:%d\t assert %d==%d\n", buf, port, fm, res->ai_family);
 	else if (s == NULL)//when error, s == 0
 		err(1, "inet_ntop error");
 }
@@ -150,8 +153,10 @@ void report_sock(const char *msg, const struct sockaddr *sa, socklen_t salen, ch
 	if (nflag)
 		flags |= NI_NUMERICHOST;//Return the numeric form of the host address instead of the name to avoid a possibly time-consuming call to the DNS server
 	herr = getnameinfo(sa, salen, host, sizeof(host), port, sizeof(port), flags);
-	if (herr)
-		warn("getnameinfo:%s", gai_strerror(herr));
+	if (herr == EAI_SYSTEM)//system error returned in @errno
+		warn("getnameinfo");
+	else
+		warnx("getnameinfo:%s", gai_strerror(herr));
 	fprintf(stderr, "%s on %s:%s\n", msg, host, port);
 }
 
