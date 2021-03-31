@@ -9,7 +9,7 @@
 #include <err.h>//err() errx()
 #include <poll.h>
 #include <sys/types.h>
-
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 int bflag, kflag, lflag, uflag;
 int nflag;//Do not do any DNS or service lookups on any specified addresses, hostnames or ports.
 
@@ -200,7 +200,30 @@ a.out: getaddrinfo: Name or service not known
 		if ((s = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0)
 			continue;
 		//s = -1;//to test err after setsockopt fails
-		//ret = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &x, sizeof(x));
+#if 0/*
+1.if launch server=>client connect=>server quit by ^c:
+$ netstat -nap|grep 1080
+(Not all processes could be identified, non-owned process info
+ will not be shown, you would have to be root to see it all.)
+tcp 	   0	  0 127.0.0.1:1080			127.0.0.1:58428 		FIN_WAIT2	-  <--local port 1080
+tcp 	   0	  0 127.0.0.1:58428 		127.0.0.1:1080			CLOSE_WAIT	4744/./a.out
+rednoah@lucia:~/preparation/udp$ ./a.out -ln 1080<--even `nc -l 1080` run here will fail with 'nc: Address already in use'
+flags: passive numhost
+family: inet
+type: stream
+protocol: tcp
+canon name: (null)		0.0.0.0:1080	 assert 2==2
+a.out: bind err: Address already in use<--
+a.out: setup server error
+2.if run the same sequence as the above for standard nc:
+$ netstat -nap|grep 1080
+(Not all processes could be identified, non-owned process info
+ will not be shown, you would have to be root to see it all.)
+tcp        0      0 127.0.0.1:1080          127.0.0.1:58472         TIME_WAIT   -<---not FIN_WAIT2,why?
+rednoah@lucia:~$ nc -l 1080<--ok
+*/
+		ret = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &x, sizeof(x));
+#endif
 /*
 The  err()	and  warn() family of functions display a formatted error message on the standard error output.  In all cases, the last
 component of the program name, a colon character, and a space are output.  If the fmt argument is not NULL, the printf(3)-like for‐
@@ -339,10 +362,10 @@ void connect_server(const char *host, const char *port, struct addrinfo hints)
 {
 	int ret, s;
 	struct addrinfo *res, *res0;
-	hints.ai_flag |= AI_PASSIVE;
+	hints.ai_flags |= AI_PASSIVE;
 	if (nflag)
-		hints.ai_flag |= AI_NUMERICHOST;
-	if (ret = getaddrinfo(host, port, &hints, &res, flags))
+		hints.ai_flags |= AI_NUMERICHOST;
+	if ((ret = getaddrinfo(host, port, &hints, &res)))
 		errx(1, "getaddrinfo %s", gai_strerror(ret));
 	for (res0 = res; res0; res0 = res0->ai_next) {
 		show_addrinfo(res0);
