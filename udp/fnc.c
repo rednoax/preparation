@@ -343,7 +343,8 @@ void my_poll2(int fd)
 				if (ret > 0)
 					write(STDIN_FILENO, buf, ret);
 				if (fds[0].revents & POLLHUP) {
-					printf("server POLLHUP\n");
+					ret = sprintf(buf, "server POLLHUP");
+					write(STDOUT_FILENO, buf, ret);
 					close(fds[0].fd);
 					fds[0].fd = -1;					
 				}
