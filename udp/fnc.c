@@ -168,7 +168,7 @@ int local_listen(const char *host, const char *port, struct addrinfo hints)
 	int s = -1, ret = 0, x = 1;
 	int error;
 	struct addrinfo *res, *res0;
-	hints.ai_flags |= AI_PASSIVE;//allow node name to be NULL
+	hints.ai_flags |= AI_PASSIVE;//allow @host name to be NULL(if so then ip member of POed res0->ai_addr below will be INADDR_ANY or IN6ADDR_ANY_INIT, according to the domain), if @host!=NULL,AI_PASSIVE has no effect
 	if (host == NULL && hints.ai_family == AF_UNSPEC)
 		hints.ai_family = AF_INET;
 	if ((error = getaddrinfo(host, port, &hints, &res0)))
@@ -343,8 +343,9 @@ void my_poll2(int fd)
 				if (ret > 0)
 					write(STDIN_FILENO, buf, ret);
 				if (fds[0].revents & POLLHUP) {
+					printf("server POLLHUP\n");
 					close(fds[0].fd);
-					fds[0].fd = -1;
+					fds[0].fd = -1;					
 				}
 				r--;
 			}
