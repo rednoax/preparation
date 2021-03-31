@@ -7,6 +7,9 @@
 #include <arpa/inet.h>//inet_ntop()
 #include <errno.h>//for global var errno
 #include <err.h>//err() errx()
+#include <poll.h>
+#include <sys/types.h>
+
 int bflag, kflag, lflag, uflag;
 int nflag;//Do not do any DNS or service lookups on any specified addresses, hostnames or ports.
 
@@ -237,7 +240,120 @@ The errx() and warnx() functions do not append an error message.
 	freeaddrinfo(res0);
 	return s;
 }
+void my_poll(int s)
+{
+	struct pollfd fds[3] = {
+		[0] = {
+			.fd = s,
+			.events = POLLIN,
+		},
+		[1] = {
+			.fd = STDIN_FILENO,
+			.events = POLLIN,
+		},
+		[2] = {
+			.fd = -1,
+		}
+	};
+	int r;
+	while (1) {
+		r = poll(fds, ARRAY_SIZE(fds), -1);
+		while (r > 0) {
+			if (fds[0].revents & POLLIN) {
+				struct sockaddr sa;
+				struct sockaddr_in *sap = (struct sockaddr_in*)&sa;
+				socklen_t len = sizeof(sa);
+				int c = accept(fds[0].fd, &sa, &len);
+				if (c > 0) {
+					char peer[INET_ADDRSTRLEN];
+					fds[2].fd = c;
+					fds[2].events = POLLIN | POLLHUP;
+					printf("peer %s:%d\n", inet_ntop(AF_INET, &sap->sin_addr, peer, INET_ADDRSTRLEN),
+						ntohs(sap->sin_port));
+				}
+				r--;
+			}
+			if (fds[1].revents & POLLIN){
+				int ret;
+				char buf[4096];
+				ret = read(fds[1].fd, buf, sizeof(buf));
+				if (ret > 0 && fds[2].fd >= 0)
+					send(fds[2].fd, buf, ret, 0);
+				r--;
+			}
+			if (fds[2].revents & (POLLIN | POLLHUP)) {
+				char buf[4096];
+				int ret = recv(fds[2].fd, buf, sizeof(buf), 0);
+				if (ret >= 0)
+					write(STDIN_FILENO, buf, ret);
+				if (fds[2].revents & POLLHUP) {
+					close(fds[2].fd);
+					fds[2].fd = -1;
+					printf("POLLHUP detected\n");
+				}
+				r--;
+			}
+		}
+	}
+}
 
+void my_poll2(int fd)
+{
+	int r;
+	struct pollfd fds[2] = {
+		[0] = {
+			.fd = fd,
+			.events = POLLIN | POLLHUP,
+		},
+		[1] = {
+			.fd = STDIN_FILENO,
+			.events = POLLIN,
+		},
+	};
+	while (1) {
+		char buf[4096];
+		int ret;
+		r = poll(fds, ARRAY_SIZE(fds), -1);
+		if (r > 0) {
+			if (fds[0].revents & (POLLIN | POLLHUP)) {
+				ret = recv(fds[0].fd, buf, sizeof(buf), 0);
+				if (ret > 0)
+					write(STDIN_FILENO, buf, ret);
+				if (fds[0].revents & POLLHUP) {
+					close(fds[0].fd);
+					fds[0].fd = -1;
+				}
+				r--;
+			}
+			if (fds[1].revents & POLLIN) {
+				ret = read(STDIN_FILENO, buf, sizeof(buf));
+				if (ret > 0 && fds[0].fd >= 0) {
+					send(fds[0].fd, buf, ret, 0);
+				}
+				r--;
+			}
+		}		
+	}
+}
+void connect_server(const char *host, const char *port, struct addrinfo hints)
+{
+	int ret, s;
+	struct addrinfo *res, *res0;
+	hints.ai_flag |= AI_PASSIVE;
+	if (nflag)
+		hints.ai_flag |= AI_NUMERICHOST;
+	if (ret = getaddrinfo(host, port, &hints, &res, flags))
+		errx(1, "getaddrinfo %s", gai_strerror(ret));
+	for (res0 = res; res0; res0 = res0->ai_next) {
+		show_addrinfo(res0);
+		if ((s = socket(res0->ai_family, res0->ai_socktype, res0->ai_protocol)) < 0)
+			err(1, "socket");
+		if (connect(s, res0->ai_addr, res0->ai_addrlen) == -1)
+			err(1, "connect");
+		my_poll2(s);
+	}
+	freeaddrinfo(res);
+}
 int main(int argc, char *argv[])
 {
 	int ch, s = -1;
@@ -298,7 +414,11 @@ preparing for getaddrinfo() since nc can be called with a host name like:
 		hints.ai_flags = AI_NUMERICHOST;//getaddrinfo's 1st arg host is forcely interpreted as a numeric address string even it is like 'baidu.com'
 	if (lflag) {
 		s = local_listen(host, *uport, hints);
+		if (s < 0)
+			errx(1, "setup server error");
+		my_poll(s);		
 	} else {
+		connect_server(host, *uport, hints);
 	}
 	return 0;
 }
