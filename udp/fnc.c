@@ -282,7 +282,7 @@ void my_poll(int s)
 	while (1) {
 		r = poll(fds, ARRAY_SIZE(fds), -1);
 		while (r > 0) {
-			if (fds[0].revents & POLLIN) {
+			if (fds[0].revents & POLLIN) {//server
 				struct sockaddr sa;
 				struct sockaddr_in *sap = (struct sockaddr_in*)&sa;
 				socklen_t len = sizeof(sa);
@@ -296,7 +296,7 @@ void my_poll(int s)
 				}
 				r--;
 			}
-			if (fds[1].revents & POLLIN){
+			if (fds[1].revents & POLLIN){//stdin
 				int ret;
 				char buf[4096];
 				ret = read(fds[1].fd, buf, sizeof(buf));
@@ -304,7 +304,7 @@ void my_poll(int s)
 					send(fds[2].fd, buf, ret, 0);
 				r--;
 			}
-			if (fds[2].revents & (POLLIN | POLLHUP)) {
+			if (fds[2].revents & (POLLIN | POLLHUP)) {//client
 				char buf[4096];
 				int ret = recv(fds[2].fd, buf, sizeof(buf), 0);
 				if (ret >= 0)
