@@ -1,3 +1,4 @@
+#define _GNU_SOURCE//cater for 'warning: implicit declaration of function ‘accept4’'
 #include <stdio.h>
 #include <string.h>//memset()
 #include <stdlib.h>
@@ -9,6 +10,8 @@
 #include <err.h>//err() errx()
 #include <poll.h>
 #include <sys/types.h>
+#include <sys/un.h>
+
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 int bflag, kflag, lflag, uflag;
 int nflag;//Do not do any DNS or service lookups on any specified addresses, hostnames or ports.
@@ -384,7 +387,10 @@ void readwrite(int net_fd)
 {
 	char buf[4096];
 	int ret = read(net_fd, buf, sizeof(buf));
-	printf("%s %d\n", __func__, ret);
+/*https://stackoverflow.com/questions/5616092/non-blocking-call-for-reading-descriptor
+If data is not available when you call read, then the system call will fail with a return
+value of -1 and errno is set to EAGAIN. See the fnctl man pages for more information.*/
+	err(1, "%s %d, errno %d", __func__, ret, errno);
 }
 
 int main(int argc, char *argv[])
@@ -460,7 +466,30 @@ preparing for getaddrinfo() since nc can be called with a host name like:
 			} else {
 				int connfd;
 				len = sizeof(cliaddr);
-				connfd = accept4(s, (struct sockaddr*)&cliaddr, &len, SOCK_NONBLOCK);//If last arg is 0, then accept4() is the same as accept().
+/*no matter what the last argument of accept4() is, accept4() will block till client connects.
+a.if set SOCK_NONBLOCK, the @connfd will be NONBLOCK so the read() return -1 directly & errno==EAGAIN
+as long as client has no data sent:
+a.out: readwrite -1, errno 11: Resource temporarily unavailable
+then `netstat -nap|grep -n 1080`:
+20:tcp        0      0 127.0.0.1:1080          127.0.0.1:60376         FIN_WAIT2   -
+23:tcp        0      0 127.0.0.1:60376         127.0.0.1:1080          CLOSE_WAIT  4756/./a.out
+1.server did active close(by a.out exit) but the client has not launch close(); so server part stays at "FIN_WAIT2",
+which will last for a while before disappearing.
+2.client did passive close. If it dosen't exit(eg by ^+c), the following lasts all the time even server
+part's FIN_WAIT2 has gone:
+23:tcp        0      0 127.0.0.1:60376         127.0.0.1:1080          CLOSE_WAIT  4756/./a.out
+kill client via ^+c, then the above line disappears at once.
+b. if unset SOCK_NONBLOCK, the @connfd's read() will block until client sends data. Then server's
+read() get the data and exit. netstat will be:
+11457764:tcp        0      0 127.0.0.1:1080          127.0.0.1:60390         FIN_WAIT2   -
+11457772:tcp        0      0 127.0.0.1:60390         127.0.0.1:1080          CLOSE_WAIT  4817/./a.out
+these 2 line's state has been explained in a.
+kill client via ^+c, then netstat becomes:
+11524865:tcp        0      0 127.0.0.1:1080          127.0.0.1:60392         TIME_WAIT
+The change of server part's FIN_WAIT2 to TIME_WAIT is caused by server getting FIN from client.
+FIN of client is caused by its close() calling. Note the TIME_WAIT lasts for a while before disappearing.
+*/
+				connfd = accept4(s, (struct sockaddr*)&cliaddr, &len, 0);//If last arg is 0, then accept4() is the same as accept().
 				if (connfd == -1)
 					err(1, "accept4");
 				report_sock("SYN from", (struct sockaddr*)&cliaddr, len, family == AF_UNIX ? host : NULL);
