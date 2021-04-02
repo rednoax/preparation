@@ -263,6 +263,16 @@ The errx() and warnx() functions do not append an error message.
 	freeaddrinfo(res0);
 	return s;
 }
+
+void debug_poll(int ret, struct pollfd fds[], int size)
+{
+	int i;
+	printf("poll %d", ret);
+	for (i = 0; i < size; i++) {
+		printf("[%d] %x\n", i, fds[i].revents);
+	}
+}
+
 void my_poll(int s)
 {
 	struct pollfd fds[3] = {
@@ -281,6 +291,7 @@ void my_poll(int s)
 	int r;
 	while (1) {
 		r = poll(fds, ARRAY_SIZE(fds), -1);
+		debug_poll(r, fds, ARRAY_SIZE(fds));
 		while (r > 0) {
 			if (fds[0].revents & POLLIN) {//server
 				struct sockaddr sa;
@@ -307,6 +318,10 @@ void my_poll(int s)
 			if (fds[2].revents & (POLLIN | POLLHUP)) {//client
 				char buf[4096];
 				int ret = recv(fds[2].fd, buf, sizeof(buf), 0);
+/*recv() return:When a stream socket peer has performed an orderly shutdown, the return value will be 0
+(the traditional "end-of-file" return).
+TODO: when client ^+c:here no POLLHUP but POLLIN then recv return 0
+*/
 				if (ret >= 0)
 					write(STDIN_FILENO, buf, ret);
 				if (fds[2].revents & POLLHUP) {
