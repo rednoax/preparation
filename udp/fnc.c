@@ -368,19 +368,20 @@ void my_poll2(int fd)
 			if (fds[1].revents & POLLIN) {
 				int s = fds[0].fd;
 				ret = read(STDIN_FILENO, buf, sizeof(buf));
+				//printf("read %d\n", ret);
 				if (ret > 0 && s >= 0) {
 					int r;
-					if (!strncmp(buf, "sdr", ret)) {
+					if (!strncmp(buf, "sdr", 3)) {//strncmp's n should not be ret as ret contains '\n'
 						if ((r = shutdown(s, SHUT_RD)) == -1)
 							warn("sdr error");
 						else
 							printf("sdr %d\n", r);
-					} else if (!strncmp(buf, "sdw", ret)) {
+					} else if (!strncmp(buf, "sdw", 3)) {
 						if ((r = shutdown(s, SHUT_WR)) == -1)
 							warn("sdw error");
 						else
 							printf("sdw %d\n", r);
-					} else if (!strncmp(buf, "close", ret)) {
+					} else if (!strncmp(buf, "close", 5)) {
 						r = close(s);
 						printf("close %d\n", r);
 						fds[0].fd = -1;
