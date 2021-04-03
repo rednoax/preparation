@@ -341,7 +341,7 @@ void my_poll2(int fd)
 	struct pollfd fds[2] = {
 		[0] = {
 			.fd = fd,
-			.events = POLLIN | POLLHUP,
+			.events = POLLIN | POLLHUP,//TODO:POLLHUP is ignored in events so remove it!
 		},
 		[1] = {
 			.fd = STDIN_FILENO,
@@ -353,7 +353,7 @@ void my_poll2(int fd)
 		int ret;
 		r = poll(fds, ARRAY_SIZE(fds), -1);
 		if (r > 0) {
-			if (fds[0].revents & (POLLIN | POLLHUP)) {
+			if (fds[0].fd != -1 && fds[0].revents & (POLLIN | POLLHUP)) {
 				ret = recv(fds[0].fd, buf, sizeof(buf), 0);
 				if (ret > 0)
 					write(STDIN_FILENO, buf, ret);
@@ -366,9 +366,26 @@ void my_poll2(int fd)
 				r--;
 			}
 			if (fds[1].revents & POLLIN) {
+				int s = fds[0].fd;
 				ret = read(STDIN_FILENO, buf, sizeof(buf));
-				if (ret > 0 && fds[0].fd >= 0) {
-					send(fds[0].fd, buf, ret, 0);
+				if (ret > 0 && s >= 0) {
+					int r;
+					if (!strncmp(buf, "sdr", ret)) {
+						if ((r = shutdown(s, SHUT_RD)) == -1)
+							warn("sdr error");
+						else
+							printf("sdr %d\n", r);
+					} else if (!strncmp(buf, "sdw", ret)) {
+						if ((r = shutdown(s, SHUT_WR)) == -1)
+							warn("sdw error");
+						else
+							printf("sdw %d\n", r);
+					} else if (!strncmp(buf, "close", ret)) {
+						r = close(s);
+						printf("close %d\n", r);
+						fds[0].fd = -1;
+					} else
+						send(s, buf, ret, 0);
 				}
 				r--;
 			}
