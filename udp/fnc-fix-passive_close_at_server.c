@@ -321,13 +321,28 @@ void my_poll(int s)
 /*recv() return:When a stream socket peer has performed an orderly shutdown, the return value will be 0
 (the traditional "end-of-file" return).
 TODO: when client ^+c:here no POLLHUP but POLLIN then recv return 0
+why no POLLHUP? stackoverflow's 'poll-cant-detect-event-when-socket-is-closed-locally' answer doesn't make sense;
+TCP/IP illustrated vol1 2nd:
+In the FIN_WAIT_2 state, TCP has sent a FIN and the other end has acknowledged<-both close() shutdown(,SH_WR) can send a FIN
+it. Unless a half-close is being performed, the TCP must wait for the application
+on the other end to recognize that it has received an end-of-file notification and<-so passive close peer get EOF.The tcp connection is just half closed now.so no POLLHUP
+close its end of the connection, which causes a FIN to be sent.<-!
 */
 				if (ret >= 0)
 					write(STDIN_FILENO, buf, ret);
-				if (fds[2].revents & POLLHUP) {
+				if (fds[2].revents & POLLIN && !ret) {//& precedes &&
+/*if c runs `sdw` or `close`(these 2 have the same effect to send [FIN ACL] except the former can still read
+the file descriptor but the latter cannot as fd has been invalid), a simultaneous close is observed by wireshark:
+c=>s [FIN ACK] Seq=1 Ack=1
+s=>c [FIN ACK] Seq=1 Ack=2<--Ack is last Seq's
+c=>s [ACK] Seq=2 Ack=2<--Ack is last Seq's
+TODO: this introduced a bug: if peer is `sdw` to half-close, server finds it here but does a full close.
+The half close expected by client becomes a full close for the connection.
+*/			
 					close(fds[2].fd);
 					fds[2].fd = -1;
-					printf("POLLHUP detected\n");
+					printf("EOF\n");
+					fflush(stdout);//absolutely necessary, no output otherwise
 				}
 				r--;
 			}
