@@ -331,12 +331,12 @@ close its end of the connection, which causes a FIN to be sent.<-!
 				if (ret >= 0)
 					write(STDIN_FILENO, buf, ret);
 				if (fds[2].revents & POLLIN && !ret) {//& precedes &&
-/*if c runs `sdw` or `close`(these 2 have the same effect to send [FIN ACL] except the former can still read
+/*if c runs `sdw` or `close`(these 2 have the same effect to send [FIN ACK] except the former can still read
 the file descriptor but the latter cannot as fd has been invalid), a simultaneous close is observed by wireshark:
 c=>s [FIN ACK] Seq=1 Ack=1
 s=>c [FIN ACK] Seq=1 Ack=2<--Ack is last Seq's
 c=>s [ACK] Seq=2 Ack=2<--Ack is last Seq's
-TODO: this introduced a bug: if peer is `sdw` to half-close, server finds it here but does a full close.
+TODO: this introduced a bug: if peer runs `sdw` to half-close, server finds it here but does a full close.
 The half close expected by client becomes a full close for the connection.
 */			
 					close(fds[2].fd);
@@ -393,32 +393,11 @@ void my_poll2(int fd)
 						else
 							printf("sdr %d\n", r);
 					} else if (!strncmp(buf, "sdw", 3)) {
-/*
-1.the same as close(), see below;
-2.if run sdr after sdw:there is no any packet sent from c to s (watched by wireshark) but my_poll2()'s
-POLLHUP is triggered(close() local socket after getting POLLHUP will send none packet to server).
-server part's my_poll() is contunaly return 1 as its c's socket .revents==POLLIN, server got NO POLLHUP!
-netstat shows:
-54282:tcp        0      0 0.0.0.0:1080            0.0.0.0:*               LISTEN      3844/./a.out
-54291:tcp        0      0 127.0.0.1:59392         127.0.0.1:1080          FIN_WAIT2   -
-54301:tcp        0      0 127.0.0.1:1080          127.0.0.1:59392         CLOSE_WAIT  3844/./a.out
-FIN_WAIT2 line will disappear after some time.
-3.if run `sdr` first then `sdw`, POLLHUP is triggered as 2rd;
-*/
 						if ((r = shutdown(s, SHUT_WR)) == -1)
 							warn("sdw error");
 						else
 							printf("sdw %d\n", r);
 					} else if (!strncmp(buf, "close", 5)) {
-/*the same as SHUT_WR part1:
-c=>s [FIN,ACK] Seq=1 Ack=1
-s=>c [ACK] Seq=1 Ack=2
-s's poll() return 1 continualy(its c's socket .revents==POLLIN) as server's my_poll() fails to close its client socket
-netstat -nap|grep -n 1080:sever becomes CLOSE_WAIT and client becomes FIN_WAIT2, since server has not call close() on its client socket
-3707336:tcp        0      0 0.0.0.0:1080            0.0.0.0:*               LISTEN      3616/./a.out
-3707346:tcp        0      0 127.0.0.1:59380         127.0.0.1:1080          FIN_WAIT2   -
-3707354:tcp        0      0 127.0.0.1:1080          127.0.0.1:59380         CLOSE_WAIT  3616/./a.out
-*/
 						r = close(s);
 						printf("close %d\n", r);
 						fds[0].fd = -1;
