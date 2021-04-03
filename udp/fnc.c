@@ -379,16 +379,17 @@ void my_poll2(int fd)
 							printf("sdr %d\n", r);
 					} else if (!strncmp(buf, "sdw", 3)) {
 /*
-1.the same as close(), see below;
+1.the same as below close() except that its FIN_WAIT2 line will last all the time as long as no further sdr;
 2.if run sdr after sdw:there is no any packet sent from c to s (watched by wireshark) but my_poll2()'s
-POLLHUP is triggered(close() local socket after getting POLLHUP will send none packet to server).
+POLLHUP is triggered(close() local socket after getting POLLHUP will send none packet to server, maybe because the
+1st `sdw` has sent FIN).
 server part's my_poll() is contunaly return 1 as its c's socket .revents==POLLIN, server got NO POLLHUP!
 netstat shows:
 54282:tcp        0      0 0.0.0.0:1080            0.0.0.0:*               LISTEN      3844/./a.out
 54291:tcp        0      0 127.0.0.1:59392         127.0.0.1:1080          FIN_WAIT2   -
 54301:tcp        0      0 127.0.0.1:1080          127.0.0.1:59392         CLOSE_WAIT  3844/./a.out
 FIN_WAIT2 line will disappear after some time.
-3.if run `sdr` first then `sdw`, POLLHUP is triggered as 2rd;
+3.if run `sdr` first then `sdw`, POLLHUP is triggered as 2rd; the result is like 2rd.
 */
 						if ((r = shutdown(s, SHUT_WR)) == -1)
 							warn("sdw error");
@@ -403,6 +404,12 @@ netstat -nap|grep -n 1080:sever becomes CLOSE_WAIT and client becomes FIN_WAIT2,
 3707336:tcp        0      0 0.0.0.0:1080            0.0.0.0:*               LISTEN      3616/./a.out
 3707346:tcp        0      0 127.0.0.1:59380         127.0.0.1:1080          FIN_WAIT2   -
 3707354:tcp        0      0 127.0.0.1:1080          127.0.0.1:59380         CLOSE_WAIT  3616/./a.out
+FIN_WAIT2 line will last for a while then dissappear, see TCP/IP illustrated vol1:
+If the application that does the active close does a complete close, not a
+half-close indicating that it expects to receive data, a timer is set. If the connection
+is idle when the timer expires, TCP moves the connection into the CLOSED state
+In Linux, the variable net.ipv4.tcp_fin_timeout can be adjusted to control
+the number of seconds to which the timer is set. Its default value is 60s.
 */
 						r = close(s);
 						printf("close %d\n", r);
