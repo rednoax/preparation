@@ -200,7 +200,7 @@ a.out: getaddrinfo: Name or service not known
 		if ((s = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0)
 			continue;
 		//s = -1;//to test err after setsockopt fails
-#if 0/*
+#if 10/*
 1.if launch server=>client connect=>server quit by ^c:
 $ netstat -nap|grep 1080
 (Not all processes could be identified, non-owned process info
@@ -219,7 +219,7 @@ a.out: setup server error
 $ netstat -nap|grep 1080
 (Not all processes could be identified, non-owned process info
  will not be shown, you would have to be root to see it all.)
-tcp        0      0 127.0.0.1:1080          127.0.0.1:58472         TIME_WAIT   -<---not FIN_WAIT2,why?
+tcp        0      0 127.0.0.1:1080          127.0.0.1:58472         TIME_WAIT   -<---not FIN_WAIT2, for nc server did close() in readwrite() after getting client's FIN()
 rednoah@lucia:~$ nc -l 1080<--ok
 */
 		ret = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &x, sizeof(x));
@@ -266,12 +266,33 @@ The errx() and warnx() functions do not append an error message.
 
 void debug_poll(int ret, struct pollfd fds[], int size)
 {
-	int i;
-	printf("poll %d", ret);
-	for (i = 0; i < size; i++) {
-		printf("[%d] %x\n", i, fds[i].revents);
+	int i, r = 0;
+	char buf[1024];
+	static int _revents[16], _r, _cnt = -1;
+	if (_r != ret) {
+		r = sprintf(buf, "poll %d=>%d;", _r, ret);
+		_r = ret;
 	}
-	fflush(stdout);
+	for (i = 0; i < size; i++) {
+		if (_revents[i] != fds[i].revents) {
+			r += sprintf(buf + r, "[%d] %x=>%x;", i, _revents[i], fds[i].revents);
+			_revents[i] = fds[i].revents;
+		}
+	}
+	if (r > 0) {
+		r += sprintf(buf + r, "\t%d -> 1\n", _cnt + 1);
+		write(STDOUT_FILENO, buf, r);
+		_cnt = 0;
+	} else
+		_cnt++;
+	if (_cnt >= 20000000) {
+		r += sprintf(buf + r, "/|\\ %d hits\n", _cnt);
+		write(STDOUT_FILENO, buf, r);
+		_cnt = -1;
+		_r = 0;
+		for (i = 0; i < size; i++)
+			_revents[i] = 0;
+	}
 }
 
 void my_poll(int s)
@@ -302,9 +323,10 @@ void my_poll(int s)
 				if (c > 0) {
 					char peer[INET_ADDRSTRLEN];
 					fds[2].fd = c;
-					fds[2].events = POLLIN | POLLOUT;
+					fds[2].events = POLLIN | POLLOUT;//no need to set POLLHUP
 					printf("peer %s:%d\n", inet_ntop(AF_INET, &sap->sin_addr, peer, INET_ADDRSTRLEN),
 						ntohs(sap->sin_port));
+					fflush(stdout);
 				}
 				r--;
 			}
@@ -316,7 +338,7 @@ void my_poll(int s)
 					send(fds[2].fd, buf, ret, 0);
 				r--;
 			}
-			if (fds[2].revents & (POLLIN | POLLHUP)) {//client
+			if (fds[2].fd != -1 && fds[2].revents & (POLLIN | POLLHUP)) {//client
 				char buf[4096];
 				int ret = recv(fds[2].fd, buf, sizeof(buf), 0);
 /*recv() return:When a stream socket peer has performed an orderly shutdown, the return value will be 0
@@ -342,11 +364,13 @@ The half close expected by client becomes a full close for the connection.
 */			
 					//close(fds[2].fd);
 					//fds[2].fd = -1;
-					printf("EOF\n");
+					//printf("EOF\n");
 					fflush(stdout);//absolutely necessary, no output otherwise
 				}
 				r--;
 			}
+			if (fds[2].fd != -1 && fds[2].revents & POLLOUT)
+				r--;
 		}
 	}
 }
