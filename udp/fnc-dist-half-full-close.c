@@ -323,7 +323,7 @@ void my_poll(int s)
 				if (c > 0) {
 					char peer[INET_ADDRSTRLEN];
 					fds[2].fd = c;
-					fds[2].events = POLLIN | POLLOUT;//no need to set POLLHUP
+					fds[2].events = POLLIN | POLLOUT;//no need to set POLLHUP, as long as local fds[2].fd is not closed, POLLOUT will continously returned in .revents even peer(client) `sdw` or `close` to sent a FIN
 					printf("peer %s:%d\n", inet_ntop(AF_INET, &sap->sin_addr, peer, INET_ADDRSTRLEN),
 						ntohs(sap->sin_port));
 					fflush(stdout);
@@ -362,8 +362,7 @@ c=>s [ACK] Seq=2 Ack=2<--Ack is last Seq's
 TODO: this introduced a bug: if peer runs `sdw` to half-close, server finds it here but does a full close.
 The half close expected by client becomes a full close for the connection.
 */			
-					//close(fds[2].fd);
-					//fds[2].fd = -1;
+					//close(fds[2].fd);fds[2].fd = -1;//ALA this close line is not done, socket connected with client trigger POLLIN|POLLOUT continuously after peer(client) use `sdw` or `close` to send a FIN
 					//printf("EOF\n");
 					fflush(stdout);//absolutely necessary, no output otherwise
 				}
