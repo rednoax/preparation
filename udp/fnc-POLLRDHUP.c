@@ -1,3 +1,4 @@
+#define _GNU_SOURCE//POLLRDHUP needs
 #include <stdio.h>
 #include <string.h>//memset()
 #include <stdlib.h>
@@ -200,7 +201,7 @@ a.out: getaddrinfo: Name or service not known
 		if ((s = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0)
 			continue;
 		//s = -1;//to test err after setsockopt fails
-#if 0/*
+#if 10/*
 1.if launch server=>client connect=>server quit by ^c:
 $ netstat -nap|grep 1080
 (Not all processes could be identified, non-owned process info
@@ -219,7 +220,7 @@ a.out: setup server error
 $ netstat -nap|grep 1080
 (Not all processes could be identified, non-owned process info
  will not be shown, you would have to be root to see it all.)
-tcp        0      0 127.0.0.1:1080          127.0.0.1:58472         TIME_WAIT   -<---not FIN_WAIT2,why?
+tcp        0      0 127.0.0.1:1080          127.0.0.1:58472         TIME_WAIT   -<---not FIN_WAIT2, for nc server did close() in readwrite() after getting client's FIN()
 rednoah@lucia:~$ nc -l 1080<--ok
 */
 		ret = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &x, sizeof(x));
@@ -266,10 +267,32 @@ The errx() and warnx() functions do not append an error message.
 
 void debug_poll(int ret, struct pollfd fds[], int size)
 {
-	int i;
-	printf("poll %d", ret);
+	int i, r = 0;
+	char buf[1024];
+	static int _revents[16], _r, _cnt = -1;
+	if (_r != ret) {
+		r = sprintf(buf, "poll %d=>%d;", _r, ret);
+		_r = ret;
+	}
 	for (i = 0; i < size; i++) {
-		printf("[%d] %x\n", i, fds[i].revents);
+		if (_revents[i] != fds[i].revents) {
+			r += sprintf(buf + r, "[%d] %x=>%x;", i, _revents[i], fds[i].revents);
+			_revents[i] = fds[i].revents;
+		}
+	}
+	if (r > 0) {
+		r += sprintf(buf + r, "\t%d -> 1\n", _cnt + 1);
+		write(STDOUT_FILENO, buf, r);
+		_cnt = 0;
+	} else
+		_cnt++;
+	if (_cnt >= 20000000) {
+		r += sprintf(buf + r, "/|\\ %d hits\n", _cnt);
+		write(STDOUT_FILENO, buf, r);
+		_cnt = -1;
+		_r = 0;
+		for (i = 0; i < size; i++)
+			_revents[i] = 0;
 	}
 }
 
@@ -301,9 +324,10 @@ void my_poll(int s)
 				if (c > 0) {
 					char peer[INET_ADDRSTRLEN];
 					fds[2].fd = c;
-					fds[2].events = POLLIN | POLLHUP;
+					fds[2].events = POLLIN | POLLRDHUP;//no need to set POLLHUP, POLLRDUP must be set explicitely to be returned in revents
 					printf("peer %s:%d\n", inet_ntop(AF_INET, &sap->sin_addr, peer, INET_ADDRSTRLEN),
 						ntohs(sap->sin_port));
+					fflush(stdout);
 				}
 				r--;
 			}
@@ -315,7 +339,7 @@ void my_poll(int s)
 					send(fds[2].fd, buf, ret, 0);
 				r--;
 			}
-			if (fds[2].revents & (POLLIN | POLLHUP)) {//client
+			if (fds[2].fd != -1 && fds[2].revents & (POLLIN | POLLHUP)) {//actually POLLHUP can never be triggerred by client's `sdw` or `close`
 				char buf[4096];
 				int ret = recv(fds[2].fd, buf, sizeof(buf), 0);
 /*recv() return:When a stream socket peer has performed an orderly shutdown, the return value will be 0
@@ -330,13 +354,34 @@ close its end of the connection, which causes a FIN to be sent.<-!
 */
 				if (ret >= 0)
 					write(STDIN_FILENO, buf, ret);
-				if (fds[2].revents & POLLHUP) {
-					close(fds[2].fd);
-					fds[2].fd = -1;
-					printf("POLLHUP detected\n");
+				if (fds[2].revents & POLLIN && !ret) {//& precedes &&
+					static int hit = 0;
+					hit++;
+/*
+1.if c runs `sdw` or `close`(these 2 have the same effect to send [FIN ACK] except the former can still read
+the file descriptor but the latter cannot as fd has been invalid), a simultaneous close is observed by wireshark:
+c=>s [FIN ACK] Seq=1 Ack=1
+s=>c [FIN ACK] Seq=1 Ack=2<--Ack is last Seq's
+c=>s [ACK] Seq=2 Ack=2<--Ack is last Seq's
+TODO: this introduced a bug: if peer runs `sdw` to half-close, server finds it here but does a full close.
+The half close expected by client becomes a full close for the connection. However, hands-on network
+programming in c:'The shutdown() function' tells there is no way to know except by prior agreement
+2.if removing the following close line, no matter client did `sdw` or `close`.
+POLLRDHUP|POLLIN ie 0x2001 is continuously returned in .revents
+3.if reserving the following close line, no matter client did `sdw` or `close`.
+POLLRDHUP|POLLIN ie 0x2001 is return in .revents only once as poll() will not handle -1 fd.
+*/
+					close(fds[2].fd);fds[2].fd = -1;//if comments, POLLRDHUP|POLLIN ie 0x2001 is removed continually
+					if (hit > 20000000) {
+						printf("EOF %d\n", hit);
+						hit = 0;
+						fflush(stdout);//absolutely necessary, no output otherwise
+					}
 				}
 				r--;
 			}
+			if (fds[2].fd != -1 && fds[2].revents & POLLOUT)
+				r--;
 		}
 	}
 }
@@ -364,7 +409,7 @@ void my_poll2(int fd)
 				if (ret > 0)
 					write(STDIN_FILENO, buf, ret);
 				if (fds[0].revents & POLLHUP) {
-					ret = sprintf(buf, "server POLLHUP");
+					ret = sprintf(buf, "server POLLHUP");//trigger only by client's local `sdr`+`sdw` or `sdw`+`sdr`
 					write(STDOUT_FILENO, buf, ret);
 					close(fds[0].fd);
 					fds[0].fd = -1;					
@@ -384,41 +429,11 @@ void my_poll2(int fd)
 						else
 							printf("sdr %d\n", r);
 					} else if (!strncmp(buf, "sdw", 3)) {
-/*
-1.the same as below close() except that its FIN_WAIT2 line will last all the time as long as no further sdr;
-2.if run sdr after sdw:there is no any packet sent from c to s (watched by wireshark) but my_poll2()'s
-POLLHUP is triggered(close() local socket after getting POLLHUP will send none packet to server, maybe because the
-1st `sdw` has sent FIN).
-https://stackoverflow.com/questions/56177060/pollhup-vs-pollrdhup:
-when poll()ing a socket, POLLHUP will signal that the connection was closed in both directions.
-server part's my_poll() is contunaly return 1 as its c's socket .revents==POLLIN, server got NO POLLHUP!
-netstat shows:
-54282:tcp        0      0 0.0.0.0:1080            0.0.0.0:*               LISTEN      3844/./a.out
-54291:tcp        0      0 127.0.0.1:59392         127.0.0.1:1080          FIN_WAIT2   -
-54301:tcp        0      0 127.0.0.1:1080          127.0.0.1:59392         CLOSE_WAIT  3844/./a.out
-FIN_WAIT2 line will disappear after some time.
-3.if run `sdr` first then `sdw`, POLLHUP is triggered as 2rd; the result is like 2rd.
-*/
 						if ((r = shutdown(s, SHUT_WR)) == -1)
 							warn("sdw error");
 						else
 							printf("sdw %d\n", r);
 					} else if (!strncmp(buf, "close", 5)) {
-/*the same as SHUT_WR part1:
-c=>s [FIN,ACK] Seq=1 Ack=1
-s=>c [ACK] Seq=1 Ack=2
-s's poll() return 1 continualy(its c's socket .revents==POLLIN) as server's my_poll() fails to close its client socket
-netstat -nap|grep -n 1080:sever becomes CLOSE_WAIT and client becomes FIN_WAIT2, since server has not call close() on its client socket
-3707336:tcp        0      0 0.0.0.0:1080            0.0.0.0:*               LISTEN      3616/./a.out
-3707346:tcp        0      0 127.0.0.1:59380         127.0.0.1:1080          FIN_WAIT2   -
-3707354:tcp        0      0 127.0.0.1:1080          127.0.0.1:59380         CLOSE_WAIT  3616/./a.out
-FIN_WAIT2 line will last for a while then dissappear, see TCP/IP illustrated vol1:
-If the application that does the active close does a complete close, not a
-half-close indicating that it expects to receive data, a timer is set. If the connection
-is idle when the timer expires, TCP moves the connection into the CLOSED state
-In Linux, the variable net.ipv4.tcp_fin_timeout can be adjusted to control
-the number of seconds to which the timer is set. Its default value is 60s.
-*/
 						r = close(s);
 						printf("close %d\n", r);
 						fds[0].fd = -1;
