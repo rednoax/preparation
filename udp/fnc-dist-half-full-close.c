@@ -9,6 +9,8 @@
 #include <err.h>//err() errx()
 #include <poll.h>
 #include <sys/types.h>
+#include <signal.h>
+
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 int bflag, kflag, lflag, uflag;
 int nflag;//Do not do any DNS or service lookups on any specified addresses, hostnames or ports.
@@ -269,6 +271,7 @@ void debug_poll(int ret, struct pollfd fds[], int size)
 	int i, r = 0;
 	char buf[1024];
 	static int _revents[16], _r, _cnt = -1;
+	fflush(stdout);
 	if (_r != ret) {
 		r = sprintf(buf, "poll %d=>%d;", _r, ret);
 		_r = ret;
@@ -291,8 +294,14 @@ void debug_poll(int ret, struct pollfd fds[], int size)
 		_cnt = -1;
 		_r = 0;
 		for (i = 0; i < size; i++)
-			_revents[i] = 0;
+			_revents[i] = 0;//.revent==0 in struct pollfd means no event, ALL POLLXX defined in <poll.h> is >0
 	}
+}
+
+void pipehandler(int s)
+{
+	printf("sig %d\n", s);
+	fflush(stdout);
 }
 
 void my_poll(int s)
@@ -331,14 +340,57 @@ void my_poll(int s)
 				r--;
 			}
 			if (fds[1].revents & POLLIN){//stdin
-				int ret;
+				int ret, flags = 0, c = fds[2].fd;
 				char buf[4096];
 				ret = read(fds[1].fd, buf, sizeof(buf));
-				if (ret > 0 && fds[2].fd >= 0)
-					send(fds[2].fd, buf, ret, 0);
+/*
+1.c:`sdw`
+  s:send() any input from stdin is ok and client can get it normally
+2.c:`close`
+  s:send() return ok: eg send() 'bye\n' return 4, wireshark can see the packet from s to c, but client return
+  immediately one 'RST' packet to server. So poll() return at once and its client socket .revent becomes
+  0x1d(POLLHUP|POLLERR|POLLOUT|POLLIN) from old status 0x5(POLLIN|POLLOUT).	NO SIGPIPE in the process.
+  BUT, if going on to call send() with one of the following, There is no any packet between c and s can be seen by wireshark.
+1)"NOSIG\n": send() return -1, errno is EPIPE(32) and then next poll() return at once 0x15(POLLIN|POLLOUT|POLLHUP) in
+  client socket .revent. The error info is:  'a.out: ***send -1, errno 32: Broken pipe'
+2)"R_SIG\n": the same as 1. Besides, registered SIGPIPE handler is called before send() return -1
+3)"ign": the same as 1.
+4)other ordinary input not among 1~3:program exits directly as it is killed by SIGPIPE.
+*/
+				if (ret > 0 && c >= 0) {
+					int w;
+					if (!strncmp(buf, "NOSIG", 5)) {
+						flags = MSG_NOSIGNAL;
+					} else if (!strncmp(buf, "R_SIG", 5)) {
+						struct sigaction sa = {
+							.sa_flags = 0,
+							.sa_handler = pipehandler,
+						};
+						if (sigaction(SIGPIPE, &sa, NULL) == -1)
+							err(1, "SIGPIPE reg err");
+					} else if (!strncmp(buf, "ign", 3)) {
+						struct sigaction sa = {
+							.sa_flags = 0,
+							.sa_handler = SIG_IGN,
+						};
+						if (sigaction(SIGPIPE, &sa, NULL) == -1)
+							err(1, "SIGPIPE reg err");
+					} else if (!strncmp(buf, "close_client", 12)) {//if run it after the above 2-1/2/3, then input anything to lauch a poll() return:fds[2].revents will be 0 from old 0x15
+						close(c);
+						fds[2].fd = -1;
+						goto fin;
+					}
+					w = send(c, buf, ret, flags);
+					if (w < 0)
+						warn("***send %d, errno %d", w, errno);
+					else
+						warnx("send %d", w);
+				}
+fin:
 				r--;
 			}
-			if (fds[2].fd != -1 && fds[2].revents & (POLLIN | POLLHUP)) {//client
+//The field fd contains a file descriptor for an open file. If this field is negative, then the corresponding events field is ignored and the revents field returns zero.
+			if (fds[2].revents & (POLLIN | POLLHUP)) {//client, if .fd==-1, revents return 0 so skip .fd check befor .revents check
 				char buf[4096];
 				int ret = recv(fds[2].fd, buf, sizeof(buf), 0);
 /*recv() return:When a stream socket peer has performed an orderly shutdown, the return value will be 0
@@ -354,7 +406,8 @@ close its end of the connection, which causes a FIN to be sent.<-!
 				if (ret >= 0)
 					write(STDIN_FILENO, buf, ret);
 				if (fds[2].revents & POLLIN && !ret) {//& precedes &&
-/*if c runs `sdw` or `close`(these 2 have the same effect to send [FIN ACK] except the former can still read
+/*when the following close line opened:
+if c runs `sdw` or `close`(these 2 have the same effect to send [FIN ACK] except the former can still read
 the file descriptor but the latter cannot as fd has been invalid), a simultaneous close is observed by wireshark:
 c=>s [FIN ACK] Seq=1 Ack=1
 s=>c [FIN ACK] Seq=1 Ack=2<--Ack is last Seq's
@@ -368,7 +421,7 @@ The half close expected by client becomes a full close for the connection.
 				}
 				r--;
 			}
-			if (fds[2].fd != -1 && fds[2].revents & POLLOUT)
+			if (fds[2].revents & POLLOUT)
 				r--;
 		}
 	}
@@ -417,11 +470,15 @@ void my_poll2(int fd)
 						else
 							printf("sdr %d\n", r);
 					} else if (!strncmp(buf, "sdw", 3)) {
+/*c=>s [FIN,ACK];
+s=>c [ACK]; if server ^c then, POLLHUP is got*/
 						if ((r = shutdown(s, SHUT_WR)) == -1)
 							warn("sdw error");
 						else
 							printf("sdw %d\n", r);
 					} else if (!strncmp(buf, "close", 5)) {
+/*c=>s [FIN,ACK];
+s=>c [ACK]; if server ^c then, No ANY POLLHUP can be got by client*/
 						r = close(s);
 						printf("close %d\n", r);
 						fds[0].fd = -1;
