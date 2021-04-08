@@ -354,7 +354,7 @@ void my_poll(int s)
 1)"NOSIG\n": send() return -1, errno is EPIPE(32) and then next poll() return at once 0x15(POLLIN|POLLOUT|POLLHUP) in
   client socket .revent. The error info is:  'a.out: ***send -1, errno 32: Broken pipe'
 2)"R_SIG\n": the same as 1. Besides, registered SIGPIPE handler is called before send() return -1
-3)"ign": the same as 1.
+3)"IGN": the same as 1.
 4)other ordinary input not among 1~3:program exits directly as it is killed by SIGPIPE.
 */
 				if (ret > 0 && c >= 0) {
@@ -368,7 +368,7 @@ void my_poll(int s)
 						};
 						if (sigaction(SIGPIPE, &sa, NULL) == -1)
 							err(1, "SIGPIPE reg err");
-					} else if (!strncmp(buf, "ign", 3)) {
+					} else if (!strncmp(buf, "IGN", 3)) {
 						struct sigaction sa = {
 							.sa_flags = 0,
 							.sa_handler = SIG_IGN,
@@ -379,6 +379,10 @@ void my_poll(int s)
 						close(c);
 						fds[2].fd = -1;
 						goto fin;
+					} else if (!strncmp(buf, "sdw", 3)) {
+						if (shutdown(c, SHUT_WR) == -1)
+							err(1, "SHUT_WR");
+						goto fin;
 					}
 					w = send(c, buf, ret, flags);
 					if (w < 0)
@@ -386,8 +390,7 @@ void my_poll(int s)
 					else
 						warnx("send %d", w);
 				}
-fin:
-				r--;
+fin:			r--;
 			}
 //The field fd contains a file descriptor for an open file. If this field is negative, then the corresponding events field is ignored and the revents field returns zero.
 			if (fds[2].revents & (POLLIN | POLLHUP)) {//client, if .fd==-1, revents return 0 so skip .fd check befor .revents check
