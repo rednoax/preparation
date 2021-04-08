@@ -339,7 +339,7 @@ void my_poll(int s)
 				}
 				r--;
 			}
-			if (fds[1].revents & POLLIN){//stdin
+			if (fds[1].revents & POLLIN) {//stdin
 				int ret, flags = 0, c = fds[2].fd;
 				char buf[4096];
 				ret = read(fds[1].fd, buf, sizeof(buf));
@@ -375,14 +375,20 @@ void my_poll(int s)
 						};
 						if (sigaction(SIGPIPE, &sa, NULL) == -1)
 							err(1, "SIGPIPE reg err");
-					} else if (!strncmp(buf, "close_client", 12)) {//if run it after the above 2-1/2/3, then input anything to lauch a poll() return:fds[2].revents will be 0 from old 0x15
+					} else if (!strncmp(buf, "close", 5)) {//if run it after the above 2-1/2/3, then input anything to lauch a poll() return:fds[2].revents will be 0 from old 0x15
 						close(c);
 						fds[2].fd = -1;
+						goto fin;
+					} else if (!strncmp(buf, "CLOSE", 5)) {
+						close(c);
 						goto fin;
 					} else if (!strncmp(buf, "sdw", 3)) {
 						if (shutdown(c, SHUT_WR) == -1)
 							err(1, "SHUT_WR");
 						goto fin;
+					} else if (!strncmp(buf, "sdr", 3)) {
+						w = shutdown(c, SHUT_RD);
+						warn("sdr %d", w);
 					}
 					w = send(c, buf, ret, flags);
 					if (w < 0)
@@ -447,7 +453,12 @@ void my_poll2(int fd)
 		char buf[4096];
 		int ret;
 		r = poll(fds, ARRAY_SIZE(fds), -1);
+		printf("%d: %x %x\n", r, fds[0].revents, fds[1].revents);
 		if (r > 0) {
+			if (fds[0].revents & POLLNVAL) {
+				warnx("***POLLNVAL fd %d, fixed to -1", fds[0].fd);
+				fds[0].fd = -1;
+			}
 			if (fds[0].fd != -1 && fds[0].revents & (POLLIN | POLLHUP)) {
 				ret = recv(fds[0].fd, buf, sizeof(buf), 0);
 				if (ret > 0)
@@ -456,7 +467,7 @@ void my_poll2(int fd)
 					ret = sprintf(buf, "server POLLHUP");
 					write(STDOUT_FILENO, buf, ret);
 					close(fds[0].fd);
-					fds[0].fd = -1;					
+					fds[0].fd = -1;
 				}
 				r--;
 			}
@@ -485,6 +496,10 @@ s=>c [ACK]; if server ^c then, No ANY POLLHUP can be got by client*/
 						r = close(s);
 						printf("close %d\n", r);
 						fds[0].fd = -1;
+					} else if (!strncmp(buf, "CLOSE", 5)) {//no POLLHUP after its close()
+						r = close(s);
+						fds[0].revents = -1;//it will be written by POLLNVAL in next poll()
+						printf("CLOSE %d\n", r);
 					} else
 						send(s, buf, ret, 0);
 				}
