@@ -365,13 +365,13 @@ s=>c [FIN ACK] Seq=1 Ack=2<--Ack is last Seq's
 c=>s [ACK] Seq=2 Ack=2<--Ack is last Seq's
 TODO: this introduced a bug: if peer runs `sdw` to half-close, server finds it here but does a full close.
 The half close expected by client becomes a full close for the connection. However, hands-on network
-programming in c:'The shutdown() function' tells there is no way to know except by prior agreement
+programming in c:'The shutdown() function' chapter: there is no way to know except by prior agreement
 2.if removing the following close line, no matter client did `sdw` or `close`.
 POLLRDHUP|POLLIN ie 0x2001 is continuously returned in .revents
 3.if reserving the following close line, no matter client did `sdw` or `close`.
 POLLRDHUP|POLLIN ie 0x2001 is return in .revents only once as poll() will not handle -1 fd.
 */
-					close(fds[2].fd);fds[2].fd = -1;//if comments, POLLRDHUP|POLLIN ie 0x2001 is removed continually
+					close(fds[2].fd);fds[2].fd = -1;//if comments, POLLRDHUP|POLLIN ie 0x2001 is returned continually
 					if (hit > 20000000) {
 						printf("EOF %d\n", hit);
 						hit = 0;
