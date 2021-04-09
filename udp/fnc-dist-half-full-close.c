@@ -310,7 +310,16 @@ void pipehandler(int s)
 	printf("sig %d\n", s);
 	fflush(stdout);
 }
-
+/*there is no .fd != -1 checking in handle() as once assign -1 to .fd, next poll() return .revent==0 for such
+a.when there is 'close(fds[2].fd);fds[2].fd = -1' here:
+if c runs `sdw` or `close`(these 2 have the same effect to send [FIN ACK] except the former can still read
+the file descriptor but the latter cannot as fd has been invalid), a simultaneous close is observed by wireshark:
+c=>s [FIN ACK] Seq=1 Ack=1
+s=>c [FIN ACK] Seq=1 Ack=2<--Ack is last Seq's
+c=>s [ACK] Seq=2 Ack=2<--Ack is last Seq's
+TODO: this introduced a bug: if peer runs `sdw` to half-close, server finds it here but does a full close.
+The half close expected by client becomes a full close for the connection.
+*/
 void handle(struct pollfd fds[], int nr, int *flag)
 {
 	char buf[4*1024*1024];
@@ -327,9 +336,10 @@ void handle(struct pollfd fds[], int nr, int *flag)
 			write(STDIN_FILENO, buf, ret);
 		else if (ret < 0)
 			printf("***recv %d\n", ret);
-		else if (!ret && *flag == 0) {
+		else if (!ret && !(*flag & 1)) {
 			*flag |= 1;//POLLIN is not removed so poll() returing POLLIN with recv() 0 continuously
 			printf("EOF\n");
+			//note a
 		}
 	}
 	if (rev & POLLHUP && !(*flag & INGHUP)) {
@@ -355,12 +365,12 @@ void handle(struct pollfd fds[], int nr, int *flag)
 				//else printf("sdw %d\n", r);
 			} else if (!CMP(buf, "close")) {
 	/*c=>s [FIN,ACK];
-	s=>c [ACK]; if server ^c then, No ANY POLLHUP can be got by client*/
+	s=>c [ACK]; if server ^c then, No ANY POLLHUP can be got by client as pollfd[]'s fd==-1, which is ignored by poll()*/
 				r = close(*fd);
 				if (r == -1)
 					warn("close %d\n", r);
 				*fd = -1;
-			} else if (!CMP(buf, "CLOSE")) {//no POLLHUP after its close()
+			} else if (!CMP(buf, "CLOSE")) {
 				r = close(*fd);
 				fds[CONNECTED].revents = -1;//it will be written by POLLNVAL in next poll()
 				if (r == -1)
@@ -369,18 +379,17 @@ void handle(struct pollfd fds[], int nr, int *flag)
 				int f = 0;
 				struct sigaction sa = {
 					.sa_flags = 0,
-					.sa_handler = pipehandler,
+					.sa_handler = SIG_DFL,
 				};
 				if (!CMP(buf, "NOSIG")) {
 					f = MSG_NOSIGNAL;
 				} else if (!CMP(buf, "R_SIG")) {
-					if (sigaction(SIGPIPE, &sa, NULL) == -1)
-						err(1, "SIGPIPE reg err");
+					sa.sa_handler = pipehandler;
 				} else if (!CMP(buf, "IGN")) {
 					sa.sa_handler = SIG_IGN;
-					if (sigaction(SIGPIPE, &sa, NULL) == -1)
-						err(1, "SIGPIPE reg err");
 				}
+				if (sigaction(SIGPIPE, &sa, NULL) == -1)
+					err(1, "SIGPIPE reg err");
 				r = send(*fd, buf, ret, f);
 				if (r <= 0)
 					warn("***send %d, errno %d", r, errno);
