@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <signal.h>
 #define CMP(a, b) strncmp(a, b, strlen(b))
+#define INGHUP (1<<8)
 enum {
 STDIN,
 CONNECTED,
@@ -327,11 +328,11 @@ void handle(struct pollfd fds[], int nr, int *flag)
 		else if (ret < 0)
 			printf("***recv %d\n", ret);
 		else if (!ret && *flag == 0) {
-			*flag = 1;//POLLIN is not removed so poll() returing POLLIN with recv() 0 continuously
+			*flag |= 1;//POLLIN is not removed so poll() returing POLLIN with recv() 0 continuously
 			printf("EOF\n");
 		}
 	}
-	if (rev & POLLHUP) {
+	if (rev & POLLHUP && !(*flag & INGHUP)) {
 		printf("POLLHUP\n");
 		close(*fd);
 		*fd = -1;
@@ -381,7 +382,7 @@ void handle(struct pollfd fds[], int nr, int *flag)
 						err(1, "SIGPIPE reg err");
 				}
 				r = send(*fd, buf, ret, f);
-				if (r < 0)
+				if (r <= 0)
 					warn("***send %d, errno %d", r, errno);
 				/*else
 					warnx("send %d", r);*/
@@ -408,7 +409,7 @@ void spoll(int s)
 		},
 	};
 	int r;
-	static int flag;
+	static int flag = INGHUP;
 	while (1) {
 		r = poll(fds, ARRAY_SIZE(fds), -1);
 		debug_poll(r, fds, ARRAY_SIZE(fds));
