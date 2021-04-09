@@ -318,7 +318,7 @@ void handle(struct pollfd fds[], int nr, int *flag)
 	int ret;
 	if (rev & POLLNVAL) {
 		printf("***POLLNVAL fd %d removed from poll\n", *fd);
-		*fd = -1;//must remove it from polled list, POLLNVAL emits continuously otherwise
+		*fd = -1;//POLLNVAL returned continuously otherwise
 	}
 	if (rev & POLLIN) {
 		ret = recv(*fd, buf, sizeof(buf), 0);
@@ -327,12 +327,12 @@ void handle(struct pollfd fds[], int nr, int *flag)
 		else if (ret < 0)
 			printf("***recv %d\n", ret);
 		else if (!ret && *flag == 0) {
-			*flag = 1;//POLLIN is not removed so use it to stop poll() returing recv() 0 continuously from POLLIN
+			*flag = 1;//POLLIN is not removed so poll() returing POLLIN with recv() 0 continuously
 			printf("EOF\n");
 		}
 	}
 	if (rev & POLLHUP) {
-		printf(buf, "POLLHUP\n");
+		printf("POLLHUP\n");
 		close(*fd);
 		*fd = -1;
 	}
