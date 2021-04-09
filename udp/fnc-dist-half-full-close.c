@@ -345,25 +345,25 @@ void handle(struct pollfd fds[], int nr, int *flag)
 	//c=>s no any packet sent from c to s after the read's shutdown
 				if ((r = shutdown(*fd, SHUT_RD)) == -1)
 					warn("sdr error");
-				else
-					printf("sdr %d\n", r);
+				//else printf("sdr %d\n", r);
 			} else if (!CMP(buf, "sdw")) {
 	/*c=>s [FIN,ACK];
 	s=>c [ACK]; if server ^c then, POLLHUP is got*/
 				if ((r = shutdown(*fd, SHUT_WR)) == -1)
 					warn("sdw error");
-				else
-					printf("sdw %d\n", r);
+				//else printf("sdw %d\n", r);
 			} else if (!CMP(buf, "close")) {
 	/*c=>s [FIN,ACK];
 	s=>c [ACK]; if server ^c then, No ANY POLLHUP can be got by client*/
 				r = close(*fd);
-				printf("close %d\n", r);
+				if (r == -1)
+					warn("close %d\n", r);
 				*fd = -1;
 			} else if (!CMP(buf, "CLOSE")) {//no POLLHUP after its close()
 				r = close(*fd);
 				fds[CONNECTED].revents = -1;//it will be written by POLLNVAL in next poll()
-				printf("CLOSE %d\n", r);
+				if (r == -1)
+					warn("close %d\n", r);
 			} else {
 				int f = 0;
 				struct sigaction sa = {
