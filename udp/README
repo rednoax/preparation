@@ -1,0 +1,166 @@
+TEST SEQUENCE FOR fnc-dist-half-full-close.c
+
+conclusion:
+to make POLLHUP happen, close() can't apply as it cause POLLNVAL; The following combination can trigger POLLHUP on local connected socket:
+1.local sdr+ local sdw, or vice versa
+2.peer's sdw or close + local sdw
+ALA both read and write cannot work, POLLHUP will happen. Just like fifo or pipe: when no data in pipe and write end not open, poll()
+return POLLHUP.
+
+test sequence for fnc-dist-half-full-close.c:
+client			server
+1.
+sdw:FIN,ACK->
+				<-ACK, note c
+FIN_WAIT2		CLOSE_WAIT, note d
+				send() test:note b
+2.
+close:FIN,ACK->
+				<-ACK, note c
+FIN_WAIT2		CLOSE_WAIT, note e
+				send() test: note f
+3.
+^c:FIN,ACK->
+				<-ACK, note c
+FIN_WAIT2		CLOSE_WAIT, note e
+
+4.
+sdw:FIN,ACK->
+				<-ACK,note c
+FIN_WAIT2		CLOSE_WAIT, note d
+sdr:note g
+
+5.
+CLOSE():FIN,ACK->note h
+				<-ACK,note c
+FIN_WAIT2		CLOSE_WAIT, note e
+
+6.
+sdr:note i
+sdw:FIN,ACK->note i
+				<-ACK,note c
+FIN_WAIT2		CLOSE_WAIT, note e
+
+7.
+sdw:FIN,ACK->
+				<-ACK, note c
+FIN_WAIT2		CLOSE_WAIT,note d
+				<-FIN,ACK:sdw, note j
+  ACK->
+note k
+
+
+8.
+sdw:FIN,ACK->
+				<-ACK, note c
+FIN_WAIT2		CLOSE_WAIT,note d
+				sdr, note l
+				<-FIN,ACK:sdw, note j
+  ACK->
+note k		
+
+9.
+CLOSE:FIN,ACK->
+				<-ACK, note c
+FIN_WAIT2		CLOSE_WAIT,note e
+POLLNVAL,note m
+				<-FIN,ACK:sdw note n
+  note n->
+
+10.
+sdw:FIN,ACK->
+				<-ACK, note c
+FIN_WAIT2		CLOSE_WAIT,note d
+				<-FIN,ACK:CLOSE, note m
+ACK->
+note k
+
+11.
+CLOSE:FIN,ACK->
+				<-ACK, note c
+FIN_WAIT2		CLOSE_WAIT,note e
+POLLNVAL, note m
+				<-FIN,ACK:CLOSE, note o
+ note o->
+
+12.
+close:FIN,ACK->
+				<-ACK, note c
+FIN_WAIT2		CLOSE_WAIT,note e
+				sdr, note l
+				send() test: note f
+
+NOTE
+a.sdr:shutdown(,SHUT_RD)
+sdw:shutdown(,SHUT_WR)
+close: typing close that run close() then remove it from pollfd[]'s .fd
+CLOSE: typing CLOSE that run close() but keep fd in pollfd[]'s .fd
+^c:equivalent to close()
+
+b. any input from stdin is ok and client can get it normally
+
+c. POLLIN triggered and recv() 0,I keep it in pollfd[] and don't run `sdr` or `close()`,
+   so POLLIN with recv() 0 triggered continously actually but EOF is printed for only once in program.
+FURTHER EXPLAINATION:
+1.recv() return said When a stream socket peer has performed an orderly shutdown, the return value will be 0
+(the traditional "end-of-file" return).
+2.There is no POLLHUP now. stackoverflow's 'poll-cant-detect-event-when-socket-is-closed-locally' answer doesn't make sense;
+TCP/IP illustrated vol1 2nd:
+In the FIN_WAIT_2 state, TCP has sent a FIN and the other end has acknowledged    <-both close() shutdown(,SH_WR) can send a FIN
+it. Unless a half-close is being performed, the TCP must wait for the application
+on the other end to recognize that it has received an end-of-file notification and<-so passive close peer get EOF.The tcp connection is just half closed now.so no POLLHUP at the server
+close its end of the connection, which causes a FIN to be sent.                   <-!
+
+d. this FIN_WAIT2 will not disappear as it is half-close;`netstat -nap -c 1|grep -n [port]` can prove it
+
+e. this FIN_WAIT2 will disappear after some time as it is full-close; But CLOSE_WAIT will keep as no close() is called in server.
+
+f. no matter if FIN_WAIT2 is still on: send() return ok: eg send() 'bye\n' return 4, wireshark can see the packet
+  sent from s to c, but client return immediately one 'RST' packet to server. If FIN_WAIT2 is on before send():
+  netstat shows both FIN_WAIT2 of client and CLOSE_WAIT of server disappeared at this moment. If FIN_WAIT2 has been off before send():
+  netstat shows CLOSE_WAIT of server disappeared at this moment.
+  And poll() return at once and its
+  client socket .revent becomes  0x1d(POLLHUP|POLLERR|POLLOUT|POLLIN) from old status 0x5(POLLIN|POLLOUT).
+  NO SIGPIPE in the process. BUT, if going on to call send() in one of the following, There is no any packet
+  between c and s can be seen by wireshark as there has been no any connection between c and s.
+1)"NOSIG\n": send() return -1, errno is EPIPE(32) and then next poll() return at once 0x15(POLLIN|POLLOUT|POLLHUP) in
+  client socket .revent. The error info is:  'a.out: ***send -1, errno 32: Broken pipe'
+2)"R_SIG\n": the same as 1. Besides, registered SIGPIPE handler is called before send() return -1
+3)"IGN": the same as 1.
+4)other ordinary input not among 1~3: program exits directly as it is killed by SIGPIPE.
+note in 1~3, POLLHUP is not handled by clearing associated connected socket from pollfd[], so POLLHUP make poll() continoutly return at once
+(no blocking) and the returned .revents has POLLHUP set each time.
+So it seems 'RST' package can trigger POLLHUP|POLLERR. send() bytes to an POLLHUP fd will trigger 1 of result among 1~4.
+Once a fd has POLLHUP set, it means its read() return() and write() return -1 with one of 1~4
+
+g. POLLIN|POLLHUP got, recv():0; netstat shows the only influence on FIN_WAIT2 is that its pid column disappeared(only handled by kernel network stack?). No influence  on CLOSE_WAIT. FIN_WAIT2 will disappear after some time as e.
+Then POLLHUP is handled by close():no packaet transfer on network. close() just release the (struct file)?
+
+h. as .fd is not assigned with -1 in CLOSE, the next poll() return immediately with .revents==POLLNVAL. The return is continously unless .fd
+is assigned to -1 in pollfd[].
+
+i.no packet between c and s. But POLLIN is returned continously with recv() 0 as POLLIN is not removed from .events
+after sdw, POLLHUP is got.
+
+j. POLLHUP is got at server. It proved that to make POLLHUP happens, both read and write should be shutdown. read shutdown
+can be caused by local shutdown(,SHUT_RD) or by peer's sdw/close.Server's POLLHUP is not handled so it make poll() return POLLHUP
+in .revents continously.
+
+k. client poll() return at once with POLLIN|POLLHUP, POLLIN's recv() 0: EOF; 
+  NO FIN_WAIT2 on the client and no CLOSE_WAIT on the server any more
+
+l. No packet sent to client. No effect on the connection between c and s. sdr at server seems trival as peer has `sdw` that cause server
+read part is shutdown
+
+m. POLLNVAL returned as poll() find an fd is not opened. It happens only once as it is removed then.
+
+n. if FIN_WAIT2 at client has disappeared. POLLHUP|POLLERR is got at server.Wireshark show server sends [FIN,ACK] but client returns
+  [RST]. CLOSE_WAIT disappeared at once.
+  if FIN_WAIT2 at client is on. POLLHUP is got at server.Wireshark show server send [FIN,ACK] and client returns [ACK]. netstat shows both
+  CLOSE_WAIT and FIN_WAIT2 gone at once.
+
+o. if FIN_WAIT2 at client has disappeared. POLLNVAL is got at server.Wireshark show server sends [FIN,ACK] but client returns
+  [RST]. CLOSE_WAIT disappeared at once.
+  if FIN_WAIT2 at client is on. POLLNVAL is got at server.Wireshark show server send [FIN,ACK] and client returns [ACK]. netstat shows both
+  CLOSE_WAIT and FIN_WAIT2 gone at once: but c=>s state becomes TIME_WAIT, which will disappear after some time. When TIME_WAIT is still on,
+  ^c to exit client or ^c to exit server will not make TIME_WAIT disappear.
