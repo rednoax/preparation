@@ -13,6 +13,7 @@
 #include <sys/un.h>
 #include <signal.h>
 #include <limits.h>
+#include <fcntl.h>
 
 #define BUFSIZE 16384
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
@@ -434,16 +435,22 @@ static int connect_with_timeout(int fd, const struct sockaddr *sa, socklen_t sal
 {
 	struct timeval tv, *tvp = NULL;
 	int ret, org_flags;
+	socklen_t len;
 	if (ctimeout > 0) {
 		tv.tv_sec = ctimeout / 1000;
 		tv.tv_usec = ctimeout % 1000 * 1000;
+		tvp = &tv;
 	}
-	if ((org_flags = fcntl(fd, F_GETFL)) == -1)
+	if ((org_flags = fcntl(fd, F_GETFL)) == -1)//F_GETFD can only be used for FD_CLOEXEC;
 		err(1, "F_GETFL error");
-	if ((ret = fcntl(fd, F_SETFL, org_flags | O_NONBLOCK)) == -1)
-		err(1, "F_SETFL error");
-	if ((ret = connect(fd, sa, salen)) == 0)
-		goto OUT;
+	if ((ret = fcntl(fd, F_SETFL, org_flags | O_NONBLOCK)) == -1) {
+		warn("F_SETFL error");
+		if (connect(fd, sa, salen) == 0)
+			return CONNECTION_SUCCESS;
+		else
+			return CONNECTION_FAILED;
+	}
+	ret = connect(fd, sa, salen);
 	if (ret == -1 && errno == EINPROGRESS) {
 		fd_set set;
 		FD_ZERO(&set);
@@ -451,14 +458,21 @@ static int connect_with_timeout(int fd, const struct sockaddr *sa, socklen_t sal
 		do {
 			ret = select(fd + 1, NULL, &set, NULL, tvp);
 		} while(ret == -1 && errno == EINTR);//then @set is not touched so select can be restart again w/o reset @set
+		if (ret < 0)
+			err(1, "select error");
 		if (ret == 0)
 			return CONNECTION_TIMEOUT;
-		if (ret == 1 && FD_ISSET(fd, &set))
-			ret = CONNECTION_SUCCESS;
+		if (ret == 1 && FD_ISSET(fd, &set)) {
+			printf("connect() ok\n");
+		}
+		len = sizeof(ret);
+		if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &ret, &len) == -1)//SO_ERROR:return and clear pending socket error
+			err(1, "getsockopt error");
+		if (ret != 0)
+			errno = ret;
 	}
-OUT:
 	fcntl(fd, F_SETFL, org_flags);
-	return ret;
+	return ret != 0 ? CONNECTION_FAILED: CONNECTION_SUCCESS;//!= is higher than ?:
 }
 /*comment A(the following a.out test is done with udp and testpoll() enabled, ie -u and no connect() called):
 1.standard nc:no matter if '-u' is added to 'nc -lu ip port', netstat will see udp ip:port binding
