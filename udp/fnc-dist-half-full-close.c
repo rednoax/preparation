@@ -428,7 +428,17 @@ void spoll(int s)
 				struct sockaddr sa;
 				struct sockaddr_in *sap = (struct sockaddr_in*)&sa;
 				socklen_t len = sizeof(sa);
-				int c = accept(fdp->fd, &sa, &len);
+/*comment A:
+if no server, a client runs `/a.out 127.0.0.1 1080`: connect() return 'Connection refused' at once w/t block:
+(wireshark:c=>s [SYN] s=>c [RST,ACK]) even the socket has not been set O_NONBLOCK;
+to show connect() will block if its socket is !O_NONBLOCK: there is no any use to add sleep(30) below!
+wireshark shows three-way handshake can be completely normal even there is sleep(30) before accept.
+The only problem is that server cannot get input at once from client's input, as server is blocked by sleep(30);
+note listen(,1) can establish connection with 2 clients at the same time, so what's the way to make connect() timeout?
+*/
+				int c;
+				//sleep(30);
+				c = accept(fdp->fd, &sa, &len);
 				if (c > 0) {
 					char peer[INET_ADDRSTRLEN];
 					fds[CONNECTED].fd = c;
@@ -478,7 +488,7 @@ void connect_server(const char *host, const char *port, struct addrinfo hints)
 		if ((s = socket(res0->ai_family, res0->ai_socktype, res0->ai_protocol)) < 0)
 			err(1, "socket");
 		if (connect(s, res0->ai_addr, res0->ai_addrlen) == -1)
-			err(1, "connect");
+			err(1, "connect: %d", errno);//ECONNREFUSED 111 when no tcp server, see comment A
 		cpoll(s);
 	}
 	freeaddrinfo(res);

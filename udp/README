@@ -90,6 +90,14 @@ FIN_WAIT2		CLOSE_WAIT,note e
 				sdr, note l
 				send() test: note f
 
+13.
+close:FIN,ACK->
+				<-ACK, note c
+FIN_WAIT2		CLOSE_WAIT, note e
+				<-FIN,ACK:sdw note n
+note n->
+				send() test: note p
+
 NOTE
 a.sdr:shutdown(,SHUT_RD)
 sdw:shutdown(,SHUT_WR)
@@ -120,7 +128,8 @@ f. no matter if FIN_WAIT2 is still on: send() return ok: eg send() 'bye\n' retur
   netstat shows both FIN_WAIT2 of client and CLOSE_WAIT of server disappeared at this moment. If FIN_WAIT2 has been off before send():
   netstat shows CLOSE_WAIT of server disappeared at this moment.
   And poll() return at once and its
-  client socket .revent becomes  0x1d(POLLHUP|POLLERR|POLLOUT|POLLIN) from old status 0x5(POLLIN|POLLOUT).
+  client socket .revent becomes  0x1d(POLLHUP|POLLERR|POLLOUT|POLLIN) from old status 0x5(POLLIN|POLLOUT). The data sent before is actually
+  really send to peer but peer will not really receive it.
   NO SIGPIPE in the process. BUT, if going on to call send() in one of the following, There is no any packet
   between c and s can be seen by wireshark as there has been no any connection between c and s.
 1)"NOSIG\n": send() return -1, errno is EPIPE(32) and then next poll() return at once 0x15(POLLIN|POLLOUT|POLLHUP) in
@@ -130,8 +139,12 @@ f. no matter if FIN_WAIT2 is still on: send() return ok: eg send() 'bye\n' retur
 4)other ordinary input not among 1~3: program exits directly as it is killed by SIGPIPE.
 note in 1~3, POLLHUP is not handled by clearing associated connected socket from pollfd[], so POLLHUP make poll() continoutly return at once
 (no blocking) and the returned .revents has POLLHUP set each time.
-So it seems 'RST' package can trigger POLLHUP|POLLERR. send() bytes to an POLLHUP fd will trigger 1 of result among 1~4.
-Once a fd has POLLHUP set, it means its read() return() and write() return -1 with one of 1~4
+
+conclusion: so it seems 'RST' package can trigger POLLHUP|POLLERR. 
+send() bytes to an POLLHUP fd will trigger one of result among 1~4.
+Once a fd has POLLHUP set, it means its read() return 0 and write() return -1 with one of 1~4.
+stackoverflow:A POLLHUP means the socket is no longer connected. In TCP, this means FIN has been received and sent.
+A POLLERR means the socket got an asynchronous error. In TCP, this typically means a RST has been received or sent. If the file descriptor is not a socket, POLLERR might mean the device does not support polling.
 
 g. POLLIN|POLLHUP got, recv():0; netstat shows the only influence on FIN_WAIT2 is that its pid column disappeared(only handled by kernel network stack?). No influence  on CLOSE_WAIT. FIN_WAIT2 will disappear after some time as e.
 Then POLLHUP is handled by close():no packaet transfer on network. close() just release the (struct file)?
@@ -154,13 +167,31 @@ read part is shutdown
 
 m. POLLNVAL returned as poll() find an fd is not opened. It happens only once as it is removed then.
 
-n. if FIN_WAIT2 at client has disappeared. POLLHUP|POLLERR is got at server.Wireshark show server sends [FIN,ACK] but client returns
+n. 1.if FIN_WAIT2 at client has disappeared. POLLHUP|POLLERR is got at server.Wireshark show server sends [FIN,ACK] but client returns
   [RST]. CLOSE_WAIT disappeared at once.
-  if FIN_WAIT2 at client is on. POLLHUP is got at server.Wireshark show server send [FIN,ACK] and client returns [ACK]. netstat shows both
+2.  if FIN_WAIT2 at client is on. POLLHUP is got at server.Wireshark show server send [FIN,ACK] and client returns [ACK]. netstat shows both
   CLOSE_WAIT and FIN_WAIT2 gone at once.
+both 1 and 2's POLLHUP at server is not handled so it keeps the later poll() return at once again and again.
 
 o. if FIN_WAIT2 at client has disappeared. POLLNVAL is got at server.Wireshark show server sends [FIN,ACK] but client returns
   [RST]. CLOSE_WAIT disappeared at once.
   if FIN_WAIT2 at client is on. POLLNVAL is got at server.Wireshark show server send [FIN,ACK] and client returns [ACK]. netstat shows both
   CLOSE_WAIT and FIN_WAIT2 gone at once: but c=>s state becomes TIME_WAIT, which will disappear after some time. When TIME_WAIT is still on,
   ^c to exit client or ^c to exit server will not make TIME_WAIT disappear.
+
+p.
+for n.1(if FIN_WAIT2 at client has disappeared)
+1)"NOSIG\n":send -1, errno 104: Connection reset by peer; no data transfered on network.Then the next poll()'s return is 0x15 from 0x1d:
+POLLERR is cleared
+is cleared.
+2)"R_SIG\n":the same as 1. Besides, registered SIGPIPE handler canno be seen called. Really strange.
+3)"IGN": the same as 1.
+4)other ordinary input not among 1~3: program exits directly as it is killed by SIGPIPE.
+
+for n.2(if FIN_WAIT2 at client is on)
+1)"NOSIG\n": send() return -1, errno is EPIPE(32). The error info is:  'a.out: ***send -1, errno 32: Broken pipe'
+2)"R_SIG\n": the same as 1. Besides, registered SIGPIPE handler is called before send() return -1
+3)"IGN": the same as 1.
+4)other ordinary input not among 1~3: program exits directly as it is killed by SIGPIPE.
+note in 1~3, POLLHUP trigger by former `sdw` is not handled by clearing associated connected socket from pollfd[], so POLLHUP make poll() continoutly return at once
+(no blocking) and the returned .revents has POLLHUP set each time.
