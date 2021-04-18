@@ -637,7 +637,7 @@ So if poll() a close()-ed fd, POLLNVAL returned in .revents;
 2.POLLERR can happens after rx [RST], then send() before actually is rejected by peer. see README 2 and 2.f
 */
 		for (n = 0; n < ARRAY_SIZE(pfd); n++) {
-			printf("%x:%d %x\n", n, pfd[n].fd, pfd[n].revents);
+			//printf("%x:%d %x\n", n, pfd[n].fd, pfd[n].revents);
 			if (pfd[n].revents & (POLLERR | POLLNVAL))//a common way to make poll() ignore the .fd(the next poll() returned .revent==0).If .revents bit not handled, eg no read() after POLLIN set,then the next poll() return at once with unhandled bits set
 				pfd[n].fd = -1;
 		}
