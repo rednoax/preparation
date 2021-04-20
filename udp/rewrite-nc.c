@@ -235,14 +235,14 @@ protocol: tcp
 canon name: (null)		0.0.0.0:1080	 assert 2==2
 a.out: bind err: Address already in use<--
 a.out: setup server error
-2.if run the same sequence as the above for standard nc:
+2.if use standard nc to run the same sequence as the above, plus client ^c at last:
 $ netstat -nap|grep 1080
 (Not all processes could be identified, non-owned process info
  will not be shown, you would have to be root to see it all.)
-tcp        0      0 127.0.0.1:1080          127.0.0.1:58472         TIME_WAIT   -<---not FIN_WAIT2,why?
+tcp        0      0 127.0.0.1:1080          127.0.0.1:58472         TIME_WAIT   -<---not FIN_WAIT2, as client send [FIN,ACK] at last step
 rednoah@lucia:~$ nc -l 1080<--ok
 */
-		ret = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &x, sizeof(x));
+		ret = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &x, sizeof(x));//then no bind() err if server rerun when server side's TIME_WAIT still exists
 #endif
 /*
 The  err()	and  warn() family of functions display a formatted error message on the standard error output.  In all cases, the last
@@ -450,6 +450,10 @@ static int connect_with_timeout(int fd, const struct sockaddr *sa, socklen_t sal
 		else
 			return CONNECTION_FAILED;
 	}
+/*When the !O_NONBLOCK connect() function is called on the Client side, the first SYN Message is sent,
+and the connect() function blocks until the SYN+ACK Message is received from the
+Server. After the SYN+ACK Message is received, connect() enqueues the final ACK
+Message and returns*/
 	ret = connect(fd, sa, salen);
 	if (ret == -1 && errno == EINPROGRESS) {
 		fd_set set;
@@ -462,10 +466,15 @@ static int connect_with_timeout(int fd, const struct sockaddr *sa, socklen_t sal
 			err(1, "select error");
 		if (ret == 0)
 			return CONNECTION_TIMEOUT;
-		if (ret == 1 && FD_ISSET(fd, &set)) {
-			printf("connect() ok\n");
+		if (ret == 1 && FD_ISSET(fd, &set)) {//cannot be AL connect() ok!see below
+			printf("connect() ok?\n");
 		}
 		len = sizeof(ret);
+/*On Unixbased systems, select() signals a socket as writable once the connection is established. If
+an error has occurred, select() signals the socket as both writable and readable.
+However, if the socket has connected successfully and data has arrived from the remote
+peer, this also produces both the readable and writable situation. In that case, the
+getsockopt() function can be used to determine whether an error has occurred.*/
 		if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &ret, &len) == -1)//SO_ERROR:return and clear pending socket error
 			err(1, "getsockopt error");
 		if (ret != 0)
@@ -688,7 +697,8 @@ read() return 0 and write() will:
 			if (ret == -1)
 				pfd[POLL_NETIN].fd = -1;
 			if (ret == 0) {
-				shutdown(pfd[POLL_NETIN].fd, SHUT_RD);
+				int r = shutdown(pfd[POLL_NETIN].fd, SHUT_RD);
+				printf("SHUT_RD %d\n", r);
 				pfd[POLL_NETIN].fd = -1;
 			}
 			if (netinbufpos == BUFSIZE)
@@ -863,6 +873,7 @@ FIN of client is caused by its close() calling. Note the TIME_WAIT lasts for a w
 					err(1, "accept4");
 				report_sock("SYN from", (struct sockaddr*)&cliaddr, len, family == AF_UNIX ? host : NULL);
 				readwrite(connfd);
+				//sleep(5);//test sequence:server launched, client lunched, c ^c, then server in CLOSE_WAIT, client in FIN_WAIT2 before the following close()
 				close(connfd);
 			}
 			if (!kflag) {
