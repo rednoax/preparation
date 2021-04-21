@@ -632,6 +632,15 @@ has been delived to the network drivers w/t error.
 because the client has called connect() to server so the rx/tx in readwrite(), ie read()/write(), needs not specify server ip/port.
 b. poll() return at once after a's "successful" write():both POLL_NETOUT and POLL_NETIN .revents is POLLERR, then these 2 .fd assigned
 with -1, then POLL_STDIN assigned with -1, the next readwrite() main loop exits=>program exits.
+
+4.`./a.out -lu 1080`:launch the 1st client:`./a.out -u 10.0.0.1 1080`, input from stdin to finish connect() to server
+then ^c and launch the 2nd client that is the same as the 1st: input anything will make the 2nd exits directly. Then input anything
+at server, the serve exits directly.
+a. the 2nd client's connect() returns ok as no warn(...) triggered. The connect() for udp is just mark the later rx/tx sockaddr and no
+real connection. input anything will make the 2nd exits directly as the write() is ok but poll() return POLL_NETIN & POLL_NETOUT with
+.revent==POLLERR immediately after the input. Then sequence is the same as 3.a~b
+b. server exits via any input then:its write(0 process cause exits and the process is the same as 3.a~b
+
 */
 void readwrite(int net_fd)//can be used for both udp and tcp!
 {
@@ -893,6 +902,16 @@ preparing for getaddrinfo() since nc can be called with a host name like:
 			if (uflag && kflag) {
 				readwrite(s);
 			} else if (uflag && !kflag) {
+				char buf[INET_ADDRSTRLEN];
+				struct sockaddr_in *peer = (struct sockaddr_in*)&cliaddr;
+				len = sizeof(cliaddr);
+				if (recvfrom(s, buf, sizeof(buf), MSG_PEEK, (struct sockaddr*)&cliaddr, &len) == -1)
+					break;
+				if (connect(s, (struct sockaddr*)&cliaddr, len) == -1)
+					break;
+				inet_ntop(peer->sin_family, &peer->sin_addr, buf, sizeof(buf));
+				printf("peer %d, %s:%d\n", peer->sin_family, buf, ntohs(peer->sin_port));
+				readwrite(s);
 			} else {
 				int connfd;
 				len = sizeof(cliaddr);
