@@ -613,8 +613,9 @@ ssize_t drainbuf(int fd, char *buf, size_t *bufpos, int oneline)
 /*
 1.`nc -l 1080`, input some chars from stdin, then `nc 127.0.0.1 1080`. The former inputed chars are
 got in one batch by client. The reason I think is the inputed chars are in buffers of stdin?
-2. `./a.out -luk 1080`,`./a.out 10.0.0.1 1080`, client inputs then server can get, server inputs but
-client can't get.
+2. `./a.out -luk 1080`,`./a.out 10.0.0.1 1080`;<--netstat shows "ESTABLISHED" even it is udp:21777280:udp        0      0 10.0.0.1:54843          10.0.0.1:1080           ESTABLISHED 4958/./a.o
+client inputs then server can get, server inputs but
+client can't get as server with `-luk` will not call connect() so read/write in readwrite() has not specified sockaddr!
 a.server inputs from stdin is ok, then it send it via net socket, the send by write() is -1, errno 89(EDESTADDRRESQ);
 then POLL_NETOUT .fd assigned with -1 and stdinbufpos not changed as write() return -1;
 errno 89:server's -luk will not use connect() to give socket addr for later rx/tx so some sending function w/t
@@ -623,6 +624,14 @@ b.server inputs from stdin is ok for the 2nd time, this time POLL_STDIN .fd assi
 will read(-1,... so it return -1,errno==EBADF
 c.server inputs from stdin for the 3rd time. poll() will not return as its POLL_STDIN has been ignored
 POLL_NETIN=>POLL_STDOUT chain is still ok!
+3. `./a.out -luk 1080`,`./a.out 10.0.0.1 1080`;then server ^c to exit; input sth at client, then client exits:
+a. clint call write() to send its stdin input, the write() return ok and the written bytes# is returned(==expected)
+APUE: If send()(send() has one more flag argument compared with write()) returns success, it doesn't necessarily means that
+the process at the other end of the connection receives the data. All we are guaranteed is that when send() succeeds, the data
+has been delived to the network drivers w/t error.
+because the client has called connect() to server so the rx/tx in readwrite(), ie read()/write(), needs not specify server ip/port.
+b. poll() return at once after a's "successful" write():both POLL_NETOUT and POLL_NETIN .revents is POLLERR, then these 2 .fd assigned
+with -1, then POLL_STDIN assigned with -1, the next readwrite() main loop exits=>program exits.
 */
 void readwrite(int net_fd)//can be used for both udp and tcp!
 {
@@ -652,6 +661,7 @@ void readwrite(int net_fd)//can be used for both udp and tcp!
 	while (1) {//2 chains: NETIN=>STDOUT STDIN=>NETOUT, if one chain's 2 .fd==-1, the other chain can still work
 		if (pfd[POLL_STDIN].fd == -1 && pfd[POLL_NETIN].fd == -1 &&
 			stdinbufpos == 0 && netinbufpos == 0) {
+			debug("Here\n");
 			if (qflag <= 0)
 				return;
 			goto delay_exit;
