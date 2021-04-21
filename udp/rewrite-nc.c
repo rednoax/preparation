@@ -144,6 +144,9 @@ void set_common_sockopts(int s, struct sockaddr *sa)
 {
 	int x = 1;
 	if (bflag) {
+/*man 7 socket:
+Set or get the broadcast flag.  When enabled, datagram sockets are allowed to send packets to
+a broadcast address.  This option has no effect on stream-oriented sockets.*/
 		if (setsockopt(s, SOL_SOCKET, SO_BROADCAST, &x, sizeof(x)) == -1)//if err, the return value needs not to be reserved as err() 's err info is strerror(errno) whose arg is global var!
 			err(1, "set SO_REUSEADDR error");
 	}
@@ -189,6 +192,7 @@ int local_listen(const char *host, const char *port, struct addrinfo hints)
 	int error;
 	struct addrinfo *res, *res0;
 	hints.ai_flags |= AI_PASSIVE;//allow @host name to be NULL(if so then ip member of POed res0->ai_addr below will be INADDR_ANY or IN6ADDR_ANY_INIT, according to the domain), if @host!=NULL,AI_PASSIVE has no effect
+	(void)x;
 	if (host == NULL && hints.ai_family == AF_UNSPEC)
 		hints.ai_family = AF_INET;
 	if ((error = getaddrinfo(host, port, &hints, &res0)))
@@ -221,7 +225,7 @@ a.out: getaddrinfo: Name or service not known
 			continue;
 		//s = -1;//to test err after setsockopt fails
 #if 0/*
-1.if launch server=>client connect=>server quit by ^c:
+1.no matter if there is close()(sever exist by ^c then os will close() its socket) at commentB:launch server=>client connect=>server quit by ^c:
 $ netstat -nap|grep 1080
 (Not all processes could be identified, non-owned process info
  will not be shown, you would have to be root to see it all.)
@@ -240,7 +244,9 @@ $ netstat -nap|grep 1080
 (Not all processes could be identified, non-owned process info
  will not be shown, you would have to be root to see it all.)
 tcp        0      0 127.0.0.1:1080          127.0.0.1:58472         TIME_WAIT   -<---not FIN_WAIT2, as client send [FIN,ACK] at last step
-rednoah@lucia:~$ nc -l 1080<--ok
+rednoah@lucia:~$ nc -l 1080<--ok. if run ./a.out -l 1080:bind err: Address already in use.
+SO_REUSEADDR is used for bypass bind() err when TIME_WAIT.Note TIME_WAIT only exists at
+active close() part and passive close() part will have no TIME_WAIT state.
 */
 		ret = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &x, sizeof(x));//then no bind() err if server rerun when server side's TIME_WAIT still exists
 #endif
@@ -450,10 +456,15 @@ static int connect_with_timeout(int fd, const struct sockaddr *sa, socklen_t sal
 		else
 			return CONNECTION_FAILED;
 	}
-/*When the !O_NONBLOCK connect() function is called on the Client side, the first SYN Message is sent,
+/*
+tcp:When the !O_NONBLOCK connect() function is called on the Client side, the first SYN Message is sent,
 and the connect() function blocks until the SYN+ACK Message is received from the
 Server. After the SYN+ACK Message is received, connect() enqueues the final ACK
-Message and returns*/
+Message and returns;
+udp:If we call connect() with a SOCK_DGRAM socket, the destination address of all messages we send(in this program
+it is readwrite()'s write() call) is set to the address we specified in the connect() call, relieving
+us from having to provide the address everytime we transmit message. In addition, we will receive datagrams
+only from the address we've specified(in this program it is readwrite()'s read()*/
 	ret = connect(fd, sa, salen);
 	if (ret == -1 && errno == EINPROGRESS) {
 		fd_set set;
@@ -516,7 +527,12 @@ remote_connect(const char *host, const char *port, struct addrinfo hints)
 by allowing two nonstandard flags to be ORed with the socket type....The SOCK_NONBLOCK flag causes the kernel
 to set the O_NONBLOCK flag on the underlying open file description, so that future
 I/O operations on the socket will be nonblocking. This saves additional calls
-to fcntl() to achieve the same result. fcntl example is in eintr.c*/
+to fcntl() to achieve the same result. (fcntl example is in eintr.c)
+So now we have seen 3 ways to set O_NONBLOCK:
+1.specify SOCK_NONBLOCK when socket()
+2.fcntl O_NONBLOCK, see connect_with_timeout
+3.accept4() specifies SOCK_NONBLOCK so the new client socket becomes O_NONBLOCK. accept4() can
+only be applied for server,not client*/
 		show_addrinfo(res);
 		if ((s = socket(res->ai_family, res->ai_socktype | SOCK_NONBLOCK, res->ai_protocol)) == -1)
 			err(1, "socket error");
@@ -565,6 +581,7 @@ ssize_t fillbuf(int fd, char *buf, size_t *bufpos)
 {
 	ssize_t n;
 	n = read(fd, buf + *bufpos, BUFSIZE - *bufpos);
+	printf("%s(%d,):%ld %d\n", __func__, fd, n, errno);
 	if (n == -1 && (errno == EAGAIN || errno == EINTR))
 		n = -2;
 	if (n <= 0)
@@ -577,6 +594,7 @@ ssize_t drainbuf(int fd, char *buf, size_t *bufpos, int oneline)
 {
 	ssize_t n;
 	n = write(fd, buf, *bufpos);
+	printf("%s(%d,):%ld, %d\n", __func__, fd, n, errno);
 	if (n == -1 && (errno == EAGAIN || errno == EINTR))
 		n = -2;
 	if (n <= 0)
@@ -587,7 +605,7 @@ ssize_t drainbuf(int fd, char *buf, size_t *bufpos, int oneline)
 	return n;
 }
 
-void readwrite(int net_fd)
+void readwrite(int net_fd)//can be used for both udp and tcp!
 {
 	char netinbuf[BUFSIZE], stdinbuf[BUFSIZE];
 	size_t netinbufpos, stdinbufpos;//size_t:unsigned long, ssize_t:long
@@ -612,7 +630,7 @@ void readwrite(int net_fd)
 			.events = 0,
 		},
 	};
-	while (1) {
+	while (1) {//NETIN=>STDOUT STDIN=>NETOUT
 		if (pfd[POLL_STDIN].fd == -1 && pfd[POLL_NETIN].fd == -1 &&
 			stdinbufpos == 0 && netinbufpos == 0) {
 			if (qflag <= 0)
@@ -841,6 +859,7 @@ preparing for getaddrinfo() since nc can be called with a host name like:
 			errx(1, "setup server error");
 		for (;;) {
 			if (uflag && kflag) {
+				readwrite(s);
 			} else if (uflag && !kflag) {
 			} else {
 				int connfd;
@@ -874,7 +893,7 @@ FIN of client is caused by its close() calling. Note the TIME_WAIT lasts for a w
 				report_sock("SYN from", (struct sockaddr*)&cliaddr, len, family == AF_UNIX ? host : NULL);
 				readwrite(connfd);
 				//sleep(5);//test sequence:server launched, client lunched, c ^c, then server in CLOSE_WAIT, client in FIN_WAIT2 before the following close()
-				close(connfd);
+				close(connfd);//commentB
 			}
 			if (!kflag) {
 				if (s != -1)
