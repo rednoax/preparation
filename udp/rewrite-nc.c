@@ -15,6 +15,12 @@
 #include <limits.h>
 #include <fcntl.h>
 
+#if 1
+#define debug(fmt, arg...) printf(fmt, ##arg)
+#else
+#define debug(fmt, arg...) do{}while(0)
+#endif
+
 #define BUFSIZE 16384
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 int bflag, kflag, lflag, uflag, qflag = -1;
@@ -581,7 +587,7 @@ ssize_t fillbuf(int fd, char *buf, size_t *bufpos)
 {
 	ssize_t n;
 	n = read(fd, buf + *bufpos, BUFSIZE - *bufpos);
-	printf("%s(%d,):%ld %d\n", __func__, fd, n, errno);
+	debug("%s(%d,) %ld, %d\n", __func__, fd, n, errno);
 	if (n == -1 && (errno == EAGAIN || errno == EINTR))
 		n = -2;
 	if (n <= 0)
@@ -594,8 +600,8 @@ ssize_t drainbuf(int fd, char *buf, size_t *bufpos, int oneline)
 {
 	ssize_t n;
 	n = write(fd, buf, *bufpos);
-	printf("%s(%d,):%ld, %d\n", __func__, fd, n, errno);
-	if (n == -1 && (errno == EAGAIN || errno == EINTR))
+	debug("%s(%d,) %ld, %d\n", __func__, fd, n, errno);
+	if (n == -1 && (errno == EAGAIN || errno == EINTR))//can be n==-1 && errno==EDESTADDRREQ for udp's server sending when `-lku 1080`
 		n = -2;
 	if (n <= 0)
 		return n;
@@ -604,7 +610,20 @@ ssize_t drainbuf(int fd, char *buf, size_t *bufpos, int oneline)
 	*bufpos -= n;
 	return n;
 }
-
+/*
+1.`nc -l 1080`, input some chars from stdin, then `nc 127.0.0.1 1080`. The former inputed chars are
+got in one batch by client. The reason I think is the inputed chars are in buffers of stdin?
+2. `./a.out -luk 1080`,`./a.out 10.0.0.1 1080`, client inputs then server can get, server inputs but
+client can't get.
+a.server inputs from stdin is ok, then it send it via net socket, the send by write() is -1, errno 89(EDESTADDRRESQ);
+then POLL_NETOUT .fd assigned with -1 and stdinbufpos not changed as write() return -1;
+errno 89:server's -luk will not use connect() to give socket addr for later rx/tx so some sending function w/t
+address eg write() will fail.
+b.server inputs from stdin is ok for the 2nd time, this time POLL_STDIN .fd assigned with -1, fillebuf()
+will read(-1,... so it return -1,errno==EBADF
+c.server inputs from stdin for the 3rd time. poll() will not return as its POLL_STDIN has been ignored
+POLL_NETIN=>POLL_STDOUT chain is still ok!
+*/
 void readwrite(int net_fd)//can be used for both udp and tcp!
 {
 	char netinbuf[BUFSIZE], stdinbuf[BUFSIZE];
@@ -630,7 +649,7 @@ void readwrite(int net_fd)//can be used for both udp and tcp!
 			.events = 0,
 		},
 	};
-	while (1) {//NETIN=>STDOUT STDIN=>NETOUT
+	while (1) {//2 chains: NETIN=>STDOUT STDIN=>NETOUT, if one chain's 2 .fd==-1, the other chain can still work
 		if (pfd[POLL_STDIN].fd == -1 && pfd[POLL_NETIN].fd == -1 &&
 			stdinbufpos == 0 && netinbufpos == 0) {
 			if (qflag <= 0)
@@ -664,7 +683,8 @@ So if poll() a close()-ed fd, POLLNVAL returned in .revents;
 2.POLLERR can happens after rx [RST], then send() before actually is rejected by peer. see README 2 and 2.f
 */
 		for (n = 0; n < ARRAY_SIZE(pfd); n++) {
-			//printf("%x:%d %x\n", n, pfd[n].fd, pfd[n].revents);
+			if (pfd[n].revents)
+				debug("%x:%d %x\n", n, pfd[n].fd, pfd[n].revents);
 			if (pfd[n].revents & (POLLERR | POLLNVAL))//a common way to make poll() ignore the .fd(the next poll() returned .revent==0).If .revents bit not handled, eg no read() after POLLIN set,then the next poll() return at once with unhandled bits set
 				pfd[n].fd = -1;
 		}
@@ -685,13 +705,14 @@ read() return 0 and write() will:
 			pfd[POLL_NETOUT].fd = -1;
 		if (pfd[POLL_STDOUT].revents & POLLHUP)
 			pfd[POLL_STDOUT].fd = -1;
-		if (pfd[POLL_NETOUT].fd == -1)
+		if (pfd[POLL_NETOUT].fd == -1)//If NETOUT is disabled, STDIN is disabled too
 			pfd[POLL_STDIN].fd = -1;
 		if (pfd[POLL_STDOUT].fd == -1) {
 			if (pfd[POLL_NETIN].fd != -1)
 				shutdown(pfd[POLL_NETIN].fd, SHUT_RD);
 			pfd[POLL_NETIN].fd = -1;//why not full close since it is not used any more?
 		}
+		//1/2 chain:POLL_STDIN=>POLL_NETOUT
 		if (pfd[POLL_STDIN].revents & POLLIN && stdinbufpos < BUFSIZE) {
 			ret = fillbuf(pfd[POLL_STDIN].fd, stdinbuf, &stdinbufpos);
 			if (ret == 0 || ret == -1)
@@ -710,6 +731,7 @@ read() return 0 and write() will:
 			if (stdinbufpos < BUFSIZE)
 				pfd[POLL_STDIN].events = POLLIN;
 		}
+		//2/2 chain:POLL_NETIN=>POLL_STDOUT
 		if (pfd[POLL_NETIN].revents & POLLIN && netinbufpos < BUFSIZE) {
 			ret = fillbuf(pfd[POLL_NETIN].fd, netinbuf, &netinbufpos);
 			if (ret == -1)
