@@ -968,7 +968,7 @@ FIN of client is caused by its close() calling. Note the TIME_WAIT lasts for a w
 				if (connfd == -1)
 					err(1, "accept4");
 				report_sock("SYN from", (struct sockaddr*)&cliaddr, len, family == AF_UNIX ? host : NULL);
-				open_rec();
+				//open_rec();
 				readwrite(connfd);
 				//sleep(5);//test sequence:server launched, client lunched, c ^c, then server in CLOSE_WAIT, client in FIN_WAIT2 before the following close()
 				close(connfd);//commentB
@@ -985,6 +985,7 @@ FIN of client is caused by its close() calling. Note the TIME_WAIT lasts for a w
 		s = remote_connect(host, portlist[0], hints);
 		if (s == -1)
 			err(1, "connect error");
+		open_rec();
 		readwrite(s);
 	}
 	if (s != -1)
