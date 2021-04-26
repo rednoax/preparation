@@ -1,3 +1,4 @@
+//$ gcc -Wall rewrite-nc.c -lbsd
 #define _GNU_SOURCE//cater for 'warning: implicit declaration of function ‘accept4’'
 #include <stdio.h>
 #include <string.h>//memset()
@@ -191,7 +192,10 @@ void report_sock(const char *msg, const struct sockaddr *sa, socklen_t salen, ch
 		warnx("getnameinfo:%s", gai_strerror(herr));
 	fprintf(stderr, "%s on %s:%s\n", msg, host, port);
 }
-
+/*
+s:./a.out -lku 127.0.0.1 1080,netstat -nap shows lo:1080 listen rather than eth0:1080 listen
+c:./a.out -u 192.168.1.147 1080 will fail, as it uses eth0 ip rather than lo ip;
+*/
 int local_listen(const char *host, const char *port, struct addrinfo hints)
 {
 	int s = -1, ret = 0, x = 1;
@@ -223,7 +227,9 @@ canon name: (null)      2001:718:1e03:801::8e:22
 `./a.out -l ssh` return 0.0.0.0 22 as /etc/services include entry "ssh 22/tcp"
 $ ./a.out -ln baidu.com 1080<- show '-n' usage:'Do not do any DNS or service lookups on any specified addresses, hostnames or ports.'
 a.out: getaddrinfo: Name or service not known
+$ ./a.out -l 127.0.0.1 1080<--getaddrinfo() can PO 127.0.0.1:1080 in (addrinfo*)->ai_addr
 */
+	printf("%s: %s\n", host, port);
 	for (res = res0; res; res = res->ai_next) {
 		show_addrinfo(res);
 		//if ((s = socket(res->ai_family, res->ai_socktype, res->ai_protocol) < 0))//compareing like '<' has precedentce over '=', bind(0,) cause 'Socket operation on non-socket'
@@ -254,7 +260,7 @@ rednoah@lucia:~$ nc -l 1080<--ok. if run ./a.out -l 1080:bind err: Address alrea
 SO_REUSEADDR is used for bypass bind() err when TIME_WAIT.Note TIME_WAIT only exists at
 active close() part and passive close() part will have no TIME_WAIT state.
 */
-		ret = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &x, sizeof(x));//then no bind() err if server rerun when server side's TIME_WAIT still exists
+		ret = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &x, sizeof(x));//then no bind() err if server rerun when server side's TIME_WAIT still exists. TIME_WAIT only exists in active close part, not passive close part.
 #endif
 /*
 The  err()	and  warn() family of functions display a formatted error message on the standard error output.  In all cases, the last
@@ -272,7 +278,7 @@ The errx() and warnx() functions do not append an error message.
 			//errx(-1, "test");//if s==-1:"a.out: test";`echo $?` is 255
 			//err(1, strerror(errno));//if s==-1:"a.out: Bad file descriptor: Bad file descriptor"
 			//perror("test");//if s==-1:"test: Bad file descriptor"
-			//warn("test");//if s==-1:"a.out: test: Bad file descriptor"<--warn() is superset of perror():1."filename:" added.2.perror cannot support c fmt string but warn can
+			//warn("test");//if s==-1:"a.out: test: Bad file descriptor"<--warn() is superset of perror():1."filename:" added.2.perror cannot support c fmt string and variable args but warn can
 			//warnx("test");//if s==-1:"a.out: test"
 		set_common_sockopts(s, res->ai_addr);
 		if (bind(s, res->ai_addr, res->ai_addrlen) == 0)//for udp, `netstat -nap` can see 'udp 0 0 0.0.0.0:1080 0.0.0.0:* 4171/./a.out' after this call return successfully, but tcp cannot!
@@ -282,6 +288,7 @@ The errx() and warnx() functions do not append an error message.
 		s = -1;
 	}
 	if (!uflag && s != -1) {//if bind err, don't listen
+//listen() is non-blocking. accept() blocks and returns a client<>server socket upon connection.UDP needs not and must not use listen/accept
 		if (listen(s, 1) == -1)//for tcp, `netstat -nap` can see 'tcp 0 0 0.0.0.0:1080 0.0.0.0:* LISTEN 4201/./a.out' after listen return ok
 			err(1, "listen err");
 	}
@@ -566,6 +573,12 @@ if SYN/ACK is never rxed, then connect() call eventually times out(controlled by
 			//testpoll(s);
 		}
 		set_common_sockopts(s, res->ai_addr);
+/*for tcp c/s, no matter if s has -k, the 2nd client can connect() ok after the 1st client has been keeping
+occupying server.Wireshark show the 2nd clients three-way handshakes exists and it is right. The data sending
+from the 2nd client is rxed by server but app layer has not handle the rx yet as the server is handling the 1st
+client. Once the 1st client exits, if server is launched with -k, then server will handle the buffered data
+from the 2nd client.
+*/
 		if ((error = connect_with_timeout(s, res->ai_addr, res->ai_addrlen, timeout)) == CONNECTION_SUCCESS)
 			break;
 		warn("connect to %s:%p (%s) err %d", host, port, uflag? "udp": "tcp", error);
@@ -641,6 +654,9 @@ real connection. input anything will make the 2nd exits directly as the write() 
 .revent==POLLERR immediately after the input. Then sequence is the same as 3.a~b
 b. server exits via any input then:its write(0 process cause exits and the process is the same as 3.a~b
 
+5.to make 3.a~b happen more easily:`./a.out -u 127.0.0.10 1080` it first call connect(),then input
+sth. It will call drainbuf to write(), which return the expected value successfully but poll() will
+immediately return POLLERR for POLL_NETIN and POLL_NETOUT
 */
 void readwrite(int net_fd)//can be used for both udp and tcp!
 {
@@ -899,9 +915,9 @@ preparing for getaddrinfo() since nc can be called with a host name like:
 		if (s < 0)
 			errx(1, "setup server error");
 		for (;;) {
-			if (uflag && kflag) {
+			if (uflag && kflag) {//server with '-luk' can get data from any client, eg multiple clients with the same ip but different ports
 				readwrite(s);
-			} else if (uflag && !kflag) {
+			} else if (uflag && !kflag) {//server with '-lu' can only get data from one client with specified port&ip as it uses connect() to limit the peer addr&port. Peers with the same ip but different ports can't make server getting its data
 				char buf[INET_ADDRSTRLEN];
 				struct sockaddr_in *peer = (struct sockaddr_in*)&cliaddr;
 				len = sizeof(cliaddr);
@@ -946,7 +962,7 @@ FIN of client is caused by its close() calling. Note the TIME_WAIT lasts for a w
 				//sleep(5);//test sequence:server launched, client lunched, c ^c, then server in CLOSE_WAIT, client in FIN_WAIT2 before the following close()
 				close(connfd);//commentB
 			}
-			if (!kflag) {
+			if (!kflag) {//`./a.out -lk 1080` can rx/tx with the 2nd client, while `./a.out -l 1080` can't. The later will exit() directly when client first exit(),eg by ^c.
 				if (s != -1)
 					close(s);
 				break;
