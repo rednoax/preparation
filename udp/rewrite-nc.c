@@ -236,7 +236,7 @@ $ ./a.out -l 127.0.0.1 1080<--getaddrinfo() can PO 127.0.0.1:1080 in (addrinfo*)
 		if ((s = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0)
 			continue;
 		//s = -1;//to test err after setsockopt fails
-#if 0/*
+#if 10/*
 1.no matter if there is close()(sever exist by ^c then os will close() its socket) at commentB:launch server=>client connect=>server quit by ^c:
 $ netstat -nap|grep 1080
 (Not all processes could be identified, non-owned process info
@@ -802,8 +802,10 @@ read() return 0 and write() will:
 	}
 }
 void open_rec()
-{
-	g_fd = open("data.txt", O_CREAT | O_TRUNC | O_RDWR);
+{//don't use "~/tmp/data.txt": "No such file or directory"
+	g_fd = open("/home/rednoah/tmp/data.txt", O_CREAT | O_TRUNC | O_RDWR, 0666);
+	if (g_fd < 0)
+		warn("open dump error");
 }
 //** rather than *:either use it as array to iterator(* cann't iterate) or derefer it as left-value
 void build_ports(char **p)
