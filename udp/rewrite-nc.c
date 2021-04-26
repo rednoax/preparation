@@ -16,7 +16,7 @@
 #include <limits.h>
 #include <fcntl.h>
 
-#if 1
+#if 0
 #define debug(fmt, arg...) printf(fmt, ##arg)
 #else
 #define debug(fmt, arg...) do{}while(0)
@@ -29,7 +29,7 @@ int nflag;//Do not do any DNS or service lookups on any specified addresses, hos
 char *pflag, *sflag;
 int timeout = -1;
 int family = AF_UNSPEC;
-char *portlist[1];
+char *portlist[1], g_fd = -1;
 enum {
 	POLL_STDIN = 0,
 	POLL_NETOUT,
@@ -58,76 +58,76 @@ void show_addrinfo(const struct addrinfo *res)
 	const char *s;
 	in_port_t port;
 	sa_family_t fm = -1;
-	printf("flags:");
+	debug("flags:");
 	if (res->ai_flags == 0) {
-		printf(" 0");
+		debug(" 0");
 	} else {
 		if (res->ai_flags & AI_PASSIVE)
-			printf(" passive");
+			debug(" passive");
 		if (res->ai_flags & AI_CANONNAME)
-			printf(" canon");
+			debug(" canon");
 		if (res->ai_flags & AI_NUMERICHOST)
-			printf(" numhost");
+			debug(" numhost");
 		if (res->ai_flags & AI_NUMERICSERV)
-			printf(" numserv");
+			debug(" numserv");
 		if (res->ai_flags & AI_V4MAPPED)
-			printf(" v4mapped");
+			debug(" v4mapped");
 		if (res->ai_flags & AI_ALL)
-			printf(" all");
+			debug(" all");
 	}
-	printf("\nfamily:");
+	debug("\nfamily:");
 	switch (res->ai_family) {
 	case AF_INET:
-		printf(" inet");
+		debug(" inet");
 		break;
 	case AF_INET6:
-		printf(" inet6");
+		debug(" inet6");
 		break;
 	case AF_UNIX:
-		printf(" unix");
+		debug(" unix");
 		break;
 	case AF_UNSPEC:
-		printf(" unspecified");
+		debug(" unspecified");
 		break;
 	default:
-		printf(" unknown");
+		debug(" unknown");
 	}
-	printf("\ntype:");
+	debug("\ntype:");
 	switch (res->ai_socktype) {
 	case SOCK_STREAM:
-		printf(" stream");
+		debug(" stream");
 		break;
 	case SOCK_DGRAM:
-		printf(" datagram");
+		debug(" datagram");
 		break;
 	case SOCK_SEQPACKET:
-		printf(" seqpacket");
+		debug(" seqpacket");
 		break;
 	case SOCK_RAW:
-		printf(" raw");
+		debug(" raw");
 		break;
 	default:
-		printf(" unknow (%d)", res->ai_socktype);
+		debug(" unknow (%d)", res->ai_socktype);
 	}
-	printf("\nprotocol:");
+	debug("\nprotocol:");
 	switch (res->ai_protocol) {
 	case 0:
-		printf(" default");
+		debug(" default");
 		break;
 	case IPPROTO_TCP:
-		printf(" tcp");
+		debug(" tcp");
 		break;
 	case IPPROTO_UDP:
-		printf(" udp");
+		debug(" udp");
 		break;
 	case IPPROTO_RAW:
-		printf(" raw");
+		debug(" raw");
 		break;
 	default:
-		printf(" unknown (%d)", res->ai_protocol);
+		debug(" unknown (%d)", res->ai_protocol);
 		break;
 	}
- 	printf("\ncanon name: %s\t", res->ai_canonname);
+ 	debug("\ncanon name: %s\t", res->ai_canonname);
 	//generic sockaddr* needs to be interpreted to be a sockaddr_XX* based on its family
 	if (res->ai_family == AF_INET) {
 		struct sockaddr_in *sinp = (struct sockaddr_in*)res->ai_addr;
@@ -142,7 +142,7 @@ void show_addrinfo(const struct addrinfo *res)
 	}
 	s = inet_ntop(res->ai_family, addr, buf, sizeof(buf));
 	if (s == buf)
-		printf("%s:%d\t assert %d==%d\n", buf, port, fm, res->ai_family);
+		debug("%s:%d\t assert %d==%d\n", buf, port, fm, res->ai_family);
 	else if (s == NULL)//when error, s == 0
 		err(1, "inet_ntop error");
 }
@@ -229,7 +229,7 @@ $ ./a.out -ln baidu.com 1080<- show '-n' usage:'Do not do any DNS or service loo
 a.out: getaddrinfo: Name or service not known
 $ ./a.out -l 127.0.0.1 1080<--getaddrinfo() can PO 127.0.0.1:1080 in (addrinfo*)->ai_addr
 */
-	printf("%s: %s\n", host, port);
+	debug("%s: %s\n", host, port);
 	for (res = res0; res; res = res->ai_next) {
 		show_addrinfo(res);
 		//if ((s = socket(res->ai_family, res->ai_socktype, res->ai_protocol) < 0))//compareing like '<' has precedentce over '=', bind(0,) cause 'Socket operation on non-socket'
@@ -330,7 +330,7 @@ void my_poll(int s)
 					char peer[INET_ADDRSTRLEN];
 					fds[2].fd = c;
 					fds[2].events = POLLIN | POLLHUP;
-					printf("peer %s:%d\n", inet_ntop(AF_INET, &sap->sin_addr, peer, INET_ADDRSTRLEN),
+					debug("peer %s:%d\n", inet_ntop(AF_INET, &sap->sin_addr, peer, INET_ADDRSTRLEN),
 						ntohs(sap->sin_port));
 				}
 				r--;
@@ -351,7 +351,7 @@ void my_poll(int s)
 				if (fds[2].revents & POLLHUP) {
 					close(fds[2].fd);
 					fds[2].fd = -1;
-					printf("POLLHUP detected\n");
+					debug("POLLHUP detected\n");
 				}
 				r--;
 			}
@@ -443,7 +443,7 @@ void testpoll(int s)
 			}
 		};
 		ret = poll(pfd, ARRAY_SIZE(pfd), -1);
-		printf("%d: %x\n", ret, pfd[0].revents);
+		debug("%d: %x\n", ret, pfd[0].revents);
 		if (pfd[0].revents & POLLHUP)
 			exit(1);
 #endif
@@ -491,7 +491,7 @@ only from the address we've specified(in this program it is readwrite()'s read()
 		if (ret == 0)
 			return CONNECTION_TIMEOUT;
 		if (ret == 1 && FD_ISSET(fd, &set)) {//cannot be AL connect() ok!see below
-			printf("connect() ok?\n");
+			debug("connect() ok?\n");
 		}
 		len = sizeof(ret);
 /*On Unixbased systems, select() signals a socket as writable once the connection is established. If
@@ -565,7 +565,7 @@ if SYN/ACK is never rxed, then connect() call eventually times out(controlled by
 			}
 			if ((error = getaddrinfo(sflag, pflag, ahints, &ares)))
 				err(1, "getaddrinfo %s %s %s", sflag, pflag, gai_strerror(error));
-			printf("%s: %s:%s\n", __func__, sflag, pflag);
+			debug("%s: %s:%s\n", __func__, sflag, pflag);
 			show_addrinfo(ares);
 			if (bind(s, ares->ai_addr, ares->ai_addrlen) == -1)//comment A
 				err(1, "bind err");
@@ -698,7 +698,7 @@ void readwrite(int net_fd)//can be used for both udp and tcp!
 		}
 		if (lflag && pfd[POLL_NETIN].fd == -1 && stdinbufpos == 0 && netinbufpos == 0) {
 			if (qflag <= 0) {
-				printf("**here\n");
+				debug("**here\n");
 				return;
 			}
 delay_exit:
@@ -707,7 +707,7 @@ delay_exit:
 			alarm(qflag);//note arg typeof is unsigned in
 		}
 		num_fds = poll(pfd, 4, timeout);
-		//printf("%s:%d %d %d\n", __func__, __LINE__, net_fd, num_fds);
+		//debug("%s:%d %d %d\n", __func__, __LINE__, net_fd, num_fds);
 		if (num_fds == -1)
 			err(1, "polling error");
 		if (num_fds == 0)
@@ -773,7 +773,7 @@ read() return 0 and write() will:
 				pfd[POLL_NETIN].fd = -1;
 			if (ret == 0) {
 				int r = shutdown(pfd[POLL_NETIN].fd, SHUT_RD);
-				printf("SHUT_RD %d\n", r);
+				debug("SHUT_RD %d\n", r);
 				pfd[POLL_NETIN].fd = -1;
 			}
 			if (netinbufpos == BUFSIZE)
@@ -796,6 +796,10 @@ read() return 0 and write() will:
 		if (pfd[POLL_NETIN].fd == -1 && netinbufpos == 0)
 			pfd[POLL_STDOUT].fd = -1;
 	}
+}
+void open_rec()
+{
+	g_fd = open("data.txt", O_CREAT | O_TRUNC | O_RDWR);
 }
 //** rather than *:either use it as array to iterator(* cann't iterate) or derefer it as left-value
 void build_ports(char **p)
@@ -926,7 +930,7 @@ preparing for getaddrinfo() since nc can be called with a host name like:
 				if (connect(s, (struct sockaddr*)&cliaddr, len) == -1)
 					break;
 				inet_ntop(peer->sin_family, &peer->sin_addr, buf, sizeof(buf));
-				printf("peer %d, %s:%d\n", peer->sin_family, buf, ntohs(peer->sin_port));
+				debug("peer %d, %s:%d\n", peer->sin_family, buf, ntohs(peer->sin_port));
 				readwrite(s);
 			} else {
 				int connfd;
@@ -958,6 +962,7 @@ FIN of client is caused by its close() calling. Note the TIME_WAIT lasts for a w
 				if (connfd == -1)
 					err(1, "accept4");
 				report_sock("SYN from", (struct sockaddr*)&cliaddr, len, family == AF_UNIX ? host : NULL);
+				open_rec();
 				readwrite(connfd);
 				//sleep(5);//test sequence:server launched, client lunched, c ^c, then server in CLOSE_WAIT, client in FIN_WAIT2 before the following close()
 				close(connfd);//commentB
