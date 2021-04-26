@@ -618,6 +618,10 @@ ssize_t drainbuf(int fd, char *buf, size_t *bufpos, int oneline)
 		n = -2;
 	if (n <= 0)
 		return n;
+	if (g_fd > 0) {
+		write(g_fd, buf, n);
+		fsync(g_fd);
+	}
 	if (*bufpos - n > 0)
 		memmove(buf, buf + n, *bufpos - n);//memmove can handle overlap
 	*bufpos -= n;
