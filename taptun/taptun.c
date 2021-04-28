@@ -2,8 +2,13 @@
 #include <fcntl.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <err.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
 #include <linux/if.h>
 #include <linux/if_tun.h>
 
@@ -22,12 +27,12 @@ int tun_alloc(char *if_name, int flags)
 		err(1, "open %s error", dev);
 	memset(&ifr, 0, sizeof(ifr));
 	ifr.ifr_flags = flags;
-	strncpy(ifr.ifr_name, if_name, IFNAMESIZ - 1);
+	strncpy(ifr.ifr_name, if_name, IFNAMSIZ - 1);
 	if ((ret = ioctl(fd, TUNSETIFF, &ifr)) < 0) {
 		close(fd);
-		err(1, "ioctl %s error", dev);
+		err(1, "ioctl %s error %d", dev, errno);
 	}
-	strncpy(if_name, ifr.ifr_name, IFNAMESIZ - 1);
+	strncpy(if_name, ifr.ifr_name, IFNAMSIZ - 1);
 	return fd;
 }
 
@@ -60,7 +65,7 @@ void usage()
 int main(int argc, char *argv[])
 {
 	int c, tap_fd;
-	char if_name[IFNAMESIZ] = {0};
+	char if_name[IFNAMSIZ] = {0};
 	const char* remote_ip = NULL;
 	int cliserv = -1;
 	int port = 1080, flags = IFF_TAP;
@@ -73,7 +78,7 @@ int main(int argc, char *argv[])
 			usage();
 			break;
 		case 'i':
-			strncpy(if_name, optarg, IFNAMESIZ - 1);
+			strncpy(if_name, optarg, IFNAMSIZ - 1);
 			break;
 		case 's':
 			cliserv = SERVER;
