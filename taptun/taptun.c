@@ -12,6 +12,8 @@
 #include <sys/ioctl.h>
 #include <linux/if.h>
 #include <linux/if_tun.h>
+#include <arpa/inet.h>
+
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 int debug = 1;
 enum {
@@ -80,10 +82,10 @@ int isBroadcast(const char *buf)
 	return r;
 }
 
-int arp_request(void *buf)
+int arp_request(void *buf, int r)
 {
 	const struct arp *req = buf;
-	if (isBroadcast(req->DestMac)
+	if (r == sizeof(struct arp) && isBroadcast(req->DestMac)
 		&& req->FrameType == htons(0x0806)/*apply to both arp request & reply*/
 		&& req->HardType == htons(0x1)/*Ethernet*/
 		&& req->ProtType == htons(0x0800)/*IPV4, which means arp request asks .HardType hw address corresponding to .ProtType, ie ethernet address of ipv4 here*/
