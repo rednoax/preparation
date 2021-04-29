@@ -43,6 +43,7 @@ int tun_alloc(char *if_name, int flags)//if_name will be overwritten with the re
 char buf[1<<20];
 const char all0Mac[6] = {0};
 const char qemuMac[6] = {0x52, 0x54, 0x00};
+
 struct arp {//apply to both arp request and arp reply
 	char DestMac[6];
 	char SrcMac[6];
@@ -53,10 +54,11 @@ struct arp {//apply to both arp request and arp reply
 	char ProtSize;
 	short opcode;
 	char SenderMac[6];
-	int SenderIp;
+	unsigned int SenderIp;//changed to unsigned since >>
 	char TargetMac[6];
-	int TargetIp;
-} __attribute__((packed));
+	unsigned int TargetIp;
+} __attribute__((packed));//42B
+
 void dump(const char *buf, int len)
 {
 	int i;
@@ -72,9 +74,9 @@ void dump(const char *buf, int len)
 
 int isBroadcast(const char *buf)
 {
-	int r = 1, i = 0;
+	int i, r = 1;
 	for (i = 0; i < 6; i++) {
-		if (buf[i] != 0xff) {
+		if ((buf[i] & 0xff) != 0xff) {//precedence: != is one more higher than &
 			r = 0;
 			break;
 		}
@@ -85,17 +87,18 @@ int isBroadcast(const char *buf)
 int arp_request(void *buf, int r)
 {
 	const struct arp *req = buf;
+	int ret = 0;
 	if (r == sizeof(struct arp) && isBroadcast(req->DestMac)
 		&& req->FrameType == htons(0x0806)/*apply to both arp request & reply*/
 		&& req->HardType == htons(0x1)/*Ethernet*/
 		&& req->ProtType == htons(0x0800)/*IPV4, which means arp request asks .HardType hw address corresponding to .ProtType, ie ethernet address of ipv4 here*/
-		&& req->HardSize == 6 && req->ProtType == 4//For an arp request/reply for an IP address on an Ethernet, mac address is 6B and ip address is 4B
-		&& req->opcode == 1//1:arp request 2:arp reply;opcode is necessary since arp request/reply share the same .FrameType 0x0806
+		&& req->HardSize == 6 && req->ProtSize == 4//For an arp request/reply for an IP address on an Ethernet, mac address is 6B and ip address is 4B
+		&& req->opcode == htons(0x1)//1:arp request 2:arp reply;opcode is necessary since arp request/reply share the same .FrameType 0x0806
 		&& !memcmp(req->SenderMac, req->SrcMac, sizeof(req->SenderMac))
 		&& !memcmp(req->TargetMac, all0Mac, sizeof(req->TargetMac))) {
-		return 1;
+		ret = 1 ;
 	}
-	return 0;
+	return ret;//precedence:+- >><<
 }
 
 struct arp* arp_reply(void *buf)
@@ -104,13 +107,13 @@ struct arp* arp_reply(void *buf)
 	struct arp *reply = req + 1;
 	memcpy(reply->DestMac, req->SrcMac, sizeof(reply->DestMac));
 	memcpy(reply->SrcMac, qemuMac, sizeof(reply->SrcMac));
-	reply->SrcMac[6] = (req->TargetIp >> 12) & 0xff;
+	reply->SrcMac[5] = (req->TargetIp >> 24) & 0xff;
 	reply->FrameType = req->FrameType;
 	reply->HardType = req->HardType;
 	reply->ProtType = req->ProtType;
 	reply->HardSize = req->HardSize;
 	reply->ProtSize = req->ProtSize;
-	reply->opcode = 2;//1:arp request 2:arp reply
+	reply->opcode = htons(0x2);//1:arp request 2:arp reply
 	memcpy(reply->SenderMac, reply->SrcMac, sizeof(reply->SenderMac));
 	reply->SenderIp = req->TargetIp;
 	memcpy(reply->TargetMac, req->SenderMac, sizeof(reply->TargetMac));
@@ -141,8 +144,11 @@ void watch(int fd)
 				fds[0].events |= POLLOUT;
 		}
 		if (fds[0].revents & POLLOUT) {
+			struct arp *reply = arp_reply(buf);
 			fds[0].events &= ~POLLOUT;
-			write(fds[0].fd, arp_reply(buf), sizeof(struct arp));
+			r = write(fds[0].fd, reply, sizeof(struct arp));
+			/*printf("w %dB\n", r);
+			dump(reply, r);*/
 		}
 	}
 	err(1, "poll() error %d", r);//-1 or 0(timeout)
