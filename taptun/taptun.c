@@ -39,24 +39,38 @@ int tun_alloc(char *if_name, int flags)//if_name will be overwritten with the re
 }
 
 char buf[1<<20];
+void dump(const char *buf, int len)
+{
+	int i;
+	printf("%d bytes\n", len);
+	for (i = 0; i < len; i++) {
+		printf("%02x ", buf[i] & 0xff);
+		if ((i + 1) % 16 == 0)
+			printf("\n");
+	}
+	printf("\n");
+	fflush(stdout);
+}
 void watch(int fd)
 {
-	int i, r;
+	int i, r, w;
 	struct pollfd fds[] = {
 		[0] = {
 			.fd = fd,
 			.events = POLLIN,
 		},
 	};
-	int cfd = open("data.cap", O_CREAT | O_TRUNC, 0644);
+	//int cfd = open("data.cap", O_CREAT | O_TRUNC | O_RDWR, 0644);//droped as wireshark/tcpdump can't recognize such binary format.
 	while ((r = poll(fds, ARRAY_SIZE(fds), -1)) > 0) {
 		for (i = 0; i < ARRAY_SIZE(fds); i++) {
 			printf("%d: %x\n", fds[i].fd, fds[i].revents);
 		}
 		if (fds[0].revents & POLLIN) {
 			r = read(fds[0].fd, buf, sizeof(buf));
-			write(cfd, buf, r);
-			fsync(cfd);
+			/*w = write(cfd, buf, r);
+			warn("%d == %d?", r, w);
+			fsync(cfd);*/
+			dump(buf, r);
 		}
 	}
 	err(1, "poll() error %d", r);//-1 or 0(timeout)
