@@ -50,7 +50,7 @@ int main(int argc, char **argv)
 $ ./a.out -f 3
 1: 0 20
 
-poll stderr can also return POLLIN, -n specify no reading after POLLIN
+poll stderr can also return POLLIN, -n specify no reading after POLLIN, kernel main.c:init_post() sys_open("/dev/console", O_RDWR, 0) then dup(0) twice
 ./a.out -f 2 -n
 try fd > 2 <--warning, but stderr can also be poll()-ed with POLLIN
   <--[ENTER] is inputed
