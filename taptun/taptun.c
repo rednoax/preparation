@@ -89,7 +89,7 @@ int arp_request(void *buf, int r)
 	const struct arp *req = buf;
 	int ret = 0;
 	if (r == sizeof(struct arp) && isBroadcast(req->DestMac)
-		&& req->FrameType == htons(0x0806)/*apply to both arp request & reply*/
+		&& req->FrameType == htons(0x0806)/*apply to both arp request & reply; 0x0800:ipv4*/
 		&& req->HardType == htons(0x1)/*Ethernet*/
 		&& req->ProtType == htons(0x0800)/*IPV4, which means arp request asks .HardType hw address corresponding to .ProtType, ie ethernet address of ipv4 here*/
 		&& req->HardSize == 6 && req->ProtSize == 4//For an arp request/reply for an IP address on an Ethernet, mac address is 6B and ip address is 4B
@@ -120,6 +120,10 @@ struct arp* arp_reply(void *buf)
 	reply->TargetIp = req->SenderIp;
 	return reply;
 }
+/*
+If no reading for tap0, ie this program is not run. Wireshark can't capture
+anything even there is incoming sending like `ping 10.0.0.2`.
+*/
 void watch(int fd)
 {
 	int i, r, w;
