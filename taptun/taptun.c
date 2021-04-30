@@ -189,7 +189,12 @@ void usage()
 		"-h\n\n");
 	exit(1);
 }
-
+/*
+$sudo tunctl -u rednoah -t tap0
+$sudo ifconfig tap0 10.0.0.1<--then tap0 is up, no need to `ifconfig tap0 up` once more.
+$./a.out -i tap0
+$ping -c 1 10.0.0.[2,254]<-- will make ./a.out sends arp reply and ICMP reply.
+*/
 int main(int argc, char *argv[])
 {
 	int c, tap_fd;
