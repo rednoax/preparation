@@ -153,15 +153,12 @@ void watch(int fd)
 			warn("%d == %d?", r, w);
 			fsync(cfd);*/
 			dump(buf, r);
-			if (arp_request(buf, r))
-				fds[0].events |= POLLOUT;
-		}
-		if (fds[0].revents & POLLOUT) {
-			struct arp *reply = arp_reply(buf);
-			fds[0].events &= ~POLLOUT;
-			r = write(fds[0].fd, reply, sizeof(struct arp));
-			/*printf("w %dB\n", r);
-			dump(reply, r);*/
+			if (arp_request(buf, r)) {
+				struct arp *reply = arp_reply(buf);
+				r = write(fds[0].fd, reply, sizeof(struct arp));
+				/*printf("w %dB\n", r);
+				dump(reply, r);*/
+			}
 		}
 	}
 	err(1, "poll() error %d", r);//-1 or 0(timeout)
