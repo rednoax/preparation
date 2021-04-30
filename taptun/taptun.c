@@ -185,12 +185,12 @@ int checksum(const void *buf, int len)
 	return sum;
 }
 
-int icmp_request(void *buf, int r)
+int icmp_request(void *buf, int len)
 {
 	int cs, r = 0;
 	struct icmp *p = buf;
 	struct ip_header *ip = &p->ipHeader;
-	struct icmp_msg *icmp;
+	struct icmp_msg *icmp = &p->icmp;
 	if (macLocal(p->DestMac))
 		r |= 1 << 0;
 	if (p->FrameType == htons(0x0800) && p->ipHeader.prot == 1)//must be IPv4 packet and IP payload is ICMP
@@ -205,7 +205,7 @@ int icmp_request(void *buf, int r)
 		r |= 1 << 5;
 	cs = ip->check_sum;
 	ip->check_sum = 0x0;
-	if (checksum(header, ip->header_len) == cs)//1: ICMP
+	if (checksum(ip, ip->header_len) == cs)//1: ICMP
 		r |= 1 << 6;
 	ip->check_sum = cs;
 	if (icmp->type == 0x8 && icmp->code == 0)//echo request
