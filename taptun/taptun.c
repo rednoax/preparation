@@ -44,10 +44,14 @@ char buf[1<<20];
 const char all0Mac[6] = {0};
 const char qemuMac[6] = {0x52, 0x54, 0x00};
 
-struct arp {//apply to both arp request and arp reply
+struct EthernetHeader {
 	char DestMac[6];
 	char SrcMac[6];
 	short FrameType;
+} __attribute__((packed));
+
+struct arp {//apply to both arp request and arp reply
+	struct EthernetHeader ethHeader;
 	short HardType;
 	short ProtType;
 	char HardSize;
@@ -58,6 +62,11 @@ struct arp {//apply to both arp request and arp reply
 	char TargetMac[6];
 	unsigned int TargetIp;
 } __attribute__((packed));//42B
+
+#define DestMac ethHeader.DestMac
+#define SrcMac ethHeader.SrcMac
+#define FrameType ethHeader.FrameType
+
 
 void dump(const char *buf, int len)
 {
