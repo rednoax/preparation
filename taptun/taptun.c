@@ -47,7 +47,7 @@ const char qemuMac[6] = {0x52, 0x54, 0x00};
 struct EthernetHeader {
 	char DestMac[6];
 	char SrcMac[6];
-	short FrameType;
+	short FrameType;//demultiplex IP/ARP/RARP
 } __attribute__((packed));
 
 struct arp {//apply to both arp request and arp reply
@@ -63,6 +63,36 @@ struct arp {//apply to both arp request and arp reply
 	unsigned int TargetIp;
 } __attribute__((packed));//42B
 
+struct ip_header {
+	int ver: 4;
+	int header_len: 4;
+	char tos;//type of service
+	short total_len;//sizeof(ip_header) + data bytes, by which we know where the data portion of IP datagram starts and its length
+	short id;
+	int flags: 3;
+	int fragment_offset: 13;
+	char ttl;
+	char prot;//demultiplex IP packet:ICMP/IGMP/TCP/UDP is 1/2/6/17
+	short check_sum;
+	int src_ip;
+	int dst_ip;
+	char options[0];
+	//char data[]
+} __attribute__((packed));//20B
+
+struct icmp_msg {//apply to both request&reply
+	char type;
+	char code;
+	short checksum;
+	short id;
+	short seq;
+	char optional[0];
+};
+struct icmp {
+	struct EthernetHeader ethHeader;
+	struct ip_header ipHeader;
+	struct icmp_msg icmp;
+};
 #define DestMac ethHeader.DestMac
 #define SrcMac ethHeader.SrcMac
 #define FrameType ethHeader.FrameType
@@ -129,6 +159,65 @@ struct arp* arp_reply(void *buf)
 	reply->TargetIp = req->SenderIp;
 	return reply;
 }
+
+int macLocal(const char mac[])
+{
+	int r = 0;
+	if (!memcmp(mac, qemuMac, 5) && mac[5] >= 2 && mac[5] <= 254)
+		r = 1;
+	return r;
+}
+
+int checksum(const void *buf, int len)
+{
+	int i, sum = 0, h, l;
+	const short *p = buf;
+	for (i = 0; i < len; i += 2)
+		sum += *p++;
+	for (;;) {
+		h = (sum >> 16) & 0xffff;
+		l = sum & 0xffff;
+		if (h == 0)
+			break;
+		sum = h + l;
+	}
+	printf("cs: %x\n", sum);
+	return sum;
+}
+
+int icmp_request(void *buf, int r)
+{
+	int cs, r = 0;
+	struct icmp *p = buf;
+	struct ip_header *ip = &p->ipHeader;
+	struct icmp_msg *icmp;
+	if (macLocal(p->DestMac))
+		r |= 1 << 0;
+	if (p->FrameType == htons(0x0800) && p->ipHeader.prot == 1)//must be IPv4 packet and IP payload is ICMP
+		r |= 1 << 1;
+	if (ip->ver == 0x4)//must be IPv4
+		r |= 1 << 2;
+	if (ip->header_len == 5)//unit:4B, there must be no options field in IP header, ie the header is 5*4==20B;
+		r |= 1 << 3;
+	if (ip->tos == 0)//must be normal service
+		r |= 1 << 4;
+	if (ip->flags == 0 && ip->fragment_offset == 0)
+		r |= 1 << 5;
+	cs = ip->check_sum;
+	ip->check_sum = 0x0;
+	if (checksum(header, ip->header_len) == cs)//1: ICMP
+		r |= 1 << 6;
+	ip->check_sum = cs;
+	if (icmp->type == 0x8 && icmp->code == 0)//echo request
+		r |= 1 << 7;
+	cs = icmp->checksum;
+	icmp->checksum = 0;
+	if (checksum(icmp, ip->total_len - ip->header_len) == cs)
+		r |= 1 << 8;
+	icmp->checksum = cs;
+	printf("r %x\n", r);
+	return r == (1 << 9) - 1;//precedence: +-   <<>>  ==
+}
 /*
 If no reading for tap0, ie this program is not run. Wireshark can't capture
 anything even there is incoming sending like `ping 10.0.0.2`.
@@ -158,6 +247,8 @@ void watch(int fd)
 				r = write(fds[0].fd, reply, sizeof(struct arp));
 				/*printf("w %dB\n", r);
 				dump(reply, r);*/
+			} else if (icmp_request(buf, r)) {
+
 			}
 		}
 	}
