@@ -242,14 +242,15 @@ struct icmp *icmp_reply(void *buf, int len)//(buf + 1) will increment buf's valu
 /*as with other ICMP query messages, the server MUST echo the identifier and sequence number fields.
 Also, any optional data sent by the client must be echoed. So a memcpy is needed first.*/
 	//printf("copy %ld %d %d\n", sizeof(struct icmp), offsetof(struct icmp, ipHeader), offsetof(struct icmp, icmp));
-	hlen = d->ipHeader.header_len * 4;
-	icmplen = ntohs(d->ipHeader.total_len) - hlen;
+	hlen = s->ipHeader.header_len * 4;
+	icmplen = ntohs(s->ipHeader.total_len) - hlen;
 	memcpy(d, s, offsetof(struct icmp, icmp) + icmplen);
 	memcpy(d->SrcMac, s->DstMac, sizeof(s->DstMac));
 	memcpy(d->DstMac, s->SrcMac, sizeof(s->SrcMac));
 	d->ipHeader.id = htons(getpid());
 	memcpy(&d->ipHeader.src_ip, &s->ipHeader.dst_ip, sizeof(s->ipHeader.dst_ip));
 	memcpy(&d->ipHeader.dst_ip, &s->ipHeader.src_ip, sizeof(s->ipHeader.src_ip));
+	//printf("reply %d %d\n", hlen, icmplen);
 	checksum(&d->ipHeader, hlen, offsetof(struct ip_header, checksum), 0);
 	d->icmp.type = 0;//0/8: echo ping reply/request
 	checksum(&d->icmp, icmplen, offsetof(struct icmp_msg, checksum), 0);
