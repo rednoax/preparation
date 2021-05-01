@@ -46,7 +46,7 @@ const char all0Mac[6] = {0};
 const char qemuMac[6] = {0x52, 0x54, 0x00};
 
 struct EthernetHeader {
-	char DestMac[6];
+	char DstMac[6];
 	char SrcMac[6];
 	short FrameType;//demultiplex IP/ARP/RARP
 } __attribute__((packed));
@@ -94,7 +94,7 @@ struct icmp {
 	struct ip_header ipHeader;
 	struct icmp_msg icmp;
 };
-#define DestMac ethHeader.DestMac
+#define DstMac ethHeader.DstMac
 #define SrcMac ethHeader.SrcMac
 #define FrameType ethHeader.FrameType
 
@@ -128,7 +128,7 @@ int arp_request(void *buf, int r)
 {
 	const struct arp *req = buf;
 	int ret = 0;
-	if (r == sizeof(struct arp) && isBroadcast(req->DestMac)
+	if (r == sizeof(struct arp) && isBroadcast(req->DstMac)
 		&& req->FrameType == htons(0x0806)/*apply to both arp request & reply; 0x0800:ipv4*/
 		&& req->HardType == htons(0x1)/*Ethernet*/
 		&& req->ProtType == htons(0x0800)/*IPV4, which means arp request asks .HardType hw address corresponding to .ProtType, ie ethernet address of ipv4 here*/
@@ -145,7 +145,7 @@ struct arp* arp_reply(void *buf)
 {
 	struct arp *req = buf;
 	struct arp *reply = req + 1;
-	memcpy(reply->DestMac, req->SrcMac, sizeof(reply->DestMac));
+	memcpy(reply->DstMac, req->SrcMac, sizeof(reply->DstMac));
 	memcpy(reply->SrcMac, qemuMac, sizeof(reply->SrcMac));
 	reply->SrcMac[5] = (req->TargetIp >> 24) & 0xff;
 	reply->FrameType = req->FrameType;
@@ -174,27 +174,26 @@ int checksum(void *_buf, int len, int offset, int check)
 {
 	int i, ret = 0;
 	unsigned short *s;
-	unsigned char *buf = _buf;
 	unsigned int sum = 0;
-	dump(_buf, len);
+	//dump(_buf, len);
 	for (i = 0; i < len; i += 2) {
 		if (i == offset)
 			continue;
 		s = _buf + i;
 		sum += ntohs(*s);
-		printf("%04x %04x\n", ntohs(*s), sum);
+		//printf("%04x %04x\n", ntohs(*s), sum);
 	}
 	while (sum & 0xffff0000)
 		sum = (sum >> 16) + (sum & 0xffff);
 	sum = ~sum & 0xffff;//precedence: ~  &
 	sum = htons(sum);
 	s = _buf + offset;
-	printf("%04x==%04x?\n", sum, *s);
+	//printf("%04x==%04x?\n", sum, *s);
 	if (check && *s == sum)
 		ret = 1;
 	else
 		*s = sum;
-	dump(_buf, len);
+	//dump(_buf, len);
 	return ret;
 }
 
@@ -204,7 +203,7 @@ int icmp_request(void *buf, int len)
 	struct icmp *p = buf;
 	struct ip_header *ip = &p->ipHeader;
 	struct icmp_msg *icmp = &p->icmp;
-	if (macLocal(p->DestMac))
+	if (macLocal(p->DstMac))
 		r |= 1 << 0;
 	if (p->FrameType == htons(0x0800) && p->ipHeader.prot == 1)//must be IPv4 packet and IP payload is ICMP
 		r |= 1 << 1;
@@ -224,8 +223,28 @@ int icmp_request(void *buf, int len)
 		r |= 1 << 6;
 	if (checksum(icmp, ntohs(ip->total_len) - hlen, offsetof(struct icmp_msg, checksum), 1))
 		r |= 1 << 7;
-	printf("r %x\n", r);
+	//printf("r %x\n", r);
 	return r == (1 << 8) - 1;//precedence: +-   <<>>  ==
+}
+
+struct icmp *icmp_reply(void *buf, int len)//(buf + 1) will increment buf's value by 1
+{
+	struct icmp *s = buf, *d = s + 1;
+	int hlen;
+	//printf("%p %p\n", buf, buf + 1);
+/*as with other ICMP query messages, the server MUST echo the identifier and sequence number fields.
+Also, any optional data sent by the client must be echoed. So a memcpy is needed first.*/
+	memcpy(d, s, sizeof(struct icmp));
+	memcpy(d->SrcMac, s->DstMac, sizeof(s->DstMac));
+	memcpy(d->DstMac, s->SrcMac, sizeof(s->SrcMac));
+	d->ipHeader.id = htons(getpid());
+	memcpy(d->ipHeader.src_ip, s->ipHeader.dst_ip, sizeof(s->ipHeader.dst_ip));
+	memcpy(d->ipHeader.dst_ip, s->ipHeader.src_ip, sizeof(s->ipHeader.src_ip));
+	hlen = d->ipHeader.header_len * 4;
+	checksum(&d->ipHeader, hlen, offsetof(struct ip_header, checksum), 0);
+	d->icmp.type = 0;//0/8: echo ping reply/request
+	checksum(&d->icmp.checksum, ntohs(d->ipHeader.total_len) - hlen, offset(struct icmp, checksum), 0);
+	return d;
 }
 /*
 If no reading for tap0, ie this program is not run. Wireshark can't capture
@@ -257,7 +276,8 @@ void watch(int fd)
 				/*printf("w %dB\n", r);
 				dump(reply, r);*/
 			} else if (icmp_request(buf, r)) {
-
+				struct icmp *reply = icmp_reply(buf, r);
+				r = write(fds[0].fd, reply, r);
 			}
 		}
 	}
