@@ -72,7 +72,7 @@ void watch(int fd)
 	};
 	while ((r = poll(fds, ARRAY_SIZE(fds), -1)) > 0) {
 		for (i = 0; i < ARRAY_SIZE(fds); i++) {
-			printf("%d: %x\n", fds[i].fd, fds[i].revents);
+			fprintf(stderr, "%d: %x\n", fds[i].fd, fds[i].revents);
 		}
 		if (fds[0].revents & POLLIN) {
 			r = read(fds[0].fd, buf, sizeof(buf));
