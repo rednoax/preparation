@@ -238,12 +238,12 @@ Also, any optional data sent by the client must be echoed. So a memcpy is needed
 	memcpy(d->SrcMac, s->DstMac, sizeof(s->DstMac));
 	memcpy(d->DstMac, s->SrcMac, sizeof(s->SrcMac));
 	d->ipHeader.id = htons(getpid());
-	memcpy(d->ipHeader.src_ip, s->ipHeader.dst_ip, sizeof(s->ipHeader.dst_ip));
-	memcpy(d->ipHeader.dst_ip, s->ipHeader.src_ip, sizeof(s->ipHeader.src_ip));
+	memcpy(&d->ipHeader.src_ip, &s->ipHeader.dst_ip, sizeof(s->ipHeader.dst_ip));
+	memcpy(&d->ipHeader.dst_ip, &s->ipHeader.src_ip, sizeof(s->ipHeader.src_ip));
 	hlen = d->ipHeader.header_len * 4;
 	checksum(&d->ipHeader, hlen, offsetof(struct ip_header, checksum), 0);
 	d->icmp.type = 0;//0/8: echo ping reply/request
-	checksum(&d->icmp.checksum, ntohs(d->ipHeader.total_len) - hlen, offset(struct icmp, checksum), 0);
+	checksum(&d->icmp.checksum, ntohs(d->ipHeader.total_len) - hlen, offsetof(struct icmp_msg, checksum), 0);
 	return d;
 }
 /*
