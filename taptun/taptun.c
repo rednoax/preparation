@@ -13,6 +13,7 @@
 #include <linux/if.h>
 #include <linux/if_tun.h>
 #include <arpa/inet.h>
+#include <stddef.h>//offsetof
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 int debug = 1;
@@ -64,16 +65,16 @@ struct arp {//apply to both arp request and arp reply
 } __attribute__((packed));//42B
 
 struct ip_header {
-	int ver: 4;
 	int header_len: 4;
+	int ver: 4;
 	char tos;//type of service
 	short total_len;//sizeof(ip_header) + data bytes, by which we know where the data portion of IP datagram starts and its length
 	short id;
-	int flags: 3;
 	int fragment_offset: 13;
+	int flags: 3;
 	char ttl;
 	char prot;//demultiplex IP packet:ICMP/IGMP/TCP/UDP is 1/2/6/17
-	short check_sum;
+	short checksum;//checksum of ip_header only
 	int src_ip;
 	int dst_ip;
 	char options[0];
@@ -142,7 +143,7 @@ int arp_request(void *buf, int r)
 
 struct arp* arp_reply(void *buf)
 {
-	const struct arp *req = buf;
+	struct arp *req = buf;
 	struct arp *reply = req + 1;
 	memcpy(reply->DestMac, req->SrcMac, sizeof(reply->DestMac));
 	memcpy(reply->SrcMac, qemuMac, sizeof(reply->SrcMac));
@@ -163,31 +164,43 @@ struct arp* arp_reply(void *buf)
 int macLocal(const char mac[])
 {
 	int r = 0;
-	if (!memcmp(mac, qemuMac, 5) && mac[5] >= 2 && mac[5] <= 254)
+	unsigned char c = mac[5] & 0xff;//don't use signed char as 254 >= 2 is false for signed char
+	if (!memcmp(mac, qemuMac, 5) && c >= 2 && c <= 254)
 		r = 1;
 	return r;
 }
 
-int checksum(const void *buf, int len)
+int checksum(const void *_buf, int len, int offset, int check)
 {
-	int i, sum = 0, h, l;
-	const short *p = buf;
-	for (i = 0; i < len; i += 2)
-		sum += *p++;
-	for (;;) {
-		h = (sum >> 16) & 0xffff;
-		l = sum & 0xffff;
-		if (h == 0)
-			break;
-		sum = h + l;
+	int i, ret = 0;
+	unsigned short *s;
+	const unsigned char *buf = _buf;
+	unsigned int sum = 0;
+	dump(_buf, len);
+	for (i = 0; i < len; i += 2) {
+		if (i == offset)
+			continue;
+		s = _buf + i;
+		sum += ntohs(*s);
+		printf("%04x %04x\n", ntohs(*s), sum);
 	}
-	printf("cs: %x\n", sum);
-	return sum;
+	while (sum & 0xffff0000)
+		sum = (sum >> 16) + sum & 0xffff;
+	sum = ~sum & 0xffff;//precedence: ~  &
+	sum = htons(sum);
+	s = _buf + offset;
+	printf("%04x==%04x?\n", sum, *s);
+	if (check && *s == sum)
+		ret = 1;
+	else
+		*s = sum;
+	dump(_buf, len);
+	return ret;
 }
 
 int icmp_request(void *buf, int len)
 {
-	int cs, r = 0;
+	int r = 0, hlen;
 	struct icmp *p = buf;
 	struct ip_header *ip = &p->ipHeader;
 	struct icmp_msg *icmp = &p->icmp;
@@ -201,22 +214,18 @@ int icmp_request(void *buf, int len)
 		r |= 1 << 3;
 	if (ip->tos == 0)//must be normal service
 		r |= 1 << 4;
-	if (ip->flags == 0 && ip->fragment_offset == 0)
+	/*printf("f %x %x\n", ip->flags, ip->fragment_offset);
+	if (ip->flags == 0x2 && ip->fragment_offset == 0)
+		r |= 1 << 5;*/
+	hlen = ip->header_len * 4;
+	if (checksum(ip, hlen, offsetof(struct ip_header, checksum), 1))//
 		r |= 1 << 5;
-	cs = ip->check_sum;
-	ip->check_sum = 0x0;
-	if (checksum(ip, ip->header_len) == cs)//1: ICMP
-		r |= 1 << 6;
-	ip->check_sum = cs;
 	if (icmp->type == 0x8 && icmp->code == 0)//echo request
+		r |= 1 << 6;
+	if (checksum(icmp, ntohs(ip->total_len) - hlen, offsetof(struct icmp_msg, checksum), 1))
 		r |= 1 << 7;
-	cs = icmp->checksum;
-	icmp->checksum = 0;
-	if (checksum(icmp, ip->total_len - ip->header_len) == cs)
-		r |= 1 << 8;
-	icmp->checksum = cs;
 	printf("r %x\n", r);
-	return r == (1 << 9) - 1;//precedence: +-   <<>>  ==
+	return r == (1 << 8) - 1;//precedence: +-   <<>>  ==
 }
 /*
 If no reading for tap0, ie this program is not run. Wireshark can't capture
