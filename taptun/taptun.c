@@ -170,11 +170,11 @@ int macLocal(const char mac[])
 	return r;
 }
 
-int checksum(const void *_buf, int len, int offset, int check)
+int checksum(void *_buf, int len, int offset, int check)
 {
 	int i, ret = 0;
 	unsigned short *s;
-	const unsigned char *buf = _buf;
+	unsigned char *buf = _buf;
 	unsigned int sum = 0;
 	dump(_buf, len);
 	for (i = 0; i < len; i += 2) {
@@ -185,7 +185,7 @@ int checksum(const void *_buf, int len, int offset, int check)
 		printf("%04x %04x\n", ntohs(*s), sum);
 	}
 	while (sum & 0xffff0000)
-		sum = (sum >> 16) + sum & 0xffff;
+		sum = (sum >> 16) + (sum & 0xffff);
 	sum = ~sum & 0xffff;//precedence: ~  &
 	sum = htons(sum);
 	s = _buf + offset;
