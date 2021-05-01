@@ -56,7 +56,42 @@ void dump(const void *_buf, int len)
 	printf("\n");
 	fflush(stdout);
 }
+/*
+1.an application use standard socket api rather than ioctl() like tun_alloc() will use tapX's ip directly.
+eg ping from 10.0.0.1 will generate ICMP packet with source ip==10.0.0.1;
+ssh client from 10.0.0.1 will generate tcp packet with source ip==10.0.0.1;
+2.
+vm1 192.168.193.129:
+$ sudo tunctl -t tap0 -u rednoah
+$ sudo ifconfig tap0 10.0.0.1
 
+vm2 192.168.1.147:
+$ sudo tunctl -t tap0 -u rednoah
+$ sudo ifconfig tap0 10.0.0.2
+$ nc -l 192.168.1.147 1080 <~/tmp/fifo | sudo ./a.out -i tap0 >~/tmp/fifo
+
+vm1 ping 10.0.0.2, fails!
+PING 10.0.0.2 (10.0.0.2) 56(84) bytes of data.
+From 10.0.0.1 icmp_seq=1 Destination Host Unreachable
+
+vm1:
+$ sudo ./a.out -i tap0 <fifo |nc 192.168.1.147 1080 >fifo
+
+then launch ping from vm1 in another terminal and ping is ok.
+
+vm1 ssh client connects vm2 tap0 10.0.0.2's ssh server from 10.0.0.1
+$ ssh rednoah@10.0.0.2
+rednoah@10.0.0.2's password:
+Welcome to Ubuntu 20.04.2 LTS (GNU/Linux 5.8.18 x86_64)<--vm2:20.04 vm1:18.04
+
+NOTE:after vm1上的程序退出后, vm2上的a.out会频繁报:POLLHUP for STDIN_FILENO, 原因是?
+首先看看vm1的程序没有断开之前 vm2上运行ps aux的结果同时包含nc server和a.out, 注意ps –efj显示前者并非后者父进程
+rednoah     4658  0.0  0.0   3260   828 pts/0    S+   03:19   0:00 nc -l 192.168.1.147 1080
+root        4659  0.0  0.0  11920  4572 pts/0    S+   03:19   0:00 sudo ./a.out -i tap0
+vm1客户端退出后,vm2上的nc server退出了,但是a.out还在, nc server将接收到的网络数据传给a.out的stdin, 对a.out而言
+其位于管道的读端, 而nc sever位于管道的写端, 据LPI表63-4:处于pipe or fifo读端的poll()返回POLLHUP说明
+Data in pip? no. Write end open? no.
+*/
 void watch(int fd)
 {
 	int i, r, w;
@@ -73,6 +108,8 @@ void watch(int fd)
 	while ((r = poll(fds, ARRAY_SIZE(fds), -1)) > 0) {
 		for (i = 0; i < ARRAY_SIZE(fds); i++) {
 			fprintf(stderr, "%d: %x\n", fds[i].fd, fds[i].revents);
+			if (fds[0].revents & POLLHUP)//write end NOT open and no data in pipe, see comment 2
+				return;
 		}
 		if (fds[0].revents & POLLIN) {
 			r = read(fds[0].fd, buf, sizeof(buf));
