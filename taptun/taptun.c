@@ -88,20 +88,23 @@ struct icmp_msg {//apply to both request&reply
 	short id;
 	short seq;
 	char optional[0];
-};
+} __attribute__((packed));
+
 struct icmp {
-	struct EthernetHeader ethHeader;
-	struct ip_header ipHeader;
-	struct icmp_msg icmp;
-};
+	struct EthernetHeader ethHeader;//14B
+	struct ip_header ipHeader;//20B
+	struct icmp_msg icmp;//8B
+} __attribute__((packed));
+
 #define DstMac ethHeader.DstMac
 #define SrcMac ethHeader.SrcMac
 #define FrameType ethHeader.FrameType
 
 
-void dump(const char *buf, int len)
+void dump(const void *_buf, int len)
 {
 	int i;
+	const char *buf = _buf;
 	printf("%d bytes\n", len);
 	for (i = 0; i < len; i++) {
 		printf("%02x ", buf[i] & 0xff);
@@ -191,8 +194,12 @@ int checksum(void *_buf, int len, int offset, int check)
 	//printf("%04x==%04x?\n", sum, *s);
 	if (check && *s == sum)
 		ret = 1;
-	else
+	else {
+		//dump(_buf, len);
 		*s = sum;
+		//printf("=%08x\n", sum);
+		//dump(_buf, len);
+	}
 	//dump(_buf, len);
 	return ret;
 }
@@ -230,20 +237,22 @@ int icmp_request(void *buf, int len)
 struct icmp *icmp_reply(void *buf, int len)//(buf + 1) will increment buf's value by 1
 {
 	struct icmp *s = buf, *d = s + 1;
-	int hlen;
+	int hlen, icmplen;
 	//printf("%p %p\n", buf, buf + 1);
 /*as with other ICMP query messages, the server MUST echo the identifier and sequence number fields.
 Also, any optional data sent by the client must be echoed. So a memcpy is needed first.*/
-	memcpy(d, s, sizeof(struct icmp));
+	//printf("copy %ld %d %d\n", sizeof(struct icmp), offsetof(struct icmp, ipHeader), offsetof(struct icmp, icmp));
+	hlen = d->ipHeader.header_len * 4;
+	icmplen = ntohs(d->ipHeader.total_len) - hlen;
+	memcpy(d, s, offsetof(struct icmp, icmp) + icmplen);
 	memcpy(d->SrcMac, s->DstMac, sizeof(s->DstMac));
 	memcpy(d->DstMac, s->SrcMac, sizeof(s->SrcMac));
 	d->ipHeader.id = htons(getpid());
 	memcpy(&d->ipHeader.src_ip, &s->ipHeader.dst_ip, sizeof(s->ipHeader.dst_ip));
 	memcpy(&d->ipHeader.dst_ip, &s->ipHeader.src_ip, sizeof(s->ipHeader.src_ip));
-	hlen = d->ipHeader.header_len * 4;
 	checksum(&d->ipHeader, hlen, offsetof(struct ip_header, checksum), 0);
 	d->icmp.type = 0;//0/8: echo ping reply/request
-	checksum(&d->icmp.checksum, ntohs(d->ipHeader.total_len) - hlen, offsetof(struct icmp_msg, checksum), 0);
+	checksum(&d->icmp, icmplen, offsetof(struct icmp_msg, checksum), 0);
 	return d;
 }
 /*
