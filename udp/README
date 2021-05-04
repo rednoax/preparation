@@ -126,7 +126,8 @@ e. this FIN_WAIT2 will disappear after some time as it is full-close; But CLOSE_
 f. no matter if FIN_WAIT2 is still on: send() return ok: eg send() 'bye\n' return 4, wireshark can see the packet
   sent from s to c, but client return immediately one 'RST' packet to server. If FIN_WAIT2 is on before send():
   netstat shows both FIN_WAIT2 of client and CLOSE_WAIT of server disappeared at this moment. If FIN_WAIT2 has been off before send():
-  netstat shows CLOSE_WAIT of server disappeared at this moment.
+  netstat shows CLOSE_WAIT of server disappeared at this moment. (Sever kernel tcp modules knows the client peer can't rx data anymore so
+  the server's further write() to socket becomes meaningless. So POLLHUP emits?)
   And poll() return at once and its
   client socket .revent becomes  0x1d(POLLHUP|POLLERR|POLLOUT|POLLIN) from old status 0x5(POLLIN|POLLOUT). The data sent before is actually
   really send to peer but peer will not really receive it.
