@@ -15,6 +15,8 @@
 #include <arpa/inet.h>
 #include <stddef.h>//offsetof
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 int debug = 1;
@@ -62,27 +64,31 @@ void dump(const void *_buf, int len)
 If no reading for tap0, ie this program is not run. Wireshark can't capture
 anything even there is incoming sending like `ping 10.0.0.2`.
 */
-void relay(int s, int c)
+void relay(int s, int tap)
 {
 	int i, r, w;
+	(void)w;
 	struct pollfd fds[] = {
 		[0] = {
 			.fd = s,
 			.events = POLLIN,
 		},
 		[1] = {
-			.fd = c,
+			.fd = tap,
 			.events = POLLIN,
 		},
 	};
+	printf("%d %d\n", s, tap);
 	while ((r = poll(fds, ARRAY_SIZE(fds), -1)) > 0) {
 		for (i = 0; i < ARRAY_SIZE(fds); i++) {
-			printf("%d: %x\n", fds[i].fd, fds[i].revents);
+			printf("%d: %d %x\n", i, fds[i].fd, fds[i].revents);
 			if (fds[i].revents & (POLLNVAL | POLLHUP))
 				return;
 		}
 		if (fds[0].revents & POLLIN) {
 			r = read(fds[0].fd, buf, sizeof(buf));
+			if (r == 0)//peer close() or SHUT_WR
+				return;
 			w = write(fds[1].fd, buf, r);
 		}
 		if (fds[1].revents & POLLIN) {
@@ -119,22 +125,35 @@ void usage()
 	exit(1);
 }
 /*
+vm1@192.168.193.129(NAT)
+$ sudo tunctl -t tap0 -u rednoah
+Set 'tap0' persistent and owned by uid 1000
+$ sudo ifconfig tap0 10.0.0.1
+$ sudo ./a.out -i tap0 -c 192.168.1.147
+==
+$ sudo ./a.out -i tap0 -c 10.0.0.2<--don't use a wrong ip address
+ioctl 'tap0'=>'tap0': 0
+connected to tap0
+a.out: connect(): No route to host
+==
+vm2@192.168.1.147(BRIDGED):
 $sudo tunctl -u rednoah -t tap0
-$sudo ifconfig tap0 10.0.0.1<--then tap0 is up, no need to `ifconfig tap0 up` once more.
-$./a.out -i tap0
-$ping -c 1 10.0.0.[2,254]<-- will make ./a.out sends arp reply and ICMP reply.
+$sudo ifconfig tap0 10.0.0.2
+$sudo ./a.out -i tap0 -s<==then ssh 10.0.0.1 at vm2 or ssh 10.0.0.2 at vm1 can work at the same time.
 */
 int main(int argc, char *argv[])
 {
-	int c, tap_fd, s, ret;
+	int c, tap_fd, s;
 	char if_name[IFNAMSIZ] = {0};
 	const char* remote_ip = NULL;
 	int cliserv = -1;
 	int port = 1080, flags = IFF_TAP;//2layer ethernet frame default, rather than 3layer IP packet
 	struct sockaddr_in addr = {
 		.sin_family = AF_INET,
-		.sin_addr = htonl(INADDR_ANY),
-		.sin_port = htons(1080),
+		.sin_addr = {
+			htonl(INADDR_ANY)
+		},
+		.sin_port = htons(port),
 	};
 	while ((c = getopt(argc, argv, "i:sc:p:uahd")) != -1) {
 		switch (c) {
@@ -155,7 +174,7 @@ int main(int argc, char *argv[])
 			remote_ip = optarg;
 			break;
 		case 'p':
-			port = atoi(optarg);
+			addr.sin_port = htons(atoi(optarg));
 			break;
 		case 'u':
 			flags = IFF_TUN;
@@ -196,27 +215,28 @@ int main(int argc, char *argv[])
 	if (s == -1)
 		err(1, "socket err");
 	if (cliserv == SERVER) {
-		int len = sizeof(struct sockaddr_in), x = 1;
+		char peer[INET_ADDRSTRLEN];
+		unsigned int len = sizeof(struct sockaddr_in), x = 1;
 		if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &x, sizeof(x)) == -1)
 			err(1, "setsockopt");
 		if (bind(s, (struct sockaddr*)&addr, sizeof(struct sockaddr_in)) == -1)
 			err(1, "bind err");
 		if (listen(s, 0) == -1)
 			err(1, "listen err");
-		c = accept(s, &addr, &len);
+		c = accept(s, (struct sockaddr*)&addr, &len);
+		fprintf(stderr, "accept peer %s:%d\n", inet_ntop(addr.sin_family, &addr.sin_addr, peer, sizeof(peer)),
+			ntohs(addr.sin_port));
 		if (c == -1)
 			err(1, "accept");
-		relay(s, c);
+		relay(c, tap_fd);
 		close(c);
-		close(s);
 	} else {
-		addr.sin_addr = htonl(atoi(remote_ip));
-		if (connect(s, &addr, sizeof(struct sockaddr_in)) == -1)
+		inet_pton(addr.sin_family, remote_ip, &addr.sin_addr);
+		if (connect(s, (struct sockaddr*)&addr, sizeof(struct sockaddr_in)) == -1)
 			err(1, "connect()");
-		relay(s, c);
-		close(c);
-		close(s);
+		relay(s, tap_fd);
 	}
-	watch(tap_fd);
+	close(s);
+	close(tap_fd);
 	return 0;
 }

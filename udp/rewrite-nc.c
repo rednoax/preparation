@@ -16,7 +16,7 @@
 #include <limits.h>
 #include <fcntl.h>
 
-#if 0
+#if 10
 #define debug(fmt, arg...) printf(fmt, ##arg)
 #else
 #define debug(fmt, arg...) do{}while(0)
@@ -501,8 +501,10 @@ peer, this also produces both the readable and writable situation. In that case,
 getsockopt() function can be used to determine whether an error has occurred.*/
 		if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &ret, &len) == -1)//SO_ERROR:return and clear pending socket error
 			err(1, "getsockopt error");
-		if (ret != 0)
+		if (ret != 0) {
+			printf("**%d:", ret);
 			errno = ret;
+		}
 	}
 	fcntl(fd, F_SETFL, org_flags);
 	return ret != 0 ? CONNECTION_FAILED: CONNECTION_SUCCESS;//!= is higher than ?:
@@ -581,7 +583,7 @@ from the 2nd client.
 */
 		if ((error = connect_with_timeout(s, res->ai_addr, res->ai_addrlen, timeout)) == CONNECTION_SUCCESS)
 			break;
-		warn("connect to %s:%p (%s) err %d", host, port, uflag? "udp": "tcp", error);
+		warn("connect to %s:%s (%s) err %d", host, port, uflag? "udp": "tcp", error);
 		save_errno = errno;
 		close(s);
 		errno = save_errno;
