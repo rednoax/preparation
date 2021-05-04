@@ -1,0 +1,67 @@
+---------
+connect error enumeration:
+1. 111==ECONNREFUSED
+if connect() to a non existing port, tcpdum shows peer return RST and 'Connection refused' is got locally at once:
+$ ./rewrite-nc.out 127.0.0.1 9999
+connect() ok?
+**111 4B:rewrite-nc.out: connect to 127.0.0.1:9999 (tcp) err 1: Connection refused
+rewrite-nc.out: connect error: Connection refused
+
+
+2. 113==EHOSTUNREACH(no route to host):
+Frist let's see normal setup sequence on vm1 and vm2:
+vm1@192.168.193.129(NAT)
+$ sudo tunctl -t tap0 -u rednoah
+Set 'tap0' persistent and owned by uid 1000
+$ sudo ifconfig tap0 10.0.0.1
+$ sudo ./relay.out -i tap0 -c 192.168.1.147
+vm2@192.168.1.147(BRIDGED):
+$sudo tunctl -u rednoah -t tap0
+$sudo ifconfig tap0 10.0.0.2
+$sudo ./relay.out -i tap0 -s <==then ssh 10.0.0.1 at vm2 or ssh 10.0.0.2 at vm1 can work at the same time.
+
+a.IF BOTH SIDE DON'T START relay.out:
+run the following on vm1
+$ ./rewrite-nc.out 10.0.0.2 22
+connect() ok?
+**113 4B:rewrite-nc.out: connect to 10.0.0.2:22 (tcp) err 1: No route to host
+rewrite-nc.out: connect error: No route to host
+
+and tcpdump
+$ sudo tcpdump  -nn -i tap0 -i lo<--if only -i tap0, no any output. But if use -i lo only, there is tap0's ip packets flow also! Strange!
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on lo, link-type EN10MB (Ethernet), capture size 262144 bytes
+13:51:36.302309 IP 10.0.0.1 > 10.0.0.1: ICMP host 10.0.0.2 unreachable, length 68
+
+b.if vm1's relay.out is not launched but vm2's replay.out is launched. There is
+'No route to host' still as the packet can't arrive 10.0.0.2 at last.
+
+3. ETIMEDOUT(time out)
+If the normal sequnce of 2 is partly finished: Neither run reply.out, ie no packet from vm1 will be relayed
+to vm2:make vm1 connect() a non existing ip and port:
+$ sudo arp -s 10.0.0.2 12:34:56:78:9a:bc<--to avoid 'No route to host' error
+$ arp -an
+...
+? (10.0.0.2) at 12:34:56:78:9a:bc [ether] PERM on tap0<--the manually added entry for 10.0.0.2 works
+
+NOTE the following rewrite-nc.out's select()'s timeout is NULL ie select() will AL wait. And the socket connect() uses
+has been set to O_NONBLOCK. Even so connect() still has a timeout of 120s.
+$ date;./rewrite-nc.out 10.0.0.2 9999;date
+Tue May  4 15:59:19 CST 2021<--the 1st of 2 to display
+
+//<--manually added blank line from keyboard input
+connect() ok?<--this line and its following is the 2nd of 2 to display.
+**110 4B:rewrite-nc.out: connect to 10.0.0.2:9999 (tcp) err 1: Connection timed out
+rewrite-nc.out: connect error: Connection timed out
+Tue May  4 16:01:28 CST 2021<--the delta time is about 120s
+
+try using nc to test in the same condition:
+$ date;nc 10.0.0.2 9999;date
+Tue May  4 16:11:25 CST 2021
+
+
+Tue May  4 16:13:35 CST 2021
+
+4. Once normal sequence of 2 has been setup, the 3's connect error will become 'Connection refused' as 10.0.0.2 has no such port opened.
+tap0 device can has >=2 ips besides 10.0.0.2, eg the other is a qemu of 10.0.0.3. So the tap0 will not send RST for unknown ip?
+
