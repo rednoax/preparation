@@ -485,11 +485,11 @@ only from the address we've specified(in this program it is readwrite()'s read()
 		FD_SET(fd, &set);
 		do {
 			ret = select(fd + 1, NULL, &set, NULL, tvp);
-		} while(ret == -1 && errno == EINTR);//then @set is not touched so select can be restart again w/o reset @set
+		} while(ret == -1 && errno == EINTR);//return -1 means @set is not touched so select can be restart again w/o reset @set
 		if (ret < 0)
-			err(1, "select error");
+			err(1, "select error");//nerver hit
 		if (ret == 0)
-			return CONNECTION_TIMEOUT;
+			return CONNECTION_TIMEOUT;//never hit ALA tvp==0
 		if (ret == 1 && FD_ISSET(fd, &set)) {//cannot be AL connect() ok!see below
 			debug("connect() ok?\n");
 		}
@@ -500,9 +500,10 @@ However, if the socket has connected successfully and data has arrived from the 
 peer, this also produces both the readable and writable situation. In that case, the
 getsockopt() function can be used to determine whether an error has occurred.*/
 		if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &ret, &len) == -1)//SO_ERROR:return and clear pending socket error
-			err(1, "getsockopt error");
+			err(1, "getsockopt error");//never hit
 		if (ret != 0) {
-			printf("**%d:", ret);
+			printf("**%d %dB:", ret, len);
+			fflush(stdout);//if no such the above may be displayed after the warn after it.
 			errno = ret;
 		}
 	}
@@ -584,8 +585,9 @@ from the 2nd client.
 		if ((error = connect_with_timeout(s, res->ai_addr, res->ai_addrlen, timeout)) == CONNECTION_SUCCESS)
 			break;
 		warn("connect to %s:%s (%s) err %d", host, port, uflag? "udp": "tcp", error);
-		save_errno = errno;
+		save_errno = errno;//this save & restore seems not necessary
 		close(s);
+		//printf("=>%d\n", errno);//errno is not changed to 0 after close()
 		errno = save_errno;
 		s = -1;
 	}
