@@ -112,9 +112,12 @@ void watch(int fd)
 				return;
 		}
 		if (fds[0].revents & POLLIN) {
-			r = read(fds[0].fd, buf, sizeof(buf));
-			if (r > 0)
-				write(fds[1].fd, buf, r);
+			r = read(fds[0].fd, buf, sizeof(buf));//the input bytes must be >= some limit to avoid "Invalid argument" error
+			if (r > 0) {
+				w = write(fds[1].fd, buf, r);
+				warn("%d => %d", r, w);
+				fflush(stdout);
+			}
 		}
 		if (fds[1].revents & POLLIN) {
 			r = read(fds[1].fd, buf, sizeof(buf));
