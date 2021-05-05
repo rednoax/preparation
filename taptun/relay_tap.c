@@ -151,7 +151,7 @@ int main(int argc, char *argv[])
 	struct sockaddr_in addr = {
 		.sin_family = AF_INET,
 		.sin_addr = {
-			htonl(INADDR_ANY)
+			htonl(INADDR_ANY)//.s_addr = inet_addr("10.0.0.1");//in_addr_t inet_addr(const char *cp);
 		},
 		.sin_port = htons(port),
 	};
@@ -225,7 +225,7 @@ int main(int argc, char *argv[])
 			err(1, "listen err");
 		c = accept(s, (struct sockaddr*)&addr, &len);
 		fprintf(stderr, "accept peer %s:%d\n", inet_ntop(addr.sin_family, &addr.sin_addr, peer, sizeof(peer)),
-			ntohs(addr.sin_port));
+			ntohs(addr.sin_port));//or use inet_ntoa(addr.sin_addr)
 		if (c == -1)
 			err(1, "accept");
 		relay(c, tap_fd);
