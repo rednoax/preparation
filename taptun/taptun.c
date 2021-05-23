@@ -395,6 +395,7 @@ program's running. Once the program exit(), 'tap0' disappeared.(When the program
 descriptor, the network device and all corresponding routes will disappear.)
 1. If the 'tap0' has existed(`sudo tunctl -u rednoah -t tap0`, no need to ifconfig tap0 ip) before
 `sudo ./a.out -i tap0`, tun_alloc() will not create new tap device and ioctl of 'tap0' return 0(ok).
+If no tap0. `sudo ./a.out -i tap0` will create tap0(must be root, "Operation not permitted" otherwise) and tap0 disappeared after a.out exits.
 In other word the program will not create new tapX device but use the specified existed tap0 directly.
 2. If the tap0 has not been setup like 1, then `sudo ./a.out ` will create tap1, which only exists
 during this program's running.

@@ -131,7 +131,7 @@ void watch(int fd)
 		if (fds[1].revents & POLLIN) {
 			r = read(fds[1].fd, buf, sizeof(buf));
 			if (r > 0)
-				write(STDOUT_FILENO, buf, r);
+				dump(buf, r);//write(STDOUT_FILENO, buf, r);
 		}
 	}
 	err(1, "poll() error %d", r);//-1 or 0(timeout)
