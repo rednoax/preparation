@@ -526,7 +526,7 @@ udp        0      0 10.0.0.1:44478          0.0.0.0:*                           
 -p 0 actually specify use random port.
 
 ./a.out -u 10.0.0.1 1080, netstat show no entry.
-conclusion:after client called bind() and it is ok, netstat will show binded ip and port at once.
+conclusion:after client called bind() and it is ok, netstat will show binded ip and port in 'Local Address' column at once.
 It is the bind() that determin if there is entry in netstat output. If no bind(), there is no related entry in netstat output
 */
 int//here hints.ai_family is AF_UNSPEC, but getaddrinfo() can return AF_INET in .ai_family
