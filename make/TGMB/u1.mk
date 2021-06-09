@@ -15,6 +15,21 @@ varname3=var3 a=b #
 
 $(info [$(varname)] [$(varname2)] [$(varname3)]$(shell pwd))
 
+define echos1#[1 2]
+echo 1;
+echo 2
+endef
+define echos2#[1 echo 2]
+echo 1
+echo 2
+endef
+varname4=$(shell $(echos1))
+v5=$(shell $(echos2))
+
+$(info [$(varname4)] [$(v5)])#[1 2] [1 echo 2]
+$(info [$(shell echo 3;echo 4)])#[3 4]
+$(info [$(shell echo 4 echo 5)])#[4 echo 5]
+
 all all0:
 	@echo ${var} $(a0) $$var
 	make -C sub -f sub.mk
