@@ -1,6 +1,7 @@
-#TO TEST:
-#1. there is = and <space> in value
-#2. one make process launch a child make process
+#The comments can cross multi lines \
+TO TEST: \
+1. there is = and <space> in value \
+2. one make process launch a child make process
 
 a0=0
 
