@@ -47,3 +47,48 @@ ls: cannot access 'unexist': No such file or directory \
 all2:
 	@$(func2)
 
+#for multi subshell, each will run one line shell "script", once one subshell fails, make exits and there is\
+ no later sub-shell to run the remaining lines
+define multi-subshell
+	echo 1
+	ls unexist
+	echo 2
+endef
+
+#even -k is added for launching make, there is no difference in output
+#$ make -f error_in_recipe.mk all3 \
+1 \
+ls: cannot access 'unexist': No such file or directory \
+make: *** [error_in_recipe.mk:62: all3] Error 2
+
+#to make all cmds in each subshell run even after some of them fail, use -i
+#$ make -f error_in_recipe.mk -i all3 \
+1 \
+ls: cannot access 'unexist': No such file or directory \
+make: [error_in_recipe.mk:65: all3] Error 2 (ignored) \
+2
+
+all3:
+	@$(multi-subshell)
+
+#the foo bar is at the same level, foo's build failure will stop the make process so there is no bar's build
+#$ make -f error_in_recipe.mk all4 \
+foo \
+[ 3 == 2 ] \
+make: *** [error_in_recipe.mk:79: foo] Error 1 
+
+#to make bar's building goes on even foo build has failed.
+#$ make -f error_in_recipe.mk all4 -k \
+foo \
+[ 3 == 2 ] \
+make: *** [error_in_recipe.mk:85: foo] Error 1 \
+bar \
+make: Target 'all4' not remade because of errors. \
+
+all4:foo bar
+	@$echo $@
+foo:
+	@echo $@
+	[ 3 == 2 ]
+bar:
+	@echo $@
