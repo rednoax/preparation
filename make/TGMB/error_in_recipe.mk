@@ -86,7 +86,7 @@ bar \
 make: Target 'all4' not remade because of errors. \
 
 all4:foo bar
-	@$echo $@
+	@echo $@
 foo:
 	@echo $@
 	[ 3 == 2 ]
