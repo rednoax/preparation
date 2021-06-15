@@ -1,3 +1,6 @@
+# the following CURDIR is /home/rednoah/opt/preparation/make/sub0 \
+ $(warning V=[$(V)] MAKE1=$(MAKE1) MAKE2=$(MAKE2) CURDIR=$(CURDIR))
+
 $(warning V=[$(V)] MAKE1=$(MAKE1) MAKE2=$(MAKE2))
 #even the upper layer explicitely export iter, the following will not work
 $(call iter, V)
