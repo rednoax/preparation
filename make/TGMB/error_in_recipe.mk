@@ -92,3 +92,12 @@ foo:
 	[ 3 == 2 ]
 bar:
 	@echo $@
+
+all5: ab.out
+ab.out: a.o b.o
+	cat $^ > $@
+a.o: a.c
+#	[ 1 == 0 ]
+	touch $@
+b.o: b.c
+	touch $@
