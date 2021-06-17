@@ -92,6 +92,27 @@ foo:
 	[ 3 == 2 ]
 bar:
 	@echo $@
+#1. when there is no a.o, b.o, ab.out:$ make -f error_in_recipe.mk all5 -n \
+touch a.o \
+touch b.o \
+cat a.o b.o > ab.out \
+
+#2. After building once with `make -f error_in_recipe.mk all5`:\
+$ make -f error_in_recipe.mk all5 -n \
+make: Nothing to be done for 'all5'.
+
+#3. touch a.c to make it is newer than a.o, then: \
+$ make -f error_in_recipe.mk all5 -n \
+touch a.o \
+cat a.o b.o > ab.out
+
+#4.after build fin: $ make -f error_in_recipe.mk all5 \
+make: Nothing to be done for 'all5'. \
+note the following -W b.c will not change b.c's timestamp, but the make works like b.c has been touched \
+$ make -f error_in_recipe.mk all5 -W b.c \
+touch b.o \
+cat a.o b.o > ab.out
+
 
 all5: ab.out
 ab.out: a.o b.o
