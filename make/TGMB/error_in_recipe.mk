@@ -111,9 +111,15 @@ make: Nothing to be done for 'all5'. \
 note the following -W b.c will not change b.c's timestamp, but the make works like b.c has been touched \
 $ make -f error_in_recipe.mk all5 -W b.c \
 touch b.o \
+cat a.o b.o > ab.out \
+
+#5.-W can exist more than once: \
+$ make -f error_in_recipe.mk all5 -W b.c -W a.c \
+touch a.o \
+touch b.o \
 cat a.o b.o > ab.out
 
-
+#even all the following recipes is added prefix @, -n can still show them as if there is no @
 all5: ab.out
 ab.out: a.o b.o
 	cat $^ > $@
