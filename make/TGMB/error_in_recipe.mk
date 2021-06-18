@@ -93,9 +93,9 @@ foo:
 bar:
 	@echo $@
 #1. when there is no a.o, b.o, ab.out:$ make -f error_in_recipe.mk all5 -n \
-touch a.o \
-touch b.o \
-cat a.o b.o > ab.out \
+$ make -f error_in_recipe.mk all5 -n \
+
+
 
 #2. After building once with `make -f error_in_recipe.mk all5`:\
 $ make -f error_in_recipe.mk all5 -n \
@@ -119,12 +119,16 @@ touch a.o \
 touch b.o \
 cat a.o b.o > ab.out
 
+$(info [$(MAKE),$(MAKEFLAGS),$(CURDIR)==$(shell pwd)])
 #even all the following recipes is added prefix @, -n can still show them as if there is no @
 all5: ab.out
 ab.out: a.o b.o
 	cat $^ > $@
+	make -C sub -f nqt.mk
+	$(MAKE) -C sub -f nqt.mk
+	+echo $(MAKELEVEL)
 a.o: a.c
 #	[ 1 == 0 ]
-	touch $@
+	touch  $@
 b.o: b.c
-	touch $@
+	touch  $@
