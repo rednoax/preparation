@@ -5,8 +5,9 @@
 ...\
 34 # makefile\
 35 SHELL = /bin/sh
-
-$(info $(origin SHELL) $(origin .SHELLFLAGS) $(origin CC))#file default default
+.rednoah:=
+$(info $(origin .rednoah) $(origin haha))#file undefined
+$(info $(origin SHELL) $(origin .SHELLFLAGS) $(origin CC) $(origin .RECIPEFREFIX))#file default default undefined
 
 wold=${SHELL}
 rold:=${SHELL}
