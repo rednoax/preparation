@@ -2,24 +2,27 @@
 #1.https://stackoverflow.com/questions/33159342/why-dont-environment-variables-work-in-shell-commands
 #bugs: http://savannah.gnu.org/bugs/?func=detailitem&item_id=10593
 #2.table A, see below
-#3.no matter if $(shell ...) is located in a rule or not, it is a child process of parent process make(denoted as P), eg the following 2 sites of
-#  $(shell ...) calling, P will launch a respective child process for them.
+#3.no matter if $(shell ...) is located in a rule or not, it is a child process of parent process make(denoted as P),\
+ eg the following 2 sites of $(shell ...) calling, P will launch a respective(各自的,分别的) child process for them.
 #4.the commands of each line in rules, including sub make via make -c, is an individual child process launched by parent process make P.
 #5.for all child processes in 3 and 4, parent process P make replaces $$ with $, $(var) ,then P fork+exec a child process with the replaced.
 #6.$(shell ...)'s child process uses P's env list, no added nor removed.
-#7.child process in rules uses P's env list(exported before P launched or defined as one time env when P launched),plus cmd line var when P launched,
-#  plus exported file var in makefile.
-#7.1 if a file var is not exported in makefile, to make child process see it. You can define it as env when P launched so that the child process can
-#  see it with file var's value.
-#7.2 to prevent a cmd line var from going to rule's child process, define it as override file var in makefile.
-#8. if one var of the same name exists in both P's env/cmdLineVar and makefile's defination, whar's the var's value in child process's env,
-#   refer table A for details.
+#7.child process in rules uses P's env list(exported before P launched or defined as one time env when P launched),\
+ plus cmd line var when P launched, plus exported file var in makefile. \
+7.1 if a file var is not exported in makefile, to make child process see it. You can define it as env when P launched\
+ so that the child process can see it with file var's value.\
+7.2 A cmd line var of L0 make will be passed down to rule's child process, its value uses L0 make' cmd\
+ line value even L0 make has overriden its value in makefile.
+#8. if one var of the same name exists in both P's env/cmdLineVar and makefile's defination, whar's the var's value \
+ in child process's env, refer table A for details.
 #9. the same name var's precedence: override > cmd line var > -e > file var > env var.
-
+#10. If a env var is redefined in make, even the file type variable not exported, its new value will be passed down to child process' env.
 export HELLO=Hello,world
 # the env used by $(shell) is exactly the same as the env of make's parent process, ie the process which launched make,
 # which has no $HELLO defined
-$(info $(shell echo $$$$ PPID $$PPID $(HELLO) $$HELLO))
+$(info $(shell echo $$$$ PPID $$PPID $(HELLO) $$HELLO))#the last is replaced by make with \
+ $HELLO then passed down to the child process, which use P'env so the child process can't show $HELLO.\
+ If putting $(shell ...) in recipe the result is exactly the same.
 all:
 	@echo $(HELLO) $$$$ PPID $$PPID
 	@echo $(shell echo [$$$$ PPID $$PPID $(HELLO) $$HELLO])
@@ -39,7 +42,8 @@ override c2=f2
 #					env of P(either exported before P launched or defined as one time var when P launched)			P's cmd line var
 #unvarnished file var: <-, in child process's env																	/|\,in child process's env
 #exported file var:	   <-, in child process's env																	/|\,in child process's env
-#overriden file var:   <-, in child process's env																	invisible in child process's env
+#overriden file var:   <-, in child process's env																	invisible in child process's env, but if child is make, the child make will recognize it as a cmd var whose value is L0 make's cmd line.\
+The reason is in MAKEFLAGS's value, see below's "MAKEFLAGS= -- c2=2 c1=1 c0=0"
 
 #rednoah@lucia:~/preparation/make/TGMB$ e0=0 e1=1 e2=2 make c0=0 c1=1 c2=2 -f u5.mk<--when make launched, it is the parent process IN THE TOP and it will read the makefile from scratch, we use P to denote it.From the following output, P's pid==3105
 #3106 PPID 3105 Hello,world<--$(shell ...) function not in a rule is a child process of P, denoted as C1. make process P will REPLACE $$ and variable defination like $(var) before launch C1, whose pid is 3106.C1's env is the same as P, no added nor deleted, so $$HELLO is empty
@@ -92,3 +96,33 @@ override c2=f2
 #42: LANG=C
 #43: TERM=xterm
 #44: MAKELEVEL=1<--child process's MAKEFLAGS is 1 while parent process, ie P's MAKEFLAGS is 0
+
+
+#$ make -f u5.mk all22 \
+2975 PPID 2974 Hello,world \
+VAR0=e0 make -f u5.mk VAR1=c1 _base<-L1 make process launched, no Entering/Leaving pair as L0 make has passed down --no-print-directory\
+2977 PPID 2976 Hello,world Hello,world \
+make -C sub -f a.mk <-L2 make process launched, the following is printed by L2 make sub/a.mk\
+MAKE=make       default \
+MAKEFLAGS= --no-print-directory file \
+MAKELEVEL=2     environment \
+MAKEFILES=      default \
+SHELL=/bin/sh   file \
+VAR0=f01        environment<--see below A\
+VAR1=c1 command line<--see below B\
+VAR2=   undefined \
+VAR3=   undefined \
+VAR4=   undefined \
+VAR5=   undefined \
+make[2]: Nothing to be done for 'all'.
+ifeq ($(findstring,all2,$(MAKECMDGOALS)),)
+VAR0=f0${MAKELEVEL}#A:if $(origin VAR0) is environment before this assignment, then even not exported, the child process's env will\
+ use the file type variable's value.
+override VAR1=f1${MAKELEVEL}#B:the value after overriding a cmd line var is used only in its own make, \
+ the child process will still use the value assigned in the cmd line
+MAKEFLAGS+=--no-print-directory
+_base:
+	$(MAKE) -C sub -f a.mk
+all22:
+	VAR0=e0 $(MAKE) -f u5.mk VAR1=c1 _base
+endif
