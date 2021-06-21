@@ -102,8 +102,8 @@ all44:$(info MAKELEVEL=${MAKELEVEL} MAKEFLAGS=$(MAKEFLAGS));@VAR5=5 ./fakemake.o
 all2:;@ sleep 30;[ -1 == 0 ]
 
 #note there is no VAR3 among the following output, if a var is nither exported nor defined at cmd line, it will nither be seen in
-#shell process's env nor args.
-#$ make -f u2.mk VAR0=0 VAR4=4 all| grep 'VAR\|MAKE\|SHELL'\
+#shell process's env nor args.Besides, there is no CURDIR in child process's env
+#$ make -f u2.mk VAR0=0 VAR4=4 all|grep 'VAR\|MAKE\|SHELL\|CURDIR' \
 MAKELEVEL=0 MAKEFLAGS= \
 1: VAR2=2<--VAR2 is arg, will not be shown in env \
 VVVVARVVV pid 2996,ppid 2994<--separator, the above is args and the below is env \
