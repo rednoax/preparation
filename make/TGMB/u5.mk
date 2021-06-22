@@ -10,9 +10,9 @@
 #7.child process in rules uses P's env list(exported before P launched or defined as one time env when P launched),\
  plus cmd line var when P launched, plus exported file var in makefile. \
 7.1 if a file var is not exported in makefile, to make child process see it. You can define it as env when P launched\
- so that the child process can see it with file var's value.\
+ so that the child process can see it with file var's value.IT'S A BIT TRICKY.\
 7.2 A cmd line var of L0 make will be passed down to rule's child process, its value uses L0 make' cmd\
- line value even L0 make has overriden its value in makefile.
+ line value even L0 make has overriden its value in makefile or redefined+exported it.
 #8. if one var of the same name exists in both P's env/cmdLineVar and makefile's defination, whar's the var's value \
  in child process's env, refer table A for details.
 #9. the same name var's precedence: override > cmd line var > -e > file var > env var.
@@ -40,12 +40,12 @@ override c2=f2
 #table A
 #table content: the visbilty of child process launched(NOT via $(shell ...)) by P
 #					env of P(either exported before P launched or defined as one time var when P launched)			P's cmd line var
-#unvarnished file var: <-, in child process's env																	/|\,in child process's env
-#exported file var:	   <-, in child process's env																	/|\,in child process's env
-#overriden file var:   <-, in child process's env																	invisible in child process's env, but if child is make, the child make will recognize it as a cmd var whose value is L0 make's cmd line.\
+#unvarnished file var: <-, in child process's env																	/|\,in child process's env and MAKEFLAGS
+#exported file var:	   <-, in child process's env																	/|\,in child process's env and MAKEFLAGS
+#overriden file var:   <-, in child process's env																	invisible in child process's env, but if child is make, the child make will recognize it as a cmd var(from MAKEFLAGS)and whose value is L0 make's cmd line.\
 The reason is in MAKEFLAGS's value, see below's "MAKEFLAGS= -- c2=2 c1=1 c0=0"
 
-#rednoah@lucia:~/preparation/make/TGMB$ e0=0 e1=1 e2=2 make c0=0 c1=1 c2=2 -f u5.mk<--when make launched, it is the parent process IN THE TOP and it will read the makefile from scratch, we use P to denote it.From the following output, P's pid==3105
+#$ e0=0 e1=1 e2=2 make c0=0 c1=1 c2=2 -f u5.mk<--when make launched, it is the parent process IN THE TOP and it will read the makefile from scratch, we use P to denote it.From the following output, P's pid==3105
 #3106 PPID 3105 Hello,world<--$(shell ...) function not in a rule is a child process of P, denoted as C1. make process P will REPLACE $$ and variable defination like $(var) before launch C1, whose pid is 3106.C1's env is the same as P, no added nor deleted, so $$HELLO is empty
 #Hello,world 3108 PPID 3105<--each cmd in rules is a child process launched by P. make process P will REPLACE $$ and variable defination like $(var) before launch child process
 #[3107 PPID 3105 Hello,world ]<--the effect and result of $(shell ...) function in a rule is the same as the above of $(shell ...) function not in a rule, so $$HELLO is empty
@@ -83,7 +83,7 @@ The reason is in MAKEFLAGS's value, see below's "MAKEFLAGS= -- c2=2 c1=1 c0=0"
 #29: LC_MONETARY=zh_CN.UTF-8
 #30: LC_TELEPHONE=zh_CN.UTF-8
 #31: OLDPWD=/home/rednoah/preparation/bash
-#32: MAKEFLAGS= -- c2=2 c1=1 c0=0<--override file var takes precedence with command line var and it disappeared from child process's env list
+#32: MAKEFLAGS= -- c2=2 c1=1 c0=0<--override file var NOT take precedence with command line var but make it disappeared from child process's env list
 #33: MFLAGS=
 #34: SSH_CLIENT=192.168.193.1 62294 22
 #35: MAIL=/var/mail/rednoah
@@ -100,7 +100,7 @@ The reason is in MAKEFLAGS's value, see below's "MAKEFLAGS= -- c2=2 c1=1 c0=0"
 
 #$ make -f u5.mk all22 \
 2975 PPID 2974 Hello,world \
-VAR0=e0 make -f u5.mk VAR1=c1 _base<-L1 make process launched, no Entering/Leaving pair as L0 make has passed down --no-print-directory\
+VAR0=e0 make -f u5.mk VAR1=c1 all2_base<-L1 make process launched, no Entering/Leaving pair as L0 make has passed down --no-print-directory\
 2977 PPID 2976 Hello,world Hello,world \
 make -C sub -f a.mk <-L2 make process launched, the following is printed by L2 make sub/a.mk\
 MAKE=make       default \
@@ -115,14 +115,71 @@ VAR3=   undefined \
 VAR4=   undefined \
 VAR5=   undefined \
 make[2]: Nothing to be done for 'all'.
-ifeq ($(findstring,all2,$(MAKECMDGOALS)),)
+ifneq ($(findstring all2,$(MAKECMDGOALS)),)
 VAR0=f0${MAKELEVEL}#A:if $(origin VAR0) is environment before this assignment, then even not exported, the child process's env will\
  use the file type variable's value.
 override VAR1=f1${MAKELEVEL}#B:the value after overriding a cmd line var is used only in its own make, \
  the child process will still use the value assigned in the cmd line
 MAKEFLAGS+=--no-print-directory
-_base:
+all2_base:
 	$(MAKE) -C sub -f a.mk
-all22:
-	VAR0=e0 $(MAKE) -f u5.mk VAR1=c1 _base
+all2:
+	VAR0=e0 $(MAKE) -f u5.mk VAR1=c1 all2_base
+endif
+
+#$ make -f u5.mk all3 \
+4161 PPID 4160 Hello,world \
+VAR0= \
+VAR1=f10<--in L0make, only VAR1 and VAR3 among VARx are defined \
+VAR2= \
+VAR3=f30<--in L0make, only VAR1 and VAR3 among VARx are defined \
+VAR4=f4{MAKELEVEL} \
+VAR0=e0 VAR1=e1 make -e -f u5.mk VAR2=c2 VAR3=c3 VAR4=c4 all3_base \
+make[1]: Entering directory '/home/rednoah/opt/preparation/make/TGMB'<--L1 make launched\
+4163 PPID 4162 Hello,world Hello,world \
+VAR0=e0<-VAR0 is L1 make's env from cmd line \
+VAR1=e1<-VAR1 both from L1 make'e env in cmd line and makefile, -e said the former wins \
+VAR2=c2<-VAR2 is L1 make's cmd line var\
+VAR3=c3 f31<-VAR3 is L1 make's cmd line var, but is override += in makefile\
+VAR4=c4<-VAR4 is L1 make's cmd line var, which precedences the file var(its += can't be appended to cmd line value c4\
+1:ew -- VAR4=c4 VAR3=c3 VAR2=c2<-phase2 value:all cmd line var will be passed down with cmd line value, no matter if redefined/overrided in makefile \
+0: ./fakemake.out \
+VVVVARVVV pid 4164,ppid 4162 \
+...\
+2: SHELL=/bin/bash <--SHELL is special, make's own file var /bin/sh will not affect env unless exported.if the child process is a real make, which will use /bin/sh and not affected by the env's $SHELL\
+...\
+7: c1=f1<--parent will make its exported var be child's env var\
+...\
+9: e1=f1<--ditto\
+...\
+12: HELLO=Hello,world<-ditto\
+...\
+20: VAR0=e0<--one time env var defined at L1 make's cmd line\
+21: SHLVL=1\
+22: MAKEOVERRIDES=${-*-command-variables-*-}<--real value see above's phase 2 value:VAR4=c4 VAR3=c3 VAR2=c2\
+...\
+25: VAR1=e1<-one time env var defined at L1 make's cmd line wins for L1 make has -e\
+...\
+27: MAKEFLAGS=ew -- $(MAKEOVERRIDES)<-- note there is e, w means --print-directory\
+28: MFLAGS=-ew\
+...\
+30: MAKE_TERMOUT=/dev/pts/0\
+31: VAR4=c4<--L1 make cmd line var, which is not overridden but redefined in makefile, it also exists as env var of L2 make\
+32: VAR2=c2<--L1 make cmd line var, which is not overridden or redefined in makefile so it also exists as env var of L2 make\
+33: MAKE_TERMERR=/dev/pts/0\
+...\
+37: MAKELEVEL=2<--as "fakemake.out" is at L2 make level\
+make[1]: Leaving directory '/home/rednoah/opt/preparation/make/TGMB'<--note there is no VAR3 in env, maybe due to it is overridden in L1's makefile
+ifneq ($(findstring all3,$(MAKECMDGOALS)),)
+VAR1=f1${MAKELEVEL}
+override VAR3+=f3${MAKELEVEL}#see above B
+VAR4+=f4{MAKELEVEL}#When no override, VAR4 is c4 in L1's make even claimed with +=
+
+$(foreach v,0 1 2 3 4,$(info VAR$v=$(VAR$v)))
+
+all3_base:
+#	@bash#for interactive env dump by hand,use ^D to exit to run the following ./fakemake.out
+	@./fakemake.out${info $(MAKELEVEL):$(MAKEFLAGS)}
+all3:
+	VAR0=e0 VAR1=e1 ${MAKE} -e -f u5.mk VAR2=c2 VAR3=c3 VAR4=c4 all3_base
 endif
