@@ -37,7 +37,7 @@ MAKE=make       default \
 MAKEFLAGS=w     file <-w passed down since L1 child make\
 MAKELEVEL=2     environment<--note it is 2, not 1, L1 child make is on the above\
 MAKEFILES=      default \
-SHELL=/bin/sh   file \
+SHELL=/bin/sh   file <--forcely change env's value with /bin/sh in make process\
 VAR0=0  command line<--from L1 make's cmd line, transfered via MAKEFLAGS \
 VAR1=1  environment<--from exported of L1 make \
 VAR2=2  command line<--from level2 make's cmd line \
@@ -49,7 +49,10 @@ make[2]: Leaving directory '/home/rednoah/opt/preparation/make/TGMB/sub'\
 make[1]: Leaving directory '/home/rednoah/opt/preparation/make/TGMB'
 
 #all3:;VAR5=5 make VAR2=2 -C sub -f a.mk$(info $(MAKELEVEL)-${MAKEFLAGS})
-all3:;VAR5=5 make VAR2=2 -C sub -f a.mk
+#export SHELL=/bin/dash
+all3:;
+#	bash${info ${MAKELEVEL}]}
+	VAR5=5 make VAR2=2 -C sub -f a.mk
 all33:;@make -f u2.mk VAR0=0 VAR4=4 all3
 
 #`make -f u2.mk all31`'s result is exactly the same as `make -f u2.mk all33`. But it should be used as \
