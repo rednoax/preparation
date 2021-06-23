@@ -182,4 +182,7 @@ all3_base:
 	@./fakemake.out${info $(MAKELEVEL):$(MAKEFLAGS)}
 all3:
 	VAR0=e0 VAR1=e1 ${MAKE} -e -f u5.mk VAR2=c2 VAR3=c3 VAR4=c4 all3_base
+#$ `make -f u5.mk all3 VAR5=5` shows 'ew -- VAR4=c4 VAR3=c3 VAR2=c2 VAR5=5' \
+VAR[2-4] from L1 make cmd line while VAR5 from L0 make cmd line. So every level's\
+cmd line var,ie L[0-N] will be inherited by the L(N+1)child process via MAKEFLAGS prepared by its parent make.
 endif
