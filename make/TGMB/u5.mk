@@ -174,7 +174,8 @@ ifneq ($(findstring all3,$(MAKECMDGOALS)),)
 ${info ${MAKEFLAGS})}
 VAR1=f1${MAKELEVEL}
 override VAR3+=f3${MAKELEVEL}#see above B
-VAR4+=f4{MAKELEVEL}#When no override, VAR4 is c4 in L1's make even claimed with +=
+VAR4+=f4${MAKELEVEL}#When no override, VAR4 is c4 in L1's make even claimed with +=
+#export VAR4#no matter exported or not VAR4 in this makefile is c4,and its value passed down to sub make is c4
 
 $(foreach v,0 1 2 3 4,$(info VAR$v=$(VAR$v)))
 
