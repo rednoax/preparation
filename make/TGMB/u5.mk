@@ -171,6 +171,7 @@ VVVVARVVV pid 4164,ppid 4162 \
 37: MAKELEVEL=2<--as "fakemake.out" is at L2 make level\
 make[1]: Leaving directory '/home/rednoah/opt/preparation/make/TGMB'<--note there is no VAR3 in env, maybe due to it is overridden in L1's makefile
 ifneq ($(findstring all3,$(MAKECMDGOALS)),)
+${info ${MAKEFLAGS})}
 VAR1=f1${MAKELEVEL}
 override VAR3+=f3${MAKELEVEL}#see above B
 VAR4+=f4{MAKELEVEL}#When no override, VAR4 is c4 in L1's make even claimed with +=
@@ -178,11 +179,15 @@ VAR4+=f4{MAKELEVEL}#When no override, VAR4 is c4 in L1's make even claimed with 
 $(foreach v,0 1 2 3 4,$(info VAR$v=$(VAR$v)))
 
 all3_base:
-#	@bash#for interactive env dump by hand,use ^D to exit to run the following ./fakemake.out
+#	@bash #for interactive env dump by hand,use ^D to exit to run the following ./fakemake.out
 	@./fakemake.out${info $(MAKELEVEL):$(MAKEFLAGS)}
 all3:
-	VAR0=e0 VAR1=e1 ${MAKE} -e -f u5.mk VAR2=c2 VAR3=c3 VAR4=c4 all3_base
-#$ `make -f u5.mk all3 VAR5=5` shows 'ew -- VAR4=c4 VAR3=c3 VAR2=c2 VAR5=5' \
+#	@bash${info $(MAKEFLAGS)]}
+	VAR0=e0 VAR1=e1 ${MAKE} -e -f u5.mk VAR2=c2 VAR3=c3 VAR4=c4 all3_base${info [$(MAKEFLAGS)]}
+#a. $ `make -f u5.mk all3 VAR5=5` shows 'ew -- VAR4=c4 VAR3=c3 VAR2=c2 VAR5=5' in L1 make phase1\
 VAR[2-4] from L1 make cmd line while VAR5 from L0 make cmd line. So every level's\
 cmd line var,ie L[0-N] will be inherited by the L(N+1)child process via MAKEFLAGS prepared by its parent make.
+#b. MAKEFLAGS in L0 make phase2 is still empty by above 2 info debug. but in L1 make phase1 it starts to be \
+ew, maybe L1 make see MAKELEVEL==1 and no --no-print-directory in MAKEFLAGS, so it adds w with cmd option -e. \
+So no matter if there is -C in sub-make, -w optiont is added to MAKEFLAGS automatically ALA a child make process is launched.
 endif
