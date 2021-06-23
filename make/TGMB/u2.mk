@@ -24,8 +24,8 @@ VAR5=5 will be env while VAR2=2 is argument, note make will not lauch a middle s
                   └─make,2861 -f u2.mk VAR0=0 VAR4=4 all \
                       └─fakemake.out,2862 VAR2=2 \
 Besides, note ./fakemake.out's MAKEFLAGS is empty, no w. But if it is a real make, MAKEFLAGS will be appended with\
-w that can be shown in phase1 debug.
-all:;@VAR5=5 ./fakemake.out VAR2=2
+w that can be shown in phase1 debug. the MAKELEVEL below is 0 for '$ make -f u2.mk all'
+all:;@VAR5=5 ./fakemake.out VAR2=2$(info MAKELEVEL=${MAKELEVEL})
 
 #$ make -f u2.mk all33 \
 MAKELEVEL=0 MAKEFLAGS=<-top make process phase 1's dump in prerequisite of all44 \
