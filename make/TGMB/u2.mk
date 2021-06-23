@@ -49,7 +49,7 @@ make[2]: Leaving directory '/home/rednoah/opt/preparation/make/TGMB/sub'\
 make[1]: Leaving directory '/home/rednoah/opt/preparation/make/TGMB'
 
 #all3:;VAR5=5 make VAR2=2 -C sub -f a.mk$(info $(MAKELEVEL)-${MAKEFLAGS})
-#export SHELL=/bin/dash
+#export SHELL=/bin/dash#no matter if exporting SHELL, child make will forcely use its own file var SHELL=/bin/sh
 all3:;
 #	bash${info ${MAKELEVEL}]}
 	VAR5=5 make VAR2=2 -C sub -f a.mk
