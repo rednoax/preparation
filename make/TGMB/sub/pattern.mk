@@ -4,7 +4,8 @@ all:.out;
 #comment A:if disable the following ifeq block\
 $ make -f pattern.mk\
 make: *** No rule to make target '.out', needed by 'all'.  Stop.
-#so % can't match zero char, % means >=1 chars is a must, if `mv .txt a.txt` then all:a.txt, this makefile works for `make all`
+#so % can't match zero char, % means >=1 chars is a must;\
+ if `mv .txt a.txt` then all:a.txt, and keeps the following ifeq disabled: this makefile works for `make all`
 %.out:%.txt
 	cp $< $@
 
