@@ -55,7 +55,7 @@ $ make -f vpath.mk\
 make: *** No rule to make target 'abort.o', needed by 'all'.  Stop.
 endif
 
-all2:weak.o $(objs)
+all2:weak.o $(objs)#note all generated %.o is in current dir!Not its org dir!
 #cc    -c -o getline.o ../../../DM-verity/getline.c<--note its dir uses exactly the one vpath specified.\
 cc    -c -o abort.o /home/rednoah/opt/preparation/abort.c\
 rm -fr weak.o getline.o abort.o
@@ -81,3 +81,23 @@ ifeq ($(MAKECMDGOALS),all3)
 %.o: %.c
 	$(show_auto)
 endif
+
+#$ make -f vpath.mk all4\
+cc    -c -o abort.o /home/rednoah/opt/preparation/abort.c<--my rule ../%.o:%.c not work\
+$ make -f vpath.mk all4\
+make: Nothing to be done for 'all4'.
+all4:abort.o
+ifeq ($(MAKECMDGOALS),all4)
+../%.o: %.c
+	$(show_auto)
+endif
+
+obj=../abort.o
+all5:$(obj)
+ifeq ($(MAKECMDGOALS),all5)
+../%.o:%.c#can be used to put all .o files into a separated dir like make O=xx in linux
+	$(show_auto)
+endif
+#$ make -f vpath.mk all5\
+[../abort.o] [..] [abort.o]<--both prerequisite and target has %, but their expanded % is not the same, the former will add dir found by vpath\
+[/home/rednoah/opt/preparation/abort.c] [/home/rednoah/opt/preparation] [abort.c]
