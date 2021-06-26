@@ -28,6 +28,39 @@ $ find ~/opt/preparation/ -name getline.c\
 $ find ~/opt/preparation/ -name abort.c\
 /home/rednoah/opt/preparation/abort.c
 
+###HOW to remove implicit rule %.o:%.c;$(COMPILE.c) $(OUTPUT_OPTION) $<###
+#when NO all3 in MAKECMDGOALS\
+# Implicit Rules\
+\
+../%.o: %.c<--will not remove implicit %.o:%.c \
+#  recipe to execute (from 'vpath.mk', line 102):\
+        $(show_auto);rm -rf $@\
+\
+obj/%.o: %.c<--will not remove implicit %.o:%.c \
+#  recipe to execute (from 'vpath.mk', line 107):\
+        $(show_auto);rm -rf $@\
+\
+%.o: %.c<--implicit %.o:%.c \
+#  recipe to execute (built-in):\
+        $(COMPILE.c) $(OUTPUT_OPTION) $<\
+
+#when all3(to REMOVE a specific implicit rule, both target and prerequisite must be exactly the same):\
+%.o: %.c<--will remove implicit %.o:%.c \
+#  recipe to execute (from 'vpath.mk', line 85):\
+        $(show_auto)\
+\
+../%.o: %.c<--will not remove implicit %.o:%.c \
+#  recipe to execute (from 'vpath.mk', line 102):\
+        $(show_auto);rm -rf $@\
+\
+obj/%.o: %.c<--will not remove implicit %.o:%.c \
+#  recipe to execute (from 'vpath.mk', line 107):\
+        $(show_auto);rm -rf $@\
+###FIN###
+#$ make -f vpath.mk all\
+cc    -c -o getline.o ../../../DM-verity/getline.c\
+cc    -c -o abort.o /home/rednoah/opt/preparation/abort.c\
+rm -rf getline.o abort.o
 all:$(objs)
 #rm the generated .o, "Nothing to be done for 'all'" otherwise for the 2nd `make all` once $(objs) are generated.
 	rm -rf $(objs)
@@ -38,8 +71,8 @@ all:$(objs)
 ifeq (1,1)
 vpath %.c /home/rednoah/opt/preparation:../../../DM-verity#\
 1.~/opt/preparation can't work at all, use complete home name instead.\
-2.Besides, getline.c is at preparation/DM-vrity, if no the 2ns part, vpath will NEVER search\
- the sub directory of ~/opt/preparation. So the sub directory DM-verity MUST be added explictly.
+2.Besides, getline.c is at preparation/DM-vrity, if no the 2nd part, vpath will NEVER search\
+ any sub directory of ~/opt/preparation. So the sub directory DM-verity MUST be added explictly.
 else
 vpath %.c ~/opt/preparation:/home/rednoah/opt/preparation/DM-verity
 #another way to show -k option effect:\
@@ -60,6 +93,9 @@ all2:weak.o $(objs)#note all generated %.o is in current dir!Not its org dir!
 cc    -c -o abort.o /home/rednoah/opt/preparation/abort.c\
 rm -fr weak.o getline.o abort.o
 	rm -fr $^
+
+#If more than one pattern rule meets, make will choose the rule with the shortest stem(that is, the pattern\
+that matches most specifically)
 weak.o:weak.c#this rule will not affect other .o, implicit rule %.o:%.c works for all .o except weak.o
 #[weak.o] [.] [weak.o]<--note $@ has no dir\
 [/home/rednoah/opt/preparation/weak.c] [/home/rednoah/opt/preparation] [weak.c]<--$< has the found dir
@@ -72,32 +108,39 @@ show_auto=@echo -e "[$@] [$(@D)] [$(@F)]\n[$<] [$(<D)] [$(<F)]"
 [../../../DM-verity/getline.c] [../../../DM-verity] [getline.c]<--the dir use exactly the one vpath specified.
 all3:getline.o
 ifeq ($(MAKECMDGOALS),all3)
-#the following pattern rule will remove the implicit %.o:%.c from `make -p`, and there\
- is only one %.o:%.c recipe in `make -p`:\
+#the following pattern rule will REMOVE the implicit %.o:%.c from `make -p`, and there\
+ is only one %.o:%.c recipe defined by me in `make -p`:\
 %.o: %.c\
 #  recipe to execute (from 'vpath.mk', line 76):\
         $(show_auto)
-
 %.o: %.c
 	$(show_auto)
 endif
 
 #$ make -f vpath.mk all4\
-cc    -c -o abort.o /home/rednoah/opt/preparation/abort.c<--my rule ../%.o:%.c not work\
+cc    -c -o abort.o /home/rednoah/opt/preparation/abort.c<--my rule ../%.o:%.c not work,implicit rule %.o:%.c takes effect\
 $ make -f vpath.mk all4\
-make: Nothing to be done for 'all4'.
+make: Nothing to be done for 'all4'.<-as ./abort.o has exists. The all4:abort.o has no recipe so no recipe is run
+
+#note the following 3 rules from [all4,all6] will not remove implicit rule %.o:%.c since their target is\
+ not the same as the implicit rule target %.o;\
+ implicit rule %.o:%.c and these 3 rule co-exist, which can be verified by `make -p`
 all4:abort.o
-ifeq ($(MAKECMDGOALS),all4)
 ../%.o: %.c
 	$(show_auto)
-endif
 
-obj=../abort.o
-all5:$(obj)
-ifeq ($(MAKECMDGOALS),all5)
-../%.o:%.c#can be used to put all .o files into a separated dir like make O=xx in linux
-	$(show_auto)
-endif
+obj=..
 #$ make -f vpath.mk all5\
 [../abort.o] [..] [abort.o]<--both prerequisite and target has %, but their expanded % is not the same, the former will add dir found by vpath\
 [/home/rednoah/opt/preparation/abort.c] [/home/rednoah/opt/preparation] [abort.c]
+all5:$(obj)/abort.o
+$(obj)/%.o:%.c#comment A:can be used to put all .o files into a separated dir like make O=xx in linux
+	$(show_auto);rm -rf $@
+
+obj=obj
+#$ make -f vpath.mk all6<--similar to all5 except the object dir is changed from ../ to obj/\
+[obj/abort.o] [obj] [abort.o]\
+[/home/rednoah/opt/preparation/abort.c] [/home/rednoah/opt/preparation] [abort.c]
+all6:$(obj)/abort.o
+$(obj)/%.o:%.c#see comment A
+	$(show_auto);rm -rf $@
