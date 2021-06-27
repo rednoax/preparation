@@ -1,3 +1,4 @@
+ifeq (1,1)
 MAKEFLAGS+=-rR#work for this L0 makefile at once. In `make -p` output:\
 1. no ANY implicit rules(pattern or suffix rule) displayed,`make -p`'s total line# is only <200 lines\
 2. SUFFIX:=<empty> and no ".SUFFIXES: .out .a .ln .o .c .cc .C .cpp..."<-now\
@@ -25,3 +26,13 @@ file.o:file.c
 remove_patter.mk:22: warning: ignoring old recipe for target 'file.o'
 file.o:file.c
 	echo
+else
+#a rule with the same target & prerequisite will override the default implicit rule
+all:
+%.o: %.c#this line definitely remove implicit %.o:%.c,`make -p` proves it
+## Implicit Rules\
+%.o: %.c \
+#  recipe to execute (from 'remove_patter.mk', line 32):\
+        :
+	:
+endif
