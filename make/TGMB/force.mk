@@ -13,4 +13,10 @@ force:;
 
 .PHONY:force#to ask `make -f force.mk` to `touch a.c` unconditionally in each run even there is a file named force
 
+#BASH is not env in shell, declare -p BASH show 'declare -- BASH="/bin/bash"'
 $(info $(origin BASH) $(shell echo $$BASH))#undefined /bin/sh
+
+$(info /$(shell echo *.c)/)#a.c b.c
+$(info /$(shell echo sub2/*.c)/)#sub2/*.c
+$(info /$(wildcard *.c)/)#a.c b.c
+$(info /$(wildcard sub2/*.c)/)#<empty>
