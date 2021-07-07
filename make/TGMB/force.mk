@@ -8,6 +8,7 @@ $ ll a.c force\
 $ make -f force.mk\
 make: 'a.c' is up to date.
 a.c:force
+#if `make -f forcce.mk -s`, @ is added automatically even there is no @ before recipe
 	touch $@
 force:;
 
