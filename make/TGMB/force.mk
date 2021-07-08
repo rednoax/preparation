@@ -21,3 +21,6 @@ $(info /$(shell echo *.c)/)#a.c b.c
 $(info /$(shell echo sub2/*.c)/)#sub2/*.c
 $(info /$(wildcard *.c)/)#a.c b.c
 $(info /$(wildcard sub2/*.c)/)#<empty>
+$(info "$(origin CURDIR)":$(CURDIR))#file
+$(info $(if $(SHELL),$(SHELL)))
+$(info $(if $(ARCH),$(ARCH),"$(MAKEFLAGS)"))#`ARCH=arm make ... ` or `make ... ARCH=mips`
