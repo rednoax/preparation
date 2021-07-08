@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
 	/*
 	./getopt
 	./getopt -a -b
-	./getopt -ab
+	./getopt -ab<--equivalent to 2 optiosn:-a -b
 	./getopt -c foo
 	./getopt -cfoo
 	./getopt arg1
