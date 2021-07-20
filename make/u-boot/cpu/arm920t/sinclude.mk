@@ -14,8 +14,8 @@ start.o:start.c
 	rm -rf $@
 	g=$(<:.c=.o);gcc -M -MQ $$g $< >>$@
 	echo '$$(warning $@ included)'>>$@
-#when there is rule to generate the file that is sinclued, the behivor of "sinclude xx" \
- is identical to "include xx"
+#when there is rule to generate the file that is sinclued, the behaviour of "sinclude xx" \
+ is identical to "include xx": for [0,4] tests in Makefile, the results of this makefile is identical.
 sinclude .depend
 clean:
 	rm -rf start.o .depend
