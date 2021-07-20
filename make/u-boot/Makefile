@@ -1,8 +1,10 @@
 SUBDIRS=tools \
 	examples \
 	api_examples
+
+OBJS=start.o
 #.PHONY:$(SUBDIRS)#no difference
-u-boot:depend $(SUBDIRS)
+u-boot:depend $(SUBDIRS) $(OBJS)
 	: $@
 depend:
 	: $@
@@ -11,3 +13,11 @@ $(SUBDIRS):depend autoconf.mk
 	: $@
 autoconf.mk:
 	: $@
+
+$(OBJS):depend autoconf.mk
+	: $@
+#to emulate u-boot's `make -C /home/rednoah/opt/src/mini2440/uboot/mini2440/board/mini2440/ u-boot.lds` for:\
+$(LDSCRIPT):	depend $(obj)include/autoconf.mk\
+		$(MAKE) -C $(dir $@) $(notdir $@)\
+$ make rules.mk<--there is rules.mk in $(CURDIR)\
+make: Nothing to be done for 'rules.mk'.<-when a target doesn't exist in Makefile but the target file exists, there is no error emit
