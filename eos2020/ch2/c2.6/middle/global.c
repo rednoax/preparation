@@ -24,7 +24,37 @@ main:
 .L3:
 	.word	g_b<--32bit symbol value:address in .bss
 	.word	g_d<--32bit symbol value:address in .data
+*/
+/*
+readelf -a:
+  [22] .data             PROGBITS        00010508 000508 00000c 00  WA  0   0  4
+  [23] .bss              NOBITS          00010514 000514 000008 00  WA  0   0  4
+...
+  78: 00010510     4 OBJECT  GLOBAL DEFAULT   22 g_d<-in .data
+  89: 00010518     4 OBJECT  GLOBAL DEFAULT   23 g_b<-in .bss
 
+objdump -s -D
+Contents of section .data:
+ 10508 00000000 00000000 01000000           ............    
+...
+Disassembly of section .data:
+
+00010508 <__data_start>:
+   10508:	00000000 	.word	0x00000000
+
+0001050c <__dso_handle>:
+   1050c:	00000000 	.word	0x00000000
+
+00010510 <g_d>:
+   10510:	00000001 	.word	0x00000001 
+
+.data	0x00010508
+		0x0001050c
+ g_d	0x00010510<--
+.bss	0x00010514
+ g_b	0x00010518<--
+
+so g_d and g_b is just addresses, at .data and .bss respectively
 */
 int main()
 {
