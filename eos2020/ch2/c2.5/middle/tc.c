@@ -142,30 +142,32 @@ main:
 	@ Function supports interworking.
 	@ args = 0, pretend = 0, frame = 8
 	@ frame_needed = 1, uses_anonymous_args = 0
-	stmfd	sp!, {fp, lr}
-	add	fp, sp, #4
-	sub	sp, sp, #24
-	str	r0, [fp, #-8]
-	str	r1, [fp, #-12]
+							@ high address --> low address
+                                 sp
+	stmfd	sp!, {fp, lr}	@|lr|fp|
+	add	fp, sp, #4 @		  fp
+	sub	sp, sp, #24			@|lr|fp|    |    |    |    |    |    | @shift sp downwards to allocate local variables and temp spaces on stack
+	str	r0, [fp, #-8]		@|lr|fp|argc|                     sp				
+	str	r1, [fp, #-12]      @|lr|fp|argc|argv|
 	mov	r0, #0
 	ldr	r1, .L36
 	bl	uprintx
 	ldr	r3, .L36+4
 	str	r3, [sp]
-	ldr	r3, .L36+8
+	ldr	r3, .L36+8			@                          |.LC2|4660|
 	str	r3, [sp, #4]<--string argument "fin" transfered to uprintf is a 4B address("fin"'s address, ie symbol value in .rodata) put on stack
-	mov	r3, #16
+	mov	r3, #16				@|lr|fp|argc|argv|?   | 16 |.LC2|4660|
 	str	r3, [sp, #8]
-	ldr	r0, .L36+12<--format string transfered to uprintf is a 4B address put in r0
-	mov	r1, #49<--'1' occupy 4B, not 1B even it is a char!then uprintf push the 4B,not 1B on stack!
+	ldr	r0, .L36+12<--format string transfered to uprintf is a 4B address put in r0, ie ldr r0, =.LC1
+	mov	r1, #49<--'1'(0x31) occupy 4B, not 1B even it is a char!then uprintf push the 4B,not 1B on stack!
 	mov	r2, #23
-	mov	r3, #45
+	mov	r3, #45 			@now r[0,3] holds .LC1,'1',23,45,
 	bl	uprintf
 	mov	r3, #0
 	mov	r0, r3
-	sub	sp, fp, #4
+	sub	sp, fp, #4			@adjust sp
 	@ sp needed
-	ldmfd	sp!, {fp, lr}
+	ldmfd	sp!, {fp, lr}	@pop stack and return to caller
 	bx	lr
 .L37:
 	.align	2
@@ -189,9 +191,9 @@ _printf:
 	@ frame_needed = 1, uses_anonymous_args = 1
 	@ link register save eliminated.
 	stmfd	sp!, {r0, r1, r2, r3}<--c function's args from left to right corresponds to stack lower to higher
-	str	fp, [sp, #-4]!
-	add	fp, sp, #0
-	sub	sp, fp, #0
+	str	fp, [sp, #-4]!	@|r3|r2|r1|r0|fp|
+	add	fp, sp, #0		@             fp
+	sub	sp, fp, #0		@             sp
 	@ sp needed
 	ldr	fp, [sp], #4
 	add	sp, sp, #16
