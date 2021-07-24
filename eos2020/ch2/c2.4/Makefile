@@ -1,4 +1,4 @@
-CROSS_TOOLCHAIN=arm-none-eabi-
+CROSS_TOOLCHAIN=arm-none-linux-gnueabi-
 GCC=$(CROSS_TOOLCHAIN)gcc
 LD=$(CROSS_TOOLCHAIN)ld
 NM=$(CROSS_TOOLCHAIN)nm
@@ -20,8 +20,9 @@ $(ELF): ts.o t.o
 	$(GCC) $(CFLAGS) -c $< -o $@
 clean:
 	rm -rf *.{o,elf,bin}
+EXTRA=-S -s
 run:
 	$(NM) $(ELF)
-	qemu-system-arm -M realview-pbx-a9 -nographic -serial /dev/null -kernel $(BIN)
+	qemu-system-arm -M realview-pbx-a9 -nographic -serial /dev/null -kernel $(BIN) $(EXTRA)
 
 #objdump -x or readelf -a to show symbol tables
