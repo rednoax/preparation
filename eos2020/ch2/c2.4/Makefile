@@ -1,4 +1,4 @@
-CROSS_TOOLCHAIN=~/arm-2013.11/bin/arm-none-eabi-
+CROSS_TOOLCHAIN=arm-none-eabi-
 GCC=$(CROSS_TOOLCHAIN)gcc
 LD=$(CROSS_TOOLCHAIN)ld
 NM=$(CROSS_TOOLCHAIN)nm

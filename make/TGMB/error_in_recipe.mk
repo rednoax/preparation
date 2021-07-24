@@ -92,10 +92,23 @@ foo:
 	[ 3 == 2 ]
 bar:
 	@echo $@
+
 #1. when there is no a.o, b.o, ab.out:$ make -f error_in_recipe.mk all5 -n \
 $ make -f error_in_recipe.mk all5 -n \
-
-
+[make,n,/home/rednoah/opt/preparation/make/TGMB==/home/rednoah/opt/preparation/make/TGMB]<--CURDIR==`pwd`,MAKEFLAGS=n, no -f \
+touch  a.o <-not really run, just shown\
+touch  b.o <-not really run, just shown\
+cat a.o b.o > ab.out <-not really run, just shown\
+make -C sub -f nqt.mk <-not really run, just shown as it is not via $(MAKE) ...\
+make -C sub -f nqt.mk <-REALLY run as it is via $(MAKE) ...\
+make[1]: Entering directory '/home/rednoah/opt/preparation/make/TGMB/sub' <--recusive make by $(MAKE) really run even when -n\
+[make,nw,/home/rednoah/opt/preparation/make/TGMB/sub==/home/rednoah/opt/preparation/make/TGMB/sub] \
+echo 1 \
+echo  1 \
+1 \
+make[1]: Leaving directory '/home/rednoah/opt/preparation/make/TGMB/sub' \
+echo 0 \
+0
 
 #2. After building once with `make -f error_in_recipe.mk all5`:\
 $ make -f error_in_recipe.mk all5 -n \
@@ -120,12 +133,15 @@ touch b.o \
 cat a.o b.o > ab.out
 
 $(info [$(MAKE),$(MAKEFLAGS),$(CURDIR)==$(shell pwd)])
+#$(info $(origin ARCH))
 #even all the following recipes is added prefix @, -n can still show them as if there is no @
+MAKEFLAGS+=HOST=i386
+$(info [$(MAKEFLAGS)])
 all5: ab.out
 ab.out: a.o b.o
 	cat $^ > $@
-	make -C sub -f nqt.mk
-	$(MAKE) -C sub -f nqt.mk
+	make -C sub -f nqt.mk $(info $(MAKEFLAGS))
+	$(MAKE) -C sub -f  nqt.mk
 	+echo $(MAKELEVEL)
 a.o: a.c
 #	[ 1 == 0 ]

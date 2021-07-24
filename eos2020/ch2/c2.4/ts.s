@@ -6,7 +6,7 @@ it is ignored. as treats all undefined symbols as external!
 .global start
 start:
     ldr sp, =stack_top
-    ldr r4, =a
+    ldr r4, =a @ to access a mem spanning sections, whose address is @a in .data), ldr reg,=label seems the easiest way
     ldr r0, [r4], #4
     ldr r1, [r4], #4
     bl sum
