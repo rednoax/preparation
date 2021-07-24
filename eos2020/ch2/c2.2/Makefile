@@ -1,4 +1,4 @@
-CROSS_TOOLCHAIN=~/arm-2013.11/bin/arm-none-eabi-
+CROSS_TOOLCHAIN=arm-none-eabi-
 AS=$(CROSS_TOOLCHAIN)as
 LD=$(CROSS_TOOLCHAIN)ld
 OBJCOPY=$(CROSS_TOOLCHAIN)objcopy
