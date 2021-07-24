@@ -11,7 +11,7 @@ SECTIONS {
 		*(.bss)
 	}
 	. = ALIGN(8);
-	/*u can't use the following as nm show: 00011080 A //stack_top
+	/*u can't use the following as nm show: 00011080 A //stack_top<--// is not comment but consists of symbol name
 	//stack_top = . + 0x1000;
 	*/
 	. += 0x1000;
