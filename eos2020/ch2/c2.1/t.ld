@@ -2,7 +2,7 @@
 Entry point address:               0x0
 ld manual "3.4.1 Setting the Entry Point" shows the sequence of entry point setting sequence
 */
-/*ENTRY(start)*/
+/*ENTRY(start)*//*just to fill elf head's .e_entry, that is NOT related to bare binary like u-boot.bin*/
 /*
 https://stackoverflow.com/questions/39269613/syntax-error-in-linker-script
 I believe the issue is lack of space between ".text" and the colon.
@@ -10,7 +10,7 @@ So use: '.text<space>:' rather than '.text:'
 */
 SECTIONS
 {
-	. = 0x10000;/*can be ignored for program in ts.s is PositionIndependantCode*/
+	. = 0x10000;/*can NOT be ignored even program in ts.s is PositionIndependantCode, if no such @result in .data becomes a wrong value 0x1c*/
 	.text : {
 		*(.text)
 	}

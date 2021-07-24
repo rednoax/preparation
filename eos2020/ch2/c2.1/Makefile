@@ -1,4 +1,5 @@
-CROSS_TOOLCHAIN=~/arm-2013.11/bin/arm-none-eabi-
+#CROSS_TOOLCHAIN=~/arm-2013.11/bin/arm-none-eabi-
+CROSS_TOOLCHAIN=arm-none-eabi-
 AS=$(CROSS_TOOLCHAIN)as
 LD=$(CROSS_TOOLCHAIN)ld
 OBJCOPY=$(CROSS_TOOLCHAIN)objcopy
@@ -18,6 +19,7 @@ t.elf:ts.o t.ld
 #Once -g is added, gdb t.elf will have no warning as above
 
 %.o: %.s
+#-g to add debug symbols
 	$(AS) -g -o $@ $<
 
 run:
