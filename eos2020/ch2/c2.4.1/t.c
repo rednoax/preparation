@@ -8,7 +8,7 @@ b. .word 0x8080
 hexdump -C t.bin
 b is the last byte in t.bin, no c in t.bin!
 
-2. c is not in t.elf too as .bss not exist in ELF:
+2. c is not in t.elf too as .bss not exist in ELF, let's show elf has no .bss:
 readelf -S:
   [ 2] .data             PROGBITS        00010064 010064 000008 00  WA  0   0  4
   [ 3] .bss              NOBITS          0001006c 01006c 000004 00  WA  0   0  4<--.bss SEEMS immediately after .data, but only in VMA, NOT in elf file!
