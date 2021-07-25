@@ -2,7 +2,7 @@ extern int t0[];
 extern int *t1;
 extern int d0[];
 extern int *d1;
-#if 0
+/*
 readelf -s
     23: 0001008c     0 NOTYPE  GLOBAL DEFAULT    2 d1
     24: 00010024   104 FUNC    GLOBAL DEFAULT    1 sum
@@ -45,9 +45,13 @@ a: .word 0xa5
 ldr r0,=a
 ldr r0,[r0]
 a: .word 0xa5
-3. varible defined in c, accessed from .S, see 2.4.1's ts.s and t.c example.
-4. varible defined in c, accessed from c: ask gcc to do it.
-#endif
+3. varible defined in c, accessed from .S, see 2.4.1's ts.s and t.c example. In brief it is the same as 2
+.S: ldr r0,=a; ldr r0, [r0]
+.c: int a = 0x80
+4. varible defined in c, accessed from c, see get() example:
+ one .data var or .bss var has no c language type stored in symbol table but only base address and size;
+ c reading of var in .bss/.data consists of 2 step2: first get the symbol address(in .bss or .data) then read value from the address(extract a block value in .bss or .data)
+*/
 int sum(int x, int y)
 {
 	//
@@ -58,6 +62,33 @@ int sum(int x, int y)
 	a = d1;
 	//
     return x + y;
+}
+
+/*
+readelf -s t.elf
+    23: 000100bc     4 OBJECT  LOCAL  DEFAULT    2 var.1258<--a .data var or .bss var has no type in symbol table but base address and size
+objdump -S t.elf
+0001008c <get>:
+
+int get()
+{
+   1008c:       e52db004        push    {fp}            ; (str fp, [sp, #-4]!)
+   10090:       e28db000        add     fp, sp, #0      ; 0x0
+        static int var = 1;
+        return var;
+   10094:       e59f3010        ldr     r3, [pc, #16]   ; 100ac <get+0x20>	<--1/2. get &var, which either in .bss or .data
+   10098:       e5933000        ldr     r3, [r3]							<--2/2. *(&var)
+}
+   1009c:       e1a00003        mov     r0, r3
+   100a0:       e28bd000        add     sp, fp, #0      ; 0x0
+   100a4:       e8bd0800        pop     {fp}
+   100a8:       e12fff1e        bx      lr
+   100ac:       000100bc        .word   0x000100bc<--holds addresss of @var
+*/
+int get()
+{
+	static int var = 1;
+	return var;
 }
 
 
