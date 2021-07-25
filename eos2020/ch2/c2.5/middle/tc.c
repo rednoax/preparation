@@ -4,7 +4,7 @@
 
 typedef int UART;
 const char tab[] = "0123456789abcdef";
-int uninit_var;//IT IS WEAK SYMBOL(a COM symbol that can be found by readelf -a)
+int uninit_var;//IT IS WEAK SYMBOL even its st_info is not 'WEAK', but 'GLOBAL'
 int uninit_var2 __attribute__((weak));
 void uputc(UART *up, int c)
 {
