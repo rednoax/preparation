@@ -48,7 +48,7 @@ $ arm-none-eabi-nm t.elf
 
 arm has cannot directly modify the conent in mem, while x86 can do it in one single instrcution.
 When arm needs to modify content of memory, it may need to get the address of the mem in ways like:
-1. ldr reg, =label
+1. ldr reg, =label<--the most easy way to access variable in .data/.bss, the other is like 2 and the label is in the same section, holding a .bss/.data address. Actually, the former is interpreted to the later by as.
 2. adr reg, label<-cannot span section, see error of the above
 Also,  arm can bypass getting mem address directly by loading reg with mem content like:
 1. ldr reg, label<-cannot span section, see error of the above
