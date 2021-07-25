@@ -1,6 +1,6 @@
 #include "string.c"
 #include "uart.c"
-int g_uninit;//readelf -s t.o show it is COMM;readelf -a t.elf show g_uninit is in .bss
+int g_uninit;//readelf -s t.o show it is COMM, not consume room of .bss; readelf -a t.elf show g_uninit is in .bss
 int v[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 int main()
 {

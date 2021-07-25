@@ -21,6 +21,7 @@ common symbols don't have a particular input section.The linker treats common sy
 input section named "COMMON".
 You may use file names with the 'COMMON' section just as with any other input sections.
 In most cases, common symbols in input files will be placed in the '.bss' section in the output file.
+In brief uninitialized global var is NOT in .o's .bss but at last still in executable elf's .bss.
 */
         *(COMMON)
     }
