@@ -105,7 +105,7 @@ void uprintf(char *fmt, ...)
         if (c == '%') {
             switch (*cp++) {
                 case 'c':
-/*++ is higer than *,bu the actual increment/decrement of the operand is delayed,so
+/*Note ++ is higer than *,bu the actual increment/decrement of the operand is delayed,so
 *p++ is *ip first then ip++
 typecast and dereference * is at the same level, but associativity is from right-to-left, so
 (char)(*ip) is not needed!

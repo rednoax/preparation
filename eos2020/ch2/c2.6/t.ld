@@ -4,7 +4,7 @@ SECTIONS
     . = 0x10000;
     .text : {
         ts.o(.text)
-        *(.text) /* if a filename appears explicitly and is also matched by a wildcard pattern, the linke will use
+        *(.text) /* if a filename appears explicitly and is also matched by a wildcard pattern, the linker will use
         the 1st matched*/
         *(.rodata)
     }
