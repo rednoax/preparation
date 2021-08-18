@@ -57,6 +57,12 @@ int main()
 //0x565d4664 0x565d4632, 8ec8353 53e58955, 12<--50B/4==12, which is not the expected result of function bytes size
 	printf("%p %p, %x %x, %d\n", __stop_mysection, __start_mysection, *__stop_mysection, *__start_mysection, __stop_mysection - __start_mysection);
 	*/
+/*verification of wrong way 2
+(gdb) p/x (unsigned int*)16-(unsigned int*)0
+$2 = 0x4
+(gdb) p/x (unsigned char*)16-(unsigned char*)0
+$3 = 0x10
+*/
 	extern char __start_mysection1[], __stop_mysection1[];
 	extern char __start_mysection2[], __stop_mysection2[];
 	char *p;
