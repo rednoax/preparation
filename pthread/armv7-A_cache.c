@@ -107,8 +107,23 @@ void check()
 		printf("[%2d]%24s: %2d(%2d) %2d(%2d) %s\n", i, index_names[i], j, s[0], k, s[1], tex_cb_tre_names[j > k ? j: k]);
 	}
 }
+struct pg_state {
+	int i[32];
+	long j;
+};
+void test()
+{
+	struct pg_state st = {//all uninitialized members are 0
+		.j = -1,
+		.i[16]=-1,
+	};
+	int i;
+	for (i = 0; i < ARRAY_SIZE(st.i); i++)
+		printf("%d:%d\n", i, st.i[i]);
+}
 int main()
 {
+	test();
 	check();
 	return 0;
 }
