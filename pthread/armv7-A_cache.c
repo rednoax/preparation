@@ -22,7 +22,7 @@ static struct mem_type mem_types[] = {//stale value after build_mem_type_table()
 	[8] = {.prot_pte = 0x5df, .prot_pte_s2 = 0x0,    .prot_l1 = 0x61, .prot_sect = 0x0, .domain = 0x3}, 
 	[9] = {.prot_pte = 0x45f, .prot_pte_s2 = 0x0, .prot_l1 = 0x1, .prot_sect = 0x1140e, .domain = 0x0},
 	[10] = {.prot_pte = 0x65f, .prot_pte_s2 = 0x0, .prot_l1 = 0x1, .prot_sect = 0x1141e, .domain = 0x0}, 
-	[11] = {.prot_pte = 0x0, .prot_pte_s2 = 0x0,    .prot_l1 = 0x0, .prot_sect = 0x940e, .domain = 0x0}, 
+	[11] = {.prot_pte = 0x0, .prot_pte_s2 = 0x0,    .prot_l1 = 0x0, .prot_sect = 0x940e, .domain = 0x0}, //MT_ROM
 	[12] = {.prot_pte = 0x447, .prot_pte_s2 = 0x0, .prot_l1 = 0x1, .prot_sect = 0x10406,    .domain = 0x0}, 
 	[13] = {.prot_pte = 0x243, .prot_pte_s2 = 0x0, .prot_l1 = 0x1, .prot_sect = 0x12, .domain = 0x0}, 
 	[14] = {.prot_pte = 0x43,    .prot_pte_s2 = 0x0, .prot_l1 = 0x1, .prot_sect = 0x0, .domain = 0x0}, 
@@ -52,13 +52,13 @@ const char *index_names[] = {
 	__s(MT_MEMORY_DMA_READY),//0x10
 };
 const char *tex_cb_tre_names[] =  {
-	"Strong NCNB  NCNB  InnerS",//strongly-ordered is AL shareable, no matter S in PTE/section is 0 or 1
-	"Normal NCNB  NCNB  InnerS",
-	"Normal WTnWA WTnWA InnerS",
-	"Normal WBnWA WBnWA InnerS",
-	"Device NCNB  NCNB  InnerS",
-	"Strong NCNB  NCNB  InnerS",
-	"***NA",
+	"Strong NCNB  NCNB  InnerS",//[0]//strongly-ordered is AL shareable, no matter S in PTE/section is 0 or 1
+	"Normal NCNB  NCNB  InnerS",//[1]
+	"Normal WTnWA WTnWA InnerS",//[2]
+	"Normal WBnWA WBnWA InnerS",//[3]
+	"Device NCNB  NCNB  InnerS",//[4]
+	"Strong NCNB  NCNB  InnerS",//[5]
+	"***NA",					//[6]
 	"Normal WB+WA WB+WA InnerS",//[7] is what I am interested in!
 };
 void check()
