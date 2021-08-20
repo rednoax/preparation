@@ -16,7 +16,8 @@
 #include <asm/domain.h>
 #include <asm/fixmap.h>
 #include <asm/memory.h>
-#include <asm/ptdump.h>
+//#include <asm/ptdump.h>
+#include "ptdump.h"
 //
 #include <linux/module.h>
 //
@@ -508,6 +509,7 @@ static int __init ptdump_init(void)
 	return 0;
 }
 //__initcall(ptdump_init);
+
 static void ptdump_exit(void)
 {
 	ptdump_debugfs_unregister();

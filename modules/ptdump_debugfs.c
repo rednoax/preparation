@@ -2,7 +2,8 @@
 #include <linux/debugfs.h>
 #include <linux/seq_file.h>
 
-#include <asm/ptdump.h>
+//#include <asm/ptdump.h>
+#include "ptdump.h"
 
 static int ptdump_show(struct seq_file *m, void *v)
 {
