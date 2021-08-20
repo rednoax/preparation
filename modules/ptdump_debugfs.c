@@ -13,8 +13,14 @@ static int ptdump_show(struct seq_file *m, void *v)
 }
 DEFINE_SHOW_ATTRIBUTE(ptdump);
 
+static struct dentry *ptdump_debug_root;
 void __init ptdump_debugfs_register(struct ptdump_info *info, const char *name)
 {
-	debugfs_create_file(name, 0400, NULL, info, &ptdump_fops);
+	ptdump_debug_root = debugfs_create_dir("ptdump", NULL);
+	debugfs_create_file(name, 0444, ptdump_debug_root, info, &ptdump_fops);
 }
 
+void ptdump_debugfs_unregister()
+{
+	debugfs_remove(ptdump_debug_root);
+}

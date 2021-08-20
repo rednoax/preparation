@@ -510,6 +510,7 @@ static int __init ptdump_init(void)
 //__initcall(ptdump_init);
 static void ptdump_exit(void)
 {
+	ptdump_debugfs_unregister();
 }
 
 module_init(ptdump_init);
