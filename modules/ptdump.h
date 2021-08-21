@@ -37,5 +37,5 @@ void ptdump_check_wx(void);
 #else
 #define debug_checkwx() do { } while (0)
 #endif
-
+#define init_mm (*(init_task.mm))
 #endif /* __ASM_PTDUMP_H */
