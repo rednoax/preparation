@@ -10,7 +10,7 @@
 	ARCH=arm CROSS_COMPILE=~/A10M/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi-
 KERNELDIR=/home/rednoah/opt/src/op-tee/linux
 ARCH=arm
-CROSS_COMPILE="/home/rednoah/opt/src/op-tee/build/../toolchains/aarch32/bin/arm-linux-gnueabihf-"
+CROSS_COMPILE=/usr/bin/ccache /home/rednoah/opt/src/op-tee/build/../toolchains/aarch32/bin/arm-linux-gnueabihf-
 export KERNELDIR ARCH CROSS_COMPILE
 ifeq ($(KERNELRELEASE),)
 
