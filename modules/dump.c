@@ -154,7 +154,7 @@ static const struct prot_bits section_bits[] = {
 	{
 		.mask	= PMD_SECT_APX | PMD_SECT_AP_READ | PMD_SECT_AP_WRITE,
 		.val	= PMD_SECT_APX | PMD_SECT_AP_WRITE,
-		.set	= "    ro",//RO,only at PL1
+		.set	= "    ro",//PL1 RO,PL0 no access
 		.ro_bit	= true,
 	}, {
 		.mask	= PMD_SECT_APX | PMD_SECT_AP_READ | PMD_SECT_AP_WRITE,
@@ -167,7 +167,37 @@ static const struct prot_bits section_bits[] = {
 	}, {
 		.mask	= PMD_SECT_APX | PMD_SECT_AP_READ | PMD_SECT_AP_WRITE,
 		.val	= PMD_SECT_AP_READ | PMD_SECT_AP_WRITE,
-		.set	= "USR RW",//PL1&0:RW
+		.set	= "USR RW",//PL1 RW,PL0:RW
+	}, {
+		.mask	= PMD_SECT_PXN,
+		.val	= PMD_SECT_PXN,//1<<0
+		.set	= "PXN",
+		.clear	= "px ",
+	}, {
+		.mask	= PMD_SECT_nG,
+		.val	= PMD_SECT_nG,//1<<17
+		.set	= "nG",
+		.clear	= "G ",
+	}, {
+		.mask	= PMD_SECT_CACHE_MASK,
+		.val	= PMD_SECT_UNCACHED,
+		.set	= "SO/UNCACHED",
+	}, {
+		.mask	= PMD_SECT_CACHE_MASK,
+		.val	= PMD_SECT_BUFFERED,
+		.set	= "MEM/BUFFERABLE/WC",
+	}, {
+		.mask	= PMD_SECT_CACHE_MASK,
+		.val	= PMD_SECT_WT,
+		.set	= "MEM/CACHED/WT",
+	}, {
+		.mask	= PMD_SECT_CACHE_MASK,
+		.val	= PMD_SECT_WB,
+		.set	= "MEM/CACHED/WBRA",
+	}, {
+		.mask	= PMD_SECT_CACHE_MASK,
+		.val	= PMD_SECT_WBWA,
+		.set	= "MEM/CACHED/WBWA",
 #else /* ARMv4/ARMv5  */
 	/* These are approximate */
 	{
