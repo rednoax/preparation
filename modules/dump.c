@@ -374,8 +374,8 @@ static void walk_pte(struct pg_state *st, pmd_t *pmd, unsigned long start,
 
 static const char *get_domain_name(pmd_t *pmd)//*pmd can be 1 L1 PTE or section entry, both of their [8:5] are Domain fields
 {
-#ifndef CONFIG_ARM_LPAE
-	switch (pmd_val(*pmd) & PMD_DOMAIN_MASK) {//[8:5] of *pmd, ARM hw bit
+#ifndef CONFIG_ARM_LPAE //          & higher than &&
+	switch (pmd_val(*pmd) && pmd_val(*pmd) & PMD_DOMAIN_MASK) {//[8:5] of *pmd, ARM hw bit
 	case PMD_DOMAIN(DOMAIN_KERNEL):
 		return "KERNEL ";
 	case PMD_DOMAIN(DOMAIN_USER):
