@@ -35,7 +35,7 @@ static struct addr_marker address_markers[] = {
 	{ VECTORS_BASE + PAGE_SIZE * 2, "Vectors End" },
 	{ -1,			NULL },
 };
-
+/*
 #define pt_dump_seq_printf(m, fmt, args...) \
 ({                      \
 	if (m)					\
@@ -47,7 +47,7 @@ static struct addr_marker address_markers[] = {
 	if (m)					\
 		seq_printf(m, fmt);	\
 })
-
+*/
 struct pg_state {
 	struct seq_file *seq;
 	const struct addr_marker *marker;//address_markers

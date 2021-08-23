@@ -40,4 +40,17 @@ void ptdump_check_wx(void);
 #define debug_checkwx() do { } while (0)
 #endif
 #define init_mm (*(init_task.mm))
+
+#define pt_dump_seq_printf(m, fmt, args...) \
+({                      \
+	if (m)					\
+		seq_printf(m, fmt, ##args);	\
+})
+
+#define pt_dump_seq_puts(m, fmt)    \
+({						\
+	if (m)					\
+		seq_printf(m, fmt);	\
+})
+
 #endif /* __ASM_PTDUMP_H */
