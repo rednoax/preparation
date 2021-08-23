@@ -510,7 +510,7 @@ static int __init ptdump_init(void)
 {
 	ptdump_initialize();
 	kernel_ptdump_info.mm = &init_mm;
-	ptdump_debugfs_register(&kernel_ptdump_info, "kernel_page_tables");
+	ptdump_debugfs_register(&kernel_ptdump_info, "pt");
 	return 0;
 }
 //__initcall(ptdump_init);

@@ -15,20 +15,27 @@ static int ptdump_show(struct seq_file *m, void *v)
 }
 DEFINE_SHOW_ATTRIBUTE(ptdump);
 
-static int cptdump_show(struct seq_file *m, void *v)
+static int pid_get(void *data, u64 *val)
 {
-	struct ptdump_info *info = m->private;
-	cptdump_walk_pgd(m, info);
+	*val = *(u32*)data;
 	return 0;
 }
-DEFINE_SHOW_ATTRIBUTE(cptdump);
+
+static int pid_set(void *data, u64 val)//arch/arm/mach-omap2/pm-debug.c
+{
+	u32 *ppid = data;
+	*ppid = val;
+	return 0;
+}
+
+DEFINE_SIMPLE_ATTRIBUTE(pid_fops, pid_get, pid_set, "%llu\n");
 
 static struct dentry *ptdump_debug_root;
 void __init ptdump_debugfs_register(struct ptdump_info *info, const char *name)
 {
 	ptdump_debug_root = debugfs_create_dir("ptdump", NULL);
 	debugfs_create_file(name, 0444, ptdump_debug_root, info, &ptdump_fops);
-	debugfs_create_file("cPT", 0444, ptdump_debug_root, info, &cptdump_fops);
+	debugfs_create_file("pid", 0666, ptdump_debug_root, &info->pid, &pid_fops);
 }
 
 void ptdump_debugfs_unregister()
