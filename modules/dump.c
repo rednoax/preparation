@@ -375,7 +375,7 @@ static void walk_pte(struct pg_state *st, pmd_t *pmd, unsigned long start,
 static const char *get_domain_name(pmd_t *pmd)//*pmd can be 1 L1 PTE or section entry, both of their [8:5] are Domain fields
 {
 #ifndef CONFIG_ARM_LPAE //          & higher than &&
-	switch (pmd_val(*pmd) && pmd_val(*pmd) & PMD_DOMAIN_MASK) {//[8:5] of *pmd, ARM hw bit
+	switch (pmd_present(*pmd) && pmd_val(*pmd) & PMD_DOMAIN_MASK) {//[8:5] of *pmd, ARM hw bit
 	case PMD_DOMAIN(DOMAIN_KERNEL):
 		return "KERNEL ";
 	case PMD_DOMAIN(DOMAIN_USER):
@@ -409,6 +409,7 @@ b.pmd[0,1]:all section;
 c.pmd[0]:0,pmd[1]:section entry; ie only 1M mempry is mapped
 No things like: pmd[0] is L2 PT address and pmd[1] is section, OR VICE VERSA!*/
 		domain = get_domain_name(pmd);//Domain field only exists in L1-PTE/SE [8:5], no L2 PTE.
+#if 0
 		if (pmd_none(*pmd) || pmd_large(*pmd) || !pmd_present(*pmd))//!*pmd||*(pmd)&2/*is section*/||!*pmd
 			note_page(st, addr, 4, pmd_val(*pmd), domain);/*&st,kernel_ptdump_info->base_addr+i*2MB,
 								3,init_mm.pgd[i][0], domain string of init_mm.pgd[i]); i:[0..2048)*/
@@ -421,6 +422,19 @@ No things like: pmd[0] is L2 PT address and pmd[1] is section, OR VICE VERSA!*/
 			domain = get_domain_name(pmd);
 			note_page(st, addr, 4/*section*/, pmd_val(*pmd)/**pmd*/, domain);
 		}
+#else
+		if (pmd_present(*pmd) && !pmd_large(*pmd))
+			walk_pte(st, pmd, addr, domain);
+		else {
+			note_page(st, addr, 4, pmd_val(*pmd), domain);
+			if (SECTION_SIZE < PMD_SIZE) {
+				addr += SECTION_SIZE;
+				pmd++;
+				domain = get_domain_name(pmd);
+				note_page(st, addr, 4, pmd_val(*pmd), domain);
+			}
+		}
+#endif
 	}
 }
 //a dummy wrapper to walk_pmd(st,p4d,start)
@@ -480,6 +494,7 @@ void ptdump_walk_pgd(struct seq_file *m, struct ptdump_info *info)
 		.seq = m,
 		.marker = info->markers,//address_markers
 		.check_wx = false,
+		.level = -1,//not 0
 	};
 
 	walk_pgd(&st, info->mm, info->base_addr);

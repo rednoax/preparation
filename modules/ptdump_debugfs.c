@@ -6,6 +6,16 @@
 #include "ptdump.h"
 #include <linux/sched.h>
 
+static void get_ttbcp15(struct seq_file *m)
+{
+	unsigned int ttbcr, ttbr[2];
+	asm volatile(
+		"mrc p15, 0, %0, c2, c0, 2\n\t"
+		"mrc p15, 0, %1, c2, c0, 0\n\t"
+		"mrc p15, 0, %2, c2, c0, 1\n\t"
+		:"=r"(ttbcr), "=r"(ttbr[0]), "=r"(ttbr[1]));
+	pt_dump_seq_printf(m, "TTBCR %x, TTBR0/1 %08x %08x\n", ttbcr, ttbr[0], ttbr[1]);
+}
 static int ptdump_show(struct seq_file *m, void *v)
 {
 	struct ptdump_info *info = m->private;
@@ -15,7 +25,8 @@ static int ptdump_show(struct seq_file *m, void *v)
 			p = current;
 	}
 	ptdump_info.mm = p->mm;
-
+	pt_dump_seq_printf(m, "PID %d ", p->pid);
+	get_ttbcp15(m);
 	ptdump_walk_pgd(m, info);
 	return 0;
 }
