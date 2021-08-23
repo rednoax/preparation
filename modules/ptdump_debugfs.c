@@ -4,6 +4,7 @@
 
 //#include <asm/ptdump.h>
 #include "ptdump.h"
+#include "cptdump.h"
 
 static int ptdump_show(struct seq_file *m, void *v)
 {

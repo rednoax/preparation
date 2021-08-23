@@ -482,6 +482,10 @@ static struct ptdump_info kernel_ptdump_info = {
 	.base_addr = 0,
 };
 
+struct ptdump_info current_ptdump_info = {
+	.markers = address_markers,
+};
+
 void ptdump_check_wx(void)
 {
 	struct pg_state st = {
