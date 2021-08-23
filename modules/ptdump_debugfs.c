@@ -4,10 +4,17 @@
 
 //#include <asm/ptdump.h>
 #include "ptdump.h"
+#include <linux/sched.h>
 
 static int ptdump_show(struct seq_file *m, void *v)
 {
 	struct ptdump_info *info = m->private;
+	struct task_struct *p = &init_task;
+	if (ptdump_info.pid > 0) {
+		if (!(p = find_task_by_vpid(ptdump_info.pid)))
+			p = current;
+	}
+	ptdump_info.mm = p->mm;
 
 	ptdump_walk_pgd(m, info);
 	return 0;

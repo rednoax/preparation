@@ -506,14 +506,10 @@ static void __init ptdump_initialize(void)
 #endif
 }
 
-static struct ptdump_info kernel_ptdump_info = {
+static struct ptdump_info ptdump_info = {
 	//.mm = &init_mm,
 	.markers = address_markers,
 	.base_addr = 0,
-};
-
-struct ptdump_info current_ptdump_info = {
-	.markers = address_markers,
 };
 
 void ptdump_check_wx(void)
@@ -539,8 +535,7 @@ void ptdump_check_wx(void)
 static int __init ptdump_init(void)
 {
 	ptdump_initialize();
-	kernel_ptdump_info.mm = &init_mm;
-	ptdump_debugfs_register(&kernel_ptdump_info, "pt");
+	ptdump_debugfs_register(&ptdump_info, "pt");
 	return 0;
 }
 //__initcall(ptdump_init);
