@@ -4,7 +4,7 @@
 
 //#include <asm/ptdump.h>
 #include "ptdump.h"
-#include <linux/sched.h>
+#include <linux/pid.h>
 
 static void get_ttbcp15(struct seq_file *m)
 {
@@ -21,8 +21,8 @@ static int ptdump_show(struct seq_file *m, void *v)
 	struct ptdump_info *info = m->private;
 	struct task_struct *p = &init_task;
 	int pid = info->pid;
-	if (pid > 0) {
-		if (!(p = find_task_by_vpid(pid)))
+	if (pid > 0) {//find_task_vpid/find_task_by_pid_ns can't be used as they are not exported
+		if (!(p = pid_task(find_vpid(pid), PIDTYPE_PID)))//from stackoverflow, or use 'struct pid *find_get_pid(pid_t nr)'
 			p = current;
 	}
 	info->mm = p->mm;
