@@ -39,10 +39,13 @@ int main(int argc, char **argv)
 		.sa_flags = 0,
 		.sa_handler = SIG_IGN,
 	};
-	while ((ch = getopt(argc, argv, "n")) != -1) {
+	while ((ch = getopt(argc, argv, "nr")) != -1) {
 		switch(ch) {
 		case 'n':
 			nflag = 1;
+			break;
+		case 'r':
+			sa.sa_flags |= SA_RESTART;
 			break;
 		default:
 			printf("%c not supported\n", optopt);
@@ -85,7 +88,7 @@ rupted by a signal handler (see signal(7)).  The BSD semantics are equivalent to
 The situation on Linux is as follows:
 * The kernel's signal() system call provides System V semantics.
 * By default, in glibc 2 and later, the signal() wrapper function does not invoke the kernel system call.  Instead, it calls sigac‐
- tion(2) using flags that supply BSD semantics. 
+ tion(2) using flags that supply BSD semantics.
 $ ldd --version
 ldd (Ubuntu GLIBC 2.31-0ubuntu9.2) 2.31
 */
