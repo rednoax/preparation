@@ -52,4 +52,10 @@ $(info $(v2) defined)
 else
 $(info $(v2) !defined)#
 endif
+
+ifeq ($(origin M)   ,    command line)
+$(info M defined as $M from "command line")#make -f xx M=.
+else
+$(info "M not from command line!")#make -f xx
+endif
 all:
