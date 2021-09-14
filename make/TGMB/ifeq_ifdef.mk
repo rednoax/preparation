@@ -15,7 +15,7 @@ else
 $(info foo defined)
 endif
 
-ifneq ($(foo),)
+ifneq ($(foo) , )#space around , is not considered
 $(info foo not empty)
 else
 $(info foo empty)#behave like the above ifdef
@@ -43,7 +43,7 @@ v0=v
 v1=$(v0)
 v2=$(v1)
 
-ifeq ($(v2),)#can't run the following
+ifeq ($(v2),)#expanded untile no $, ie ifeq(v,), so it can't run the following
 $(info v2 is actually empty)
 endif
 

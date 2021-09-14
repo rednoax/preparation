@@ -26,7 +26,7 @@ static int ptdump_show(struct seq_file *m, void *v)
 			p = current;
 	}
 	info->mm = p->mm;
-	pt_dump_seq_printf(m, "PID %d ", p->pid);
+	pt_dump_seq_printf(m, "PID %d, task_t* %x, mm %x ", p->pid, p, p->mm);
 	get_ttbcp15(m);
 	ptdump_walk_pgd(m, info);
 	return 0;
