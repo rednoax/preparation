@@ -58,4 +58,16 @@ $(info M defined as $M from "command line")#make -f xx M=.
 else
 $(info "M not from command line!")#make -f xx
 endif
+#see man 3 realpath for more \
+a symbol link:return its real file in canonical absolute name \
+an unexisting file: return empty string as it doesn't exist. \
+existing files:return canonical absolute file; \
+a canonical name dosen't contain any . or .. components, nor any repeated path seperators(/) or symlinks.
+
+$(info [$(realpath /usr/bin/python /usr/lib/python false /usr/bin//ls ./ifeq_ifdef.mk)])
+#stdout:[/usr/bin/python2.7 /usr/bin/ls /home/rednoah/opt/preparation/make/TGMB/ifeq_ifdef.mk]
+
+#multi @ is ok and at last actually equals to one @
 all:
+#equals to '@echo "$@"'
+	@@@@@echo "$@"
