@@ -43,13 +43,13 @@ v0=v
 v1=$(v0)
 v2=$(v1)
 
-ifeq ($(v2),)
-$(info v2 is actually empty)#
+ifeq ($(v2),)#can't run the following
+$(info v2 is actually empty)
 endif
 
 ifdef $(v2)#the arg will be expanded until no $, at last it is 'v' and v is not defined
 $(info $(v2) defined)
 else
-$(info $(v2) !defined)
+$(info $(v2) !defined)#
 endif
 all:
