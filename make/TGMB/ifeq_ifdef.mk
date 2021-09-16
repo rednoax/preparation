@@ -64,12 +64,13 @@ an unexisting file: return empty string as it doesn't exist. \
 existing files:return canonical absolute file; \
 a canonical name dosen't contain any . or .. components, nor any repeated path seperators(/) or symlinks.
 
+#/usr/lib/python false below NOT exist so expanded to empty, /usr/bin/python is a symlink to python2.7
 $(info [$(realpath /usr/bin/python /usr/lib/python false /usr/bin//ls ./ifeq_ifdef.mk)])
 #stdout:[/usr/bin/python2.7 /usr/bin/ls /home/rednoah/opt/preparation/make/TGMB/ifeq_ifdef.mk]
 
-$(info MAKECMDGOALS=$(MAKECMDGOALS))#empty if u specify no target when launch `make -f xx`
+$(info MAKECMDGOALS=$(MAKECMDGOALS))#empty if u specify no target when launch `make -f xx`; 'a b c' if `make -f xx a b c`
 
-$(info $(filter-out 1 2,	  3 2 1))#3, space or \t can be after comma
+$(info $(filter-out 1 2 	,	  3 2 1))#3, space or \t before or after comma is IGNORED
 
 KBUILD_VERBOSE=0
 $(info $(KBUILD_VERBOSE): $(KBUILD_VERBOSE:1=))
@@ -82,5 +83,5 @@ $(info $(KBUILD_VERBOSE): $(KBUILD_VERBOSE:1=))
 
 $(MAKECMDGOALS) _all:
 #equals to '@echo "$@"': multi @ is ok and at last actually equals to one @
-#if MAKECMDGOALS is empty,then: _all,$(MAKECMDGOALS) otherwise:eg 'all' when `make -f ifeq_ifdef.mk all`
+#if MAKECMDGOALS is empty,then: _all,$(MAKECMDGOALS) otherwise:eg 'all' when `make -f xx all`, 'a\nb\nc\n' for `make -f xx a b c`
 	@@@@@echo "$@"
