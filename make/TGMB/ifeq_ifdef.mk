@@ -67,7 +67,20 @@ a canonical name dosen't contain any . or .. components, nor any repeated path s
 $(info [$(realpath /usr/bin/python /usr/lib/python false /usr/bin//ls ./ifeq_ifdef.mk)])
 #stdout:[/usr/bin/python2.7 /usr/bin/ls /home/rednoah/opt/preparation/make/TGMB/ifeq_ifdef.mk]
 
-#multi @ is ok and at last actually equals to one @
-all:
-#equals to '@echo "$@"'
+$(info MAKECMDGOALS=$(MAKECMDGOALS))#empty if u specify no target when launch `make -f xx`
+
+$(info $(filter-out 1 2,	  3 2 1))#3, space or \t can be after comma
+
+KBUILD_VERBOSE=0
+$(info $(KBUILD_VERBOSE): $(KBUILD_VERBOSE:1=))
+
+KBUILD_VERBOSE=1
+$(info $(KBUILD_VERBOSE): $(KBUILD_VERBOSE:1=))
+
+KBUILD_VERBOSE=2
+$(info $(KBUILD_VERBOSE): $(KBUILD_VERBOSE:1=))
+
+$(MAKECMDGOALS) _all:
+#equals to '@echo "$@"': multi @ is ok and at last actually equals to one @
+#if MAKECMDGOALS is empty,then: _all,$(MAKECMDGOALS) otherwise:eg 'all' when `make -f ifeq_ifdef.mk all`
 	@@@@@echo "$@"
