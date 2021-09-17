@@ -11,9 +11,13 @@ aftermakecons:=[$(MAKELEVEL):$(MAKEFLAGS)]
 show=$(info $(envbeforemakecons)=>$(aftermakecons)=>[$(MAKELEVEL):$(MAKEFLAGS)])#initial env for make=>phase 1=>phase2
 CMD=$(MAKE) -f opt.mk
 
-ifeq (1,0)
+ifeq (0,1)
 #$ VAR=e make -f opt.mk -e \
 : 'e'
+#$ VAR=e make -f opt.mk\
+: 'e -R'
+#$ make -f opt.mk VAR=c\
+: 'c'
 VAR+=-R#-R will not be added to env's value "e", at last VAR's value is e
 test:
 	: '${VAR}'
