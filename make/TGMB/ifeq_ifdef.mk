@@ -71,6 +71,7 @@ $(info [$(realpath /usr/bin/python /usr/lib/python false /usr/bin//ls ./ifeq_ifd
 $(info MAKECMDGOALS=$(MAKECMDGOALS))#empty if u specify no target when launch `make -f xx`; 'a b c' if `make -f xx a b c`
 
 $(info $(filter-out 1 2 	,	  3 2 1))#3, space or \t before or after comma is IGNORED
+$(info $(filter 1 2 	,	  3 2 1))#1 2, space or \t before or after comma is IGNORED
 
 KBUILD_VERBOSE=0
 $(info $(KBUILD_VERBOSE): $(KBUILD_VERBOSE:1=))
