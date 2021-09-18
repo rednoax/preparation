@@ -12,4 +12,12 @@ var=$(call macro,0,1)
 
 $(call iterator,var)
 
+time?=$(shell date +%N)#as `date;date` show 2 the same values
+#the above is exactly equivalent to:\
+ifeq ($(origin time), undefined)\
+time = $(shell date)<=NOTE the assignment is not :=\
+endif
+
+$(info $(time) $(time))#different values
+
 all:
