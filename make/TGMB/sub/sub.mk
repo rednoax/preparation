@@ -9,6 +9,6 @@ $(info '')#'' will be shown
 
 $(info $(shell echo $$PPID $$$$) $(shell pwd) $(CURDIR) $(PWD) $(MAKELEVEL))#pwd result is the same as CURDIR
 
-$(shell sleep 100)
+$(shell sleep 3)
 
 all:;
