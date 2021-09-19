@@ -1,3 +1,4 @@
+MAKEFLAGS+=-rR
 SUBDIRS=tools \
 	examples \
 	api_examples
