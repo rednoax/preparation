@@ -6,7 +6,7 @@ toy1=[$1 $@ $?]$(toy2)
 toy0=: [$0 $@ $?]$(toy1)#the toy0 is expanded as recipe command so there is a : to form a dummy command;\
 all its variables or variables of variables,etc can use $1,$2,... or ANY auto variables like $@,$<,$? directly
 
-cmd_scripts/basic/fixdep=a#name can have /
+cmd_scripts/basic/fixdep=a#variable name can have /
 $(warning $(cmd_scripts/basic/fixdep))
 
 all:FORCE
@@ -14,5 +14,15 @@ all:FORCE
 There seems no side effect ALA there is no $(shell ...) in $(call toy0,1,2).\
 Actually the warning seems unnecessary since there is no @before $(call toy0,1,2)
 	$(call toy0,1,2)$(warning $(call toy0,1,2))
+
+iter=$(foreach i,$1,$i=$($i))
+iter2=$(foreach i,$1,$(warning $1=$($i)))
+all2:
+#call function is just expanded, iter of the above is expanded to [ all2 ], $2 of toy2 can't be expanded as \
+toy2 is expanded via $(call iter,toy2): test proves AFTER A SECOND "$(call ...)", $1/2/3.. CAN'T BE USED AT ALL.But auto variable\
+like $@ can STILL BE used.\
+iter2 is expaned to nothing since expansion of warning/info is empty string.
+	: $(call toy2,1,2)$(call iter,toy2)$(call iter2,toy2)
+
 FORCE:;
 .PHONY:FORCE
