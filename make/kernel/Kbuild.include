@@ -27,8 +27,9 @@ iter2 is expaned to nothing since expansion of warning/info is empty string.
 arg-check=$1,$@
 someFunc=$($1)
 f=$(arg-check)
+f2=$(call arg-check,$1)#exactly the same as f, but not necessary
 
-if_chaned_dep=[$(arg-check)][$(call someFunc,arg-check)][$(call f,$1,arg-check)]
+if_chaned_dep=[$(arg-check)][$(call someFunc,arg-check)][$(call f,$1,arg-check)][$(call f2,$1)]
 
 all3:
 #: [1,all3][arg-check,all3]
