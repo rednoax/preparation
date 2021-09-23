@@ -1,3 +1,4 @@
+
 #!/home/rednoah/opt/preparation/make/TGMB/dump.out -o arg arg
 #$ ./easy.sh 1 2 3 4
 #0: /home/rednoah/opt/preparation/make/TGMB/dump.out
