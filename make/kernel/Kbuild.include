@@ -6,6 +6,9 @@ toy1=[$1 $@ $?]$(toy2)
 toy0=: [$0 $@ $?]$(toy1)#the toy0 is expanded as recipe command so there is a : to form a dummy command;\
 all its variables or variables of variables,etc can use $1,$2,... or ANY auto variables like $@,$<,$? directly
 
+cmd_scripts/basic/fixdep=a#name can have /
+$(warning $(cmd_scripts/basic/fixdep))
+
 all:FORCE
 #NOTE the warning is done BEFORE running recipe command and it just show the command but will not run it.\
 There seems no side effect ALA there is no $(shell ...) in $(call toy0,1,2).\
