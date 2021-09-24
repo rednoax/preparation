@@ -25,14 +25,25 @@ iter2 is expaned to nothing since expansion of warning/info is empty string.
 	: $(call toy2,1,2)$(call iter,toy2)$(call iter2,toy2)
 
 arg-check=$1,$@
-someFunc=$($1)
+someFunc=$($1)#$1 here is arg-check supplied by $(call someFunc,arg-check),the someFunc expansion 
 f=$(arg-check)
-f2=$(call arg-check,$1)#exactly the same as f, but not necessary
+f2=$(call arg-check,$1)#exactly the same as arg-check, but not necessary
 
-if_chaned_dep=[$(arg-check)][$(call someFunc,arg-check)][$(call f,$1,arg-check)][$(call f2,$1)]
+if_chaned_dep=[$(arg-check)][$(call someFunc,arg-check)][$(call f,$1)][$(call f2,$1)]
 
 all3:
-#: [1,all3][arg-check,all3]
+#1.the $(call someFunc,arg-check) is just to expand someFunc with a $1==arg-check, $(call ...) will assign $1/2/3...,\
+here, after expansion someFunc is:$(arg-check), then\
+expansion goes on until no $(...):$1 $@,then $1==arg-check $@ is all3 so:arg-check all3;\
+This behavior is the same as ifeq (...) expansion whose expansion continues until no $(...).\
+2.During each level expansion, as long as $1/2/3... is not changed by a new $(call ...), the $1/2/3...\
+is the most recently value assigned by $(call ...).They can be used directly or transferred once again by a new call:\
+arg-check and f2 of the above implment the same result by f2 is long and verbose. So arg-check is a preferable way.\
+Take someFunc for another example of changing $1:\
+Its $1 is not 1 of (call if_chaned_dep,1) but arg-check as $(call someFunc,arg-check) has changed $1 from 1 to arg-check.\
+3.f is equals to arg-check by a workaround:if_chaned_dep's $1 is transferred again and f "call" arg-check directly w/t $1 reassignment.\
+result:
+#: [1,all3][arg-check,all3][1,all3][1,all3]
 	: $(call if_chaned_dep,1)
 FORCE:;
 .PHONY:FORCE
