@@ -1,3 +1,4 @@
+MAKEFLAGS+=-rR
 define macro
 $2
 $1 $3 $($4) $$5 ${$6}
@@ -21,3 +22,11 @@ endif
 $(info $(time) $(time))#different values
 
 all:
+
+_hostc_flags = -Iscripts/kconfig
+__hostc_flags = $(call flags,_hostc_flags)
+#an empty "-I" w/t dir is excluded
+addtree = $(if $(patsubst -I%,%,$1),   \
+$(if $(filter-out -I/%,$1),$(patsubst -I%,-Isrctree/%,$1)) $1)
+flags = $(foreach o,$($1),$(if $(filter -I%,$o),$(call addtree,$o),$o))
+$(warning $(__hostc_flags))
