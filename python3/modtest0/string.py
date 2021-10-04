@@ -32,6 +32,10 @@ elif i == 1:
     bpf = BPF("bpf")
     bpf.print()
 elif i == 2:
+#class BPF's static print() runs still even it has not been imported
+    from pack import str
+    print(str)
+elif i == 3:
     import pack
     print(pack.str)
     bpf = pack.BPF("bpf2")
@@ -40,4 +44,10 @@ else:
     print("i!=0")
     from mod import i
     print(i)
-#when a module is imported('import module' or 'from xx import object'), Python run all of the code in the module file.
+#when a module i.e. a file is imported, no matter using 'import module' or 'from module import object',
+#Python run all of the code in the module file.
+#To ref object in mod, the latter need not 'module.object' like the former but only 'object'
+
+#when a package i.e. a dir is imported, no matter using 'import dir' or 'from dir import object',
+#Python run ALL of __init__.py if any: if some object not imported, its static method runs still.
+#To ref object in dir, the latter need not 'dir.object' like the former but only 'object'
