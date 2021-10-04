@@ -21,11 +21,21 @@ print(type(a),id(a))
 from sys import argv
 name, i = argv
 i = int(i)
-print(i)
+print(f"{i}:")
 if i == 0:
     import mod
 #if NO 'import mod': NameError: name 'mod' is not defined
     print(mod.i)
+elif i == 1:
+    from pack import BPF,str
+    print(str)
+    bpf = BPF("bpf")
+    bpf.print()
+elif i == 2:
+    import pack
+    print(pack.str)
+    bpf = pack.BPF("bpf2")
+    bpf.print()
 else:
     print("i!=0")
     from mod import i
