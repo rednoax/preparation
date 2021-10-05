@@ -8,4 +8,4 @@ class BPF:
         self.str = str
     def print(self):
         print(self.str)
-str = 'pack'
+str = 'packA'

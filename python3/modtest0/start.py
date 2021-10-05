@@ -27,23 +27,23 @@ if i == 0:
 #if NO 'import mod': NameError: name 'mod' is not defined
     print(mod.i)
 elif i == 1:
-    from pack import BPF,str
+    from packA import BPF,str
     print(str)
     bpf = BPF("bpf")
     bpf.print()
 elif i == 2:
 #class BPF's static print() runs still even it has not been imported
-    from pack import str
+    from packA import str
     print(str)
 elif i == 3:
-    import pack
-    print(pack.str)
-    bpf = pack.BPF("bpf2")
+    import packA
+    print(packA.str)
+    bpf = packA.BPF("bpf2")
     bpf.print()
-    print(pack) #<module 'pack' from '/home/rednoah/opt/preparation/python3/modtest0/pack/__init__.py'>
+    print(packA) #<module 'packA' from '/home/rednoah/opt/preparation/python3/modtest0/packA/__init__.py'>
 elif i == 4:
-    import packb
-    print(packb) #<module 'packb' (namespace)>, different from the imported package that has '__init__.py'
+    import packB
+    print(packB) #<module 'packAb' (namespace)>, different from the imported packAage that has '__init__.py'
 else:
     print("i!=0")
     from mod import i
@@ -52,6 +52,6 @@ else:
 #Python run all of the code in the module file.
 #To ref object in mod, the latter need not 'module.object' like the former but only 'object'
 
-#when a package i.e. a dir is imported, no matter using 'import dir' or 'from dir import object',
+#when a packAage i.e. a dir is imported, no matter using 'import dir' or 'from dir import object',
 #Python run ALL of __init__.py if any: if some object not imported, its static method runs still.
 #To ref object in dir, the latter need not 'dir.object' like the former but only 'object'
