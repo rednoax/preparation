@@ -40,6 +40,10 @@ elif i == 3:
     print(pack.str)
     bpf = pack.BPF("bpf2")
     bpf.print()
+    print(pack) #<module 'pack' from '/home/rednoah/opt/preparation/python3/modtest0/pack/__init__.py'>
+elif i == 4:
+    import packb
+    print(packb) #<module 'packb' (namespace)>, different from the imported package that has '__init__.py'
 else:
     print("i!=0")
     from mod import i
