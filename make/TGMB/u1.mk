@@ -80,6 +80,14 @@ Whether there is 2nd parse of u1.mk is triggered by:\
 1. dummy.mk must own a recipe to run to change the dummy.mk's ts.\
 2. The result of recipe must really change dummy.mk's timestamp.\
 3. The key seems to compare 2 timestamp, the ts when dummy.mk is included and the ts after its recipe fins.\
+Knowledge:\
+1. if there is not any rule of dummy.mk, `make -p`'s dummy.mk rule in data base would be sth like:\
+# Not a target:\
+dummy.mk:\
+#  Implicit rule search has been done.\
+#  Last modified 2021-10-09 11:57:58.483799896\
+#  File has been updated.\
+#  Successfully updated.
 
 #rednoah@lucia:~/preparation/make$ pstree -AUp|grep make
 #           │            ├─sshd(5678)───sshd(5798)───bash(5801)───make(6244)───make(6249)───sleep(6252)<--the 2nd make is the child process launched by top make, the 2nd make will paused at sleep 100 so I can use pstree to find it.
