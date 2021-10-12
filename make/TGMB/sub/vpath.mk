@@ -144,3 +144,11 @@ obj=obj
 all6:$(obj)/abort.o
 $(obj)/%.o:%.c#see comment A
 	$(show_auto);rm -rf $@
+
+#fail: make: *** No rule to make target 'pthread//arm_test.c', needed by 'all7'.  Stop.
+all7:pthread//arm_test.c
+	$(show_auto)
+
+#normal
+all8:pthread/arm_test.c
+	$(show_auto)
