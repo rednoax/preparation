@@ -19,4 +19,8 @@ $(warning $(call addtree,-I/dir))
 $(warning $(call addtree,-Idir))
 $(warning $(cflags))
 $(warning $(call flags,cflags))
+#unexists/samples/bpf doesn't exist and needs not to exist, $(CURDIR) will be added before it
+$(warning $(abspath unexists/samples/bpf//))#/home/rednoah/opt/preparation/make/kernel/unexists/samples/bpf
+#if argument is abs, then just remove trailing slash, the argment path needs not to exist too!
+$(warning $(abspath /a/b//))#/a/b
 all:
