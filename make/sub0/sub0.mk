@@ -5,7 +5,7 @@ $(warning V=[$(V)] MAKE1=$(MAKE1) MAKE2=$(MAKE2))
 #even the upper layer explicitely export iter, the following will not work
 $(call iter, V)
 .PHONY:all
-all:
+all:$(warning $(MAKELEVEL):$(origin O):$O $(MAKECMDGOALS))
 #1. so only the 1st -f will be used? and the last -C will be used
 #rednoah@lucia:~/preparation$ make -C make -f macro.mk -C ../ -f Makefile<--make/ has macro.mk and ./ has Makefile,the 2nd -C use ../ rather than ./ since the 1st -C has change CURDIR to preparation/make/, to return to the parent dir preparation/:-C .. rather than -C . shoud be used
 #make: Entering directory '/home/rednoah/preparation'<--it means only the last -C's dir is used to find make file

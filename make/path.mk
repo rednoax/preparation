@@ -62,9 +62,15 @@ MAKE2=make2
 export iter MAKE1
 .PHONY:all
 all:
+#MAKECMDGOALS will not passed to child make and cmd line var can be changed in the command line when launching child make\
+make -f path.mk all O=dir:\
+path.mk:68: 0:all command line:dir\
+...\
+sub0.mk:8: 1:command line:0\
+...
 	@echo $(CURDIR)
 	@echo `pwd`
-	make -C sub0 -f sub0.mk
+	make -C sub0 -f sub0.mk O=$(MAKELEVEL)$(warning $(MAKELEVEL):$(MAKECMDGOALS) $(origin O):$O)
 
 #make -C make/ -f path.mk V=2
 #make: Entering directory '/home/rednoah/preparation/make'<---
