@@ -10,3 +10,6 @@
 
 config %config:
 	@echo $@
+
+$(warning $(shell ls unexist))#return empty
+$(warning $(shell ls unexist 2>&1))#return non empty
