@@ -22,6 +22,8 @@ objs	= a.o b.o
 mobjs	= main.o
 stems	= s0 s1
 ars		= $(addsuffix .a,$(addprefix lib,$(stems)))#libs0.a libs1.a
+#if sos= rather than sos:=,'make[1]: *** No rule to make target 'sharedobjs/libs0.so', needed by 'sharedobjs/s0.out'.  Stop.'\
+%.so:%.so.$(VERSION) will not function. REALLY strange!
 sos		:= $(ars:.a=.so.$(VERSION))#libs0.so.$(VERSION) libs1.so.$(VERSION)
 linksos := $(ars:.a=.so)
 
@@ -62,7 +64,7 @@ endif
 
 $(c_out): main.c $(OUTPUT)libs0$(suffix)
 #1.TESTED:if copy libso.a to the same path of main.c, -L. is STILL needed
-#2.the following emit error if CFLAGS has no '-L staticobjs/':/usr/bin/ld: cannot find -ls0
+#2.the following emits error if CFLAGS has no '-L staticobjs/':/usr/bin/ld: cannot find -ls0
 	gcc $(cflags) $< -l$(patsubst $(OUTPUT)lib%$(suffix),%,$(filter %$(suffix),$^)) -o $@
 	
 $(oouts):$(mobjs) $(objs)
@@ -84,12 +86,13 @@ $(word 2,$(ars)):$(objs)
 endif
 
 %.so: %.so.$(VERSION);
-	ln -sf $< $@
-	ln -sf $< $@.$(MAJORVERSION)
+	ln -sf $(<F) $@
+	ln -sf $(<F) $@.$(MAJORVERSION)
 
+soname=$(patsubst %.$(VERSION),%.$(MAJORVERSION),$(notdir $@))
 $(word 1,$(sos)):$(objs)
 	ld -r -o $(t2o) $^
-	gcc --shared -Wl,-soname,$(soname) $(t20) -o $@
+	gcc --shared -Wl,-soname,$(soname) $(t2o) -o $@
 	@md5sum $@
 #	$(create-sym)
 $(word 2,$(sos)):$(objs)
