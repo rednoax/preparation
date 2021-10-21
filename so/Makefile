@@ -1,7 +1,5 @@
-all:
-include Makefile.include
-
-all:static shared
+targets:=static shared
+all:$(targets)
 
 #override var+=1#if no override, this can't add to var if var is defined in cmd line
 #$(error var=$(var))
@@ -11,6 +9,10 @@ all:static shared
 
 cmd = $(MAKE) -f Makefile.include OUTPUT=$@objs/
 
-static shared:
+$(targets):
+	@echo "###$@###"
 	$(cmd) 
 shared:export CFLAGS = -fpic
+
+clean:
+	rm -rf *.o *.lst *.a *.out *.so $(addsuffix objs/,$(targets))
