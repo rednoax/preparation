@@ -25,4 +25,6 @@ make: Nothing to be done for 'rules.mk'.<-when a target doesn't exist in Makefil
 
 #.PHONY:depend $(SUBDIRS) $(OBJS)#no matter if enabled, the result is still exactly the same. \
 It seems that ALA it is the same make process, every unexisting file or PHONY target has a temp timestamp\
-of itself. And Its recipe is run only once.
+of itself. And Its recipe is run only once.\
+make manual chapter "Target-specific Variable Values":\
+Be aware that a given preprequisite will only be built once per invocation of make, at most.
