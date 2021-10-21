@@ -1,0 +1,89 @@
+#{s0,s1}.out are to check if there's any difference in xx.out linked with different archive files\
+that derives from a single .o by `ld -r -o` and multiple .o respectively
+#md5sum result: s0.a != s1.a; \
+Both of the following can happen:\
+s0.out == s1.out!= mab.out \
+s0.out == mab.out != s1.out
+
+ifeq ($(filter -fpic -fPIC,$(CFLAGS)),)
+static = 1
+suffix=.a
+else
+static = 0
+suffix=.so
+endif
+
+VERSION=0.2.0
+MAJORVERSION=$(firstword $(subst ., ,$(VERSION)))
+
+objs	= a.o b.o
+mobjs	= main.o
+stems	= s0 s1
+ars		= $(addsuffix .a,$(addprefix lib,$(stems)))#libs0.a libs1.a
+sos		= $(ars:.a=.so.$(VERSION))#libs0.so.$(VERSION) libs1.so.$(VERSION)
+
+aouts	:= $(patsubst %.a,%.out,$(subst lib,,$(ars)))#s0.out s1.out
+oouts	= mab.out
+c_out	= m.out
+
+OUTPUT	?= staticobjs/
+
+addp	= $(foreach v,$1,$(eval $v := $(addprefix $(OUTPUT),$($v))))
+needp	= objs mobjs ars sos aouts oouts c_out
+$(call addp, $(needp))
+#=======
+iter	= $(foreach v,$1,$(warning $v=$($v)))
+#$(call iter, $(needp))
+
+$(if $(wildcard $(OUTPUT)),,$(shell mkdir -p $(OUTPUT)))
+
+outs	=$(aouts) $(oouts) $(c_out)
+t2o		=$(basename $@)-in.o
+CFLAGS += -Wall -g
+build: $(outs)
+
+$(c_out):CFLAGS += -Lstaticobjs#no space needed
+$(c_out):CFLAGS += -I.#no space needed
+$(c_out) $(mobjs):CFLAGS = $(filter-out -fpic -fPIC,$(CFLAGS))
+
+$(c_out): main.c $(OUTPUT)libs0$(suffix)
+#1.TESTED:if copy libso.a to the same path of main.c, -L. is STILL needed
+#2.the following emit error if CFLAGS has no '-L staticobjs/':/usr/bin/ld: cannot find -ls0
+	gcc $(CFLAGS) $< -l$(patsubst $(OUTPUT)lib%$(suffix),%,$(filter %(suffix),$^)) -o $@
+	
+$(oouts):$(mobjs) $(objs)
+	gcc -o $@ $^
+	md5sum $@
+
+$(aouts):$(OUTPUT)%.out:$(mobjs) $(OUTPUT)lib%$(suffix)
+	gcc -o $@ $^$(if $V,$(warning [$*]))
+	md5sum $@
+
+
+$(word 1,$(ars)):$(objs)
+	ld -r -o $(t2o) $^
+	ar rcs $@ $(t2o); md5sum $@
+$(word 2,$(ars)):$(objs)
+	ar rcs $@ $^; md5sum $@
+
+linkname = $(patsubst %.(VERSION),%,$@)
+soname = $(patsubst %.(VERSION),%,$@).$(MAJORVERSION)
+
+define create-sym
+	ln -sf $@ $(linkname)
+	ln -sf $@ $(soname)
+endef
+
+$(word 1,$(sos)):$(objs)
+	ld -r -o $(t2o) $^
+	gcc --shared -Wl,-soname,$(soname) $(t20) -o $@; md5sum $@
+	$(create-sym)
+$(word 2,$(sos)):$(objs)
+	gcc --shared -Wl,-soname,$(soname) $^ -o $@; md5sum $@
+	$(call create-sym, dummy)
+
+$(OUTPUT)%.o: %.c
+	gcc $(CFLAGS) -c -o $@ $<
+
+clean:
+	rm -rf *.o *.lst *.a *.out *.so $(OUTPUT)
