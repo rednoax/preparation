@@ -5,6 +5,7 @@ Both of the following can happen:\
 s0.out == s1.out!= mab.out \
 s0.out == mab.out != s1.out
 
+basetarget = $(notdir $@)
 ifeq ($(filter -fpic -fPIC,$(CFLAGS)),)
 static = 1
 suffix=.a
@@ -26,6 +27,10 @@ aouts	:= $(patsubst %.a,%.out,$(subst lib,,$(ars)))#s0.out s1.out
 oouts	= mab.out
 c_out	= m.out
 
+CFLAGS_$(c_out) = -L$(OUTPUT)
+CFLAGS_REMOVE_$(c_out) = -fpic -fPIC
+CFLAGS_REMOVE_$(mobjs) = -fpic -fPIC
+
 OUTPUT	?= staticobjs/
 
 addp	= $(foreach v,$1,$(eval $v := $(addprefix $(OUTPUT),$($v))))
@@ -39,17 +44,24 @@ $(if $(wildcard $(OUTPUT)),,$(shell mkdir -p $(OUTPUT)))
 
 outs	=$(aouts) $(oouts) $(c_out)
 t2o		=$(basename $@)-in.o
-CFLAGS += -Wall -g
+
+cflags1 = $(CFLAGS) -Wall -g $(CFLAGS_$(basetarget $@))
+cflags2 = $(filter-out $(CFLAGS_REMOVE_$(basetarget $@)),$(cflags1))
+cflags = $(cflags2)
+
 build: $(outs)
 
-$(c_out):CFLAGS += -Lstaticobjs#no space needed
-$(c_out):CFLAGS += -I.#no space needed
-$(c_out) $(mobjs):CFLAGS = $(filter-out -fpic -fPIC,$(CFLAGS))
+ifeq (0,1)
+#c_out can use the following to append
+$(c_out):cflags += -Lstaticobjs#no space needed
+$(c_out):cflags += -I.#no space needed
+#$(c_out) $(mobjs):cflags = $(filter-out -fpic -fPIC,$(CFLAGS))#Recursive variable 'CFLAGS' references itself (eventually)
+endif
 
 $(c_out): main.c $(OUTPUT)libs0$(suffix)
 #1.TESTED:if copy libso.a to the same path of main.c, -L. is STILL needed
 #2.the following emit error if CFLAGS has no '-L staticobjs/':/usr/bin/ld: cannot find -ls0
-	gcc $(CFLAGS) $< -l$(patsubst $(OUTPUT)lib%$(suffix),%,$(filter %(suffix),$^)) -o $@
+	gcc $(cflags) $< -l$(patsubst $(OUTPUT)lib%$(suffix),%,$(filter %(suffix),$^)) -o $@
 	
 $(oouts):$(mobjs) $(objs)
 	gcc -o $@ $^
@@ -83,7 +95,7 @@ $(word 2,$(sos)):$(objs)
 	$(call create-sym, dummy)
 
 $(OUTPUT)%.o: %.c
-	gcc $(CFLAGS) -c -o $@ $<
+	gcc $(cflags) -c -o $@ $<
 
 clean:
 	rm -rf *.o *.lst *.a *.out *.so $(OUTPUT)
