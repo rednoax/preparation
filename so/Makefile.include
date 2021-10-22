@@ -84,10 +84,12 @@ $(word 2,$(ars)):$(objs)
 	ar rcs $@ $^;
 	@md5sum $@
 endif
-
-%.so: %.so.$(VERSION);
+define create-symbols
 	ln -sf $(<F) $@
 	ln -sf $(<F) $@.$(MAJORVERSION)
+endef
+%.so: %.so.$(VERSION);
+	$(create-symbols)
 
 soname=$(patsubst %.$(VERSION),%.$(MAJORVERSION),$(notdir $@))
 $(word 1,$(sos)):$(objs)
@@ -98,6 +100,7 @@ $(word 1,$(sos)):$(objs)
 $(word 2,$(sos)):$(objs)
 	gcc --shared -Wl,-soname,$(soname) $^ -o $@
 	@md5sum $@
+	gcc -shared $^ -o $@~
 #	$(call create-sym, dummy)
 
 $(OUTPUT)%.o: %.c
