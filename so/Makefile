@@ -1,6 +1,11 @@
 targets:=static shared
 all:$(targets)
-
+ifdef GCC
+CC=gcc
+else
+CC=clang
+endif
+export CC
 #override var+=1#if no override, this can't add to var if var is defined in cmd line
 #$(error var=$(var))
 

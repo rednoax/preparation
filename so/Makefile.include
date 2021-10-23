@@ -65,14 +65,14 @@ endif
 $(c_out): main.c $(OUTPUT)libs0$(suffix)
 #1.TESTED:if copy libso.a to the same path of main.c, -L. is STILL needed
 #2.the following emits error if CFLAGS has no '-L staticobjs/':/usr/bin/ld: cannot find -ls0
-	gcc $(cflags) $< -l$(patsubst $(OUTPUT)lib%$(suffix),%,$(filter %$(suffix),$^)) -o $@
+	$(CC) $(cflags) $< -l$(patsubst $(OUTPUT)lib%$(suffix),%,$(filter %$(suffix),$^)) -o $@
 	
 $(oouts):$(mobjs) $(objs)
-	gcc -o $@ $^;
+	$(CC) -o $@ $^;
 	@md5sum $@
 
 $(aouts):$(OUTPUT)%.out:$(mobjs) $(OUTPUT)lib%$(suffix)
-	gcc -o $@ $^$(if $V,$(warning [$*]));
+	$(CC) -o $@ $^$(if $V,$(warning [$*]));
 	@md5sum $@
 
 ifeq ($(static),1)
@@ -94,14 +94,14 @@ endef
 soname=$(patsubst %.$(VERSION),%.$(MAJORVERSION),$(notdir $@))
 $(word 1,$(sos)):$(objs)
 	ld -r -o $(t2o) $^
-	gcc --shared -Wl,-soname,$(soname) $(t2o) -o $@
+	$(CC) --shared -Wl,-soname,$(soname) $(t2o) -o $@
 	@md5sum $@
 #	$(create-sym)
 $(word 2,$(sos)):$(objs)
-	gcc --shared -Wl,-soname,$(soname) $^ -o $@
+	$(CC) --shared -Wl,-soname,$(soname) $^ -o $@
 	@md5sum $@
-	gcc -shared $^ -o $@~
+	$(CC) -shared $^ -o $@~
 #	$(call create-sym, dummy)
 
 $(OUTPUT)%.o: %.c
-	gcc $(cflags) -c -o $@ $<
+	$(CC) $(cflags) -c -o $@ $<
