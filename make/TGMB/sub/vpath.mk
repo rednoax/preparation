@@ -143,7 +143,23 @@ obj=obj
 [/home/rednoah/opt/preparation/abort.c] [/home/rednoah/opt/preparation] [abort.c]
 all6:$(obj)/abort.o
 $(obj)/%.o:%.c#see comment A
-	$(show_auto);rm -rf $@
+	$(show_auto)
+	@mkdir -p $(obj)
+	@gcc -c $< -o $@
+	@rm -rf $@
+ifeq (1,0)
+#this branch will make vpath search in $(obj)/%.o not take effect. reason unknown
+abort.c: verify_target_bpf
+	$(show_auto)
+verify_target_bpf:
+	$(show_auto)
+else
+#this branch will not be run when `make all6` and vpath will still take effect in the above '$(obj)/%.o:%.c' rule ;\
+vpath will not append the following 'abort.c' in target.But make manual says:make uses VPATH as a search list for both\
+prerequisite and target of rules.
+abort.c:
+	$(show_auto)
+endif
 
 #fail: make: *** No rule to make target 'pthread//arm_test.c', needed by 'all7'.  Stop.
 all7:pthread//arm_test.c
@@ -152,3 +168,5 @@ all7:pthread//arm_test.c
 #normal
 all8:pthread/arm_test.c
 	$(show_auto)
+
+.PHONY:all6
