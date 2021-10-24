@@ -142,7 +142,7 @@ obj=obj
 [obj/abort.o] [obj] [abort.o]\
 [/home/rednoah/opt/preparation/abort.c] [/home/rednoah/opt/preparation] [abort.c]
 all6:$(obj)/abort.o
-$(obj)/%.o:%.c#see comment A
+$(obj)/%.o:%.c#see comment A. Besides, to make the recipe displayed. use `make all6 --trace`
 	$(show_auto)
 	@mkdir -p $(obj)
 	@gcc -c $< -o $@
