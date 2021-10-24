@@ -20,4 +20,4 @@ $(targets):
 shared:export CFLAGS = -fpic
 
 clean:
-	rm -rf *.{o,lst,.a,.out,so,s} $(addsuffix objs/,$(targets))
+	rm -rf *.{o,bc,ll,lst,.a,.out,so,s} $(addsuffix objs/,$(targets))

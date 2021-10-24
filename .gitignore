@@ -22,3 +22,5 @@
 Module.symvers
 modules.order
 *.mod.c
+*.bc
+*.s
