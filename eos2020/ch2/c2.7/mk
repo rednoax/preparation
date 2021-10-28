@@ -1,6 +1,7 @@
 #CROSS_COMPILE=/home/rednoah/gcc-arm-9.2-2019.12-x86_64-arm-none-linux-gnueabihf/bin/arm-none-linux-gnueabihf-
 #CFLAGS="-c -Wall -g -mcpu=arm926ej-s -marm" #https://stackoverflow.com/questions/35132319/build-for-armv6-with-gnueabihf
-CROSS_COMPILE=~/arm-2013.11/bin/arm-none-eabi-
+#CROSS_COMPILE=~/arm-2013.11/bin/arm-none-eabi-
+CROSS_COMPILE=/home/rednoah/opt/src/mini2440/arm-2008q3/bin/arm-none-linux-gnueabi-
 CFLAGS="-c -Wall -g -mcpu=arm926ej-s"
 
 GCC=${CROSS_COMPILE}gcc
