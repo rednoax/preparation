@@ -16,7 +16,7 @@ $(ELF): ts.o t.o
 
 %.o: %.c
 	$(GCC) $(CFLAGS) -c $< -o $@
-%.o: %.s
+%.o: %.S
 	$(GCC) $(CFLAGS) -c $< -o $@
 clean:
 	rm -rf *.{o,elf,bin}

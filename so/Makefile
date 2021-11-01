@@ -21,3 +21,8 @@ shared:export CFLAGS = -fpic
 
 clean:
 	rm -rf *.{o,bc,ll,lst,.a,.out,so,s} $(addsuffix objs/,$(targets))
+ifeq (0,1)
+CROSS_COMPILE=/usr/bin/ccache /home/rednoah/opt/src/op-tee/build/../toolchains/aarch32/bin/arm-linux-gnueabihf-
+CLANG_ARCH_ARGS = --target=$(notdir $(patsubst %-,%,$1))
+$(error $(call CLANG_ARCH_ARGS,$(CROSS_COMPILE)) [$(call CLANG_ARCH_ARGS,/home/rednoah/opt/src/op-tee/build/../toolchains/aarch32/bin/arm-linux-gnueabihf-)])
+endif

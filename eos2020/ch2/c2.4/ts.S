@@ -9,7 +9,11 @@ start:
     ldr r4, =a @ to access a mem spanning sections, whose address is @a in .data), ldr reg,=label seems the easiest way
     ldr r0, [r4], #4
     ldr r1, [r4], #4
+#if 1
     bl sum
+#else
+	ldr pc,=sum
+#endif
     str r0, [r4]
 t0:
 t1:
