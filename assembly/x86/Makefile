@@ -22,6 +22,8 @@ debug:
 
 label2.out:label.asm
 #label2.out: ELF 32-bit LSB relocatable, Intel 80386, version 1 (SYSV), not stripped
+#objdump -d label2.out can fully display the right 8086 instructions as there is prefix 66 before each instruction,
+#while label.out 's .text instructions have no 66 prefixed
 	nasm -f elf -o $@ $<
 
 .PRECIOUS:%.o
