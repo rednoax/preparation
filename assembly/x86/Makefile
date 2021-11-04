@@ -1,0 +1,27 @@
+#CROSS_COMPILE=arm-none-eabi-
+CC=$(CROSS_COMPILE)gcc
+LD=$(CROSS_COMPILE)ld# $(CC) will link libc.a and emit other error, so ld MUST be used
+CFLAGS=-g -Wall -m32# if replacing -m32 with -m16, no difference for `file label.o label.out` output
+LDFLAGS=-Ttext 0 -e _start -m elf_i386#if no '-m elf_i386':ld: i386 architecture of input file `label.o' is incompatible with i386:x86-64 output
+OBJDUMP=objdump
+target:=label
+target:=$(addsuffix .out,$(target))
+_all:
+
+%.out:%.o
+	$(LD) $(LDFLAGS) -o $@ $^ && $(OBJDUMP) -M i8086 -d $@ #>$@.lst
+%.o:%.S $(MAKEFILE_LIST)
+	$(CC) $(CFLAGS) -o $@ -c $<
+clean:
+	rm -rf *.o *.out
+_all:$(target)
+
+FILE?=label.out
+debug:
+	qemu-x86_64 -g 1234 $(FILE)
+
+label2.out:label.asm
+#label2.out: ELF 32-bit LSB relocatable, Intel 80386, version 1 (SYSV), not stripped
+	nasm -f elf -o $@ $<
+
+.PRECIOUS:%.o
