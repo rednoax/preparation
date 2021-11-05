@@ -5,8 +5,10 @@ CFLAGS=-g -Wall -m32# if replacing -m32 with -m16, no difference for `file label
 #if no '-m elf_i386':ld: i386 architecture of input file `label.o' is incompatible with i386:x86-64 output
 LDFLAGS=-Ttext 0 -e _start -m elf_i386
 OBJDUMP=objdump
-target0=label
-target=$(sort $(addsuffix .out,$(target0)) $(addsuffix .asm.o,$(target0)))
+target0=label ch4
+target1=$(addsuffix .asm,$(target0)) $(addsuffix .S,$(target0))
+target2=$(wildcard $(target1))
+target=$(sort $(patsubst %.S,%.out,$(filter %.S,$(target2))) $(patsubst %.asm,%.asm.o,$(filter %.asm,$(target2))))
 
 _all:$(target)
 
@@ -18,7 +20,7 @@ _all:$(target)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 clean:
-	rm -rf *.{o,out,lst}
+	rm -rf *.{o,out,lst,bin}
 
 FILE?=label.out
 debug:
