@@ -6,4 +6,5 @@ _start:
 	mov $0x3f, %ax
 	mov $0x1, %bx
 	add %ax, %bx
+#	mov $0, %ds
 	jmp .
