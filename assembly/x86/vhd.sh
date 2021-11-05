@@ -9,4 +9,4 @@ cat $file0 $tail >$mbr
 rm -rf $file0 $tail
 
 dd if=$1 of=$mbr $dd_option
-dd if=$mbr of=8086.vhd $dd_option
+dd if=$mbr of=8086.vhd conv=notrunc
