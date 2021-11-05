@@ -29,5 +29,6 @@ debug:
 #objdump -d label2.out can fully display the right 8086 instructions as there is prefix 66 before each instruction,
 #while label.out 's .text instructions have no 66 prefixed
 	nasm -f elf -o $@ $<
+	nasm -f bin -o $(patsubst %.asm,%.bin,$<) $<
 
 .PRECIOUS:%.o
