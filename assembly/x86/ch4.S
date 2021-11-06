@@ -20,3 +20,4 @@ _start:
 	movb $'c', (0x0)
 #movw (0xf000), (2) #Error: too many memory references for `mov'
 #mov $3, %ds#Error: operand type mismatch for `mov'
+	jmp .
