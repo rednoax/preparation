@@ -1,4 +1,5 @@
 #VBoxManage convertfromraw $1 $2 --format VHD
+#usage: ./vhd.sh ch4.bin
 file0=1.bin
 tail=tail.bin
 mbr=mbr.bin
