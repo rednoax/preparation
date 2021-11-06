@@ -1,3 +1,4 @@
+MAKEFLAGS+=-rR
 #CROSS_COMPILE=arm-none-eabi-
 CC=$(CROSS_COMPILE)gcc
 LD=$(CROSS_COMPILE)ld# $(CC) will link libc.a and emit other error, so ld MUST be used
@@ -5,6 +6,7 @@ CFLAGS=-g -Wall -m32# if replacing -m32 with -m16, no difference for `file label
 #if no '-m elf_i386':ld: i386 architecture of input file `label.o' is incompatible with i386:x86-64 output
 LDFLAGS=-Ttext 0 -e _start -m elf_i386
 OBJDUMP=objdump
+OBJCOPY=objcopy
 target0=label ch4
 target1=$(addsuffix .asm,$(target0)) $(addsuffix .S,$(target0))
 target2=$(wildcard $(target1))
@@ -14,7 +16,8 @@ _all:$(target)
 
 %.out:%.o
 	$(LD) $(LDFLAGS) -o $@ $^
-	: #$(OBJDUMP) -M i8086 -d $@ #>$@.lst
+	$(OBJCOPY) -O binary $@ $@.bin
+#$(OBJDUMP) -M i8086 -d $@ #>$@.lst
 
 %.o:%.S $(MAKEFILE_LIST)
 	$(CC) $(CFLAGS) -o $@ -c $<
