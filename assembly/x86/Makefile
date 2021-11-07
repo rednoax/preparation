@@ -11,11 +11,13 @@ OBJCOPY=objcopy
 target0=label ch4
 target1=$(addsuffix .asm,$(target0)) $(addsuffix .S,$(target0))
 target2=$(wildcard $(target1))
-target=$(sort $(patsubst %.S,%.out,$(filter %.S,$(target2))) $(patsubst %.asm,%.asm.o,$(filter %.asm,$(target2))))
-
+target=$(sort $(patsubst %.S,%.out,$(filter %.S,$(target2))) $(patsubst %.asm,%.asm.out,$(filter %.asm,$(target2))))
+#$(warning $(target))
 _all:$(target)
 
 %.out:%.o
+#for %.o gened from NASM: if removing '-e _start' from $(LDFLAGS), there is still warning:\
+'warning: cannot find entry symbol _start; defaulting to 0000000000007c00' if no global symbol '_start' defined in ch4.asm
 	$(LD) $(LDFLAGS) -o $@ $^
 	$(OBJCOPY) -O binary $@ $@.bin
 #$(OBJDUMP) -M i8086 -d $@ #>$@.lst
@@ -30,14 +32,12 @@ FILE?=label.out
 debug:
 	qemu-x86_64 -g 1234 $(FILE)
 
-%.asm.o:%.asm exec_elf=$(patsubst %.asm,%.asm.out,$<)
-#label2.out: ELF 32-bit LSB relocatable, Intel 80386, version 1 (SYSV), not stripped
-#objdump -d label2.out can fully display the right 8086 instructions as there is prefix 66 before each instruction,
-#while label.out 's .text instructions have no 66 prefixed
-	nasm -f elf -o $@ $<
-#if removing '-e _start' from $(LDFLAGS), there is still warning 'warning: cannot find entry symbol _start; defaulting to 0000000000007c00' if no global symbol '_start' defined in ch4.asm
-	$(LD) $(LDFLAGS) -o $(exec_elf) $@
-	$(OBJCOPY) -O binary $(exec_elf) $(exec_elf).bin
-	nasm -f bin -o $(patsubst %.o,%.o.bin,$@) $<
+%.asm.o:%.asm $(MAKEFILE_LIST)
+#$@: ELF 32-bit LSB relocatable, Intel 80386, version 1 (SYSV), not stripped
+#objdump -d $@ can fully display the right 8086 instructions as there is prefix 66 before each instruction,\
+ while gcc generated label.out's .text instructions have no 66 prefixed
+#if no '-g3 -F dwarf': gdb x.asm.out emits: (No debugging symbols found in ch4.asm.out)
+	nasm -f elf -g3 -F dwarf -o $@ $<
+	nasm -f bin -o $@.bin $<
 
-.PRECIOUS:%.o
+.PRECIOUS:%.o %.asm.o
