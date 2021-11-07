@@ -4,9 +4,9 @@ _start:
 	mov $0xb800, %ax
 	mov %ax, %es
 #	mov $'x', (0x0);ch4.S:4: Error: no instruction mnemonic suffix given and no register operands; can't size instruction
-	movb $'X', %es:(0x0)
-	movb $'y', %es:(2)
-	movb $'Z', %es:(4)
+	movb $'0', %es:(0x0)
+	movb $'0', %es:(2)
+	movb $'0', %es:(4)
 #mov %bl, %ax #ch4.S:10: Error: operand size mismatch for `mov'
 #mov $0x55aa, %al #ch4.S:11: Warning: 21930(0x55aa) shortened to 170(0xaa)
 #mov $0x6000, %ds #ch4.S:12: Error: operand type mismatch for `mov'
