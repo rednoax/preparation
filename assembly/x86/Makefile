@@ -30,11 +30,14 @@ FILE?=label.out
 debug:
 	qemu-x86_64 -g 1234 $(FILE)
 
-%.asm.o:%.asm
+%.asm.o:%.asm exec_elf=$(patsubst %.asm,%.asm.out,$<)
 #label2.out: ELF 32-bit LSB relocatable, Intel 80386, version 1 (SYSV), not stripped
 #objdump -d label2.out can fully display the right 8086 instructions as there is prefix 66 before each instruction,
 #while label.out 's .text instructions have no 66 prefixed
 	nasm -f elf -o $@ $<
-	nasm -f bin -o $(patsubst %.asm,%.bin,$<) $<
+#if removing '-e _start' from $(LDFLAGS), there is still warning 'warning: cannot find entry symbol _start; defaulting to 0000000000007c00' if no global symbol '_start' defined in ch4.asm
+	$(LD) $(LDFLAGS) -o $(exec_elf) $@
+	$(OBJCOPY) -O binary $(exec_elf) $(exec_elf).bin
+	nasm -f bin -o $(patsubst %.o,%.o.bin,$@) $<
 
 .PRECIOUS:%.o
