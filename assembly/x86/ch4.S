@@ -30,4 +30,5 @@ _start:
 	jmp .
 
 label0:
-	.byte 0x55,0xaa
+#	.byte 0x55,0xaa00 #ch4.S:33: Warning: value 0xaa00 truncated to 0x0
+	.word 0xaa55
