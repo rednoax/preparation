@@ -16,6 +16,15 @@ _start:
 	xorb $0x5, data1
 	addw $0x0101, data1
 	mov data1, %ax
+div1:
+	mov $0xa000, %ax
+	mov $0x9000, %bx
+	mov $1, %dx
+	div %bx # (dx<<16+ax)/bx:dx(yushu):0x8000 ax(shang):0x2 bx(not changed):9000
+	mov $0xa000, %ax
+	mov $0x9000, %bx
+	mov $1, %dx
+	div %bh #in theory: ah(yushu): 0x40 al(shang):0x11c, but qemu will be in loop when running this instruction. reason uknown.
 	jmp .
 data1:
 	.word 0
