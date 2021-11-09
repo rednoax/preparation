@@ -3,7 +3,7 @@ CC=$(CROSS_COMPILE)gcc
 LD=$(CROSS_COMPILE)ld# $(CC) will link libc.a
 CFLAGS=-g -Wall
 LDFLAGS=
-target:=illegal_instruction label
+target:=illegal_instruction label ldr_data
 
 _all:
 
