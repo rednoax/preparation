@@ -21,7 +21,6 @@ mov cx, 0
 mov ds, cx
 mov cx, [label0];cx:0xaa55
 mov dx, [label1];dx:0x55aa. the above 2 are of the same function
-
 ;objdump -d -M i8086 ch4.asm.o proves the following 2 are equivalent
 label0:db 0x55,0xaa
 label1 db 0xaa,0x55

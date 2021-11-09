@@ -26,7 +26,6 @@ _start:
 	mov label0, %ax //a1 2e 7c  mov  0x7c2e,%ax; 00007c2e <label0>; instruction contains label0's abs address 0x7c2e. ax=[ds<<4+0x7c2], then ax==0xaa55; the above 2 instruction's label0's symbol value are all part of instructions:
 #    7c2b:       b8 33 7c                mov    $0x7c33,%ax
 #    7c2e:       a1 33 7c                mov    0x7c33,%ax
-
 	jmp .
 
 label0:
