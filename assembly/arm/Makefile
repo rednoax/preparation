@@ -14,3 +14,6 @@ _all:
 clean:
 	rm -rf *.o *.out
 _all:$(addsuffix .out,$(target))
+
+qemu:
+	qemu-arm -g 1234 $(file)
