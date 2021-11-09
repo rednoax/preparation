@@ -26,6 +26,9 @@ div1:
 	mov $1, %dx
 	div %bh #in theory: ah(yushu): 0x40 al(shang):0x11c, but qemu will be in loop when running this instruction. reason uknown.
 	jmp .
+l0: #the label in 'jmp' is not interpreted as label in 'mov'
+#	jmp $l0 #Error: operand type mismatch for `jmp'
+#	jmp l0 #ok
 data1:
 	.word 0
 

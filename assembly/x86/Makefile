@@ -1,5 +1,5 @@
 MAKEFLAGS+=-rR
-#CROSS_COMPILE=arm-none-eabi-
+CROSS_COMPILE=#arm-none-eabi-
 CC=$(CROSS_COMPILE)gcc
 LD=$(CROSS_COMPILE)ld# $(CC) will link libc.a and emit other error, so ld MUST be used
 CFLAGS=-g -Wall -m32# if replacing -m32 with -m16, no difference for `file label.o label.out` output
