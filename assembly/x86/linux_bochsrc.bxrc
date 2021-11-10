@@ -2,7 +2,7 @@ megs: 32
 romimage: file=$BXSHARE/BIOS-bochs-latest
 vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
 #vgaromimage: file=bios/VGABIOS-elpin-2.40
-floppya: 1_44="a.img", status=inserted
+floppya: 1_44="bootimage-0.11-fd.img", status=inserted
 floppyb: 1_44=tmp1.imz, status=inserted
 ata0-master: type=disk, path="c.img", cylinders=365, heads=16, spt=63
 boot: a
