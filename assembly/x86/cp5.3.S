@@ -12,6 +12,10 @@ _start:
 	movb $'L', (0x0)
 	movb $'A', (0x2)
 	movb $'B', (0x4)
+	movb $'0', (0x6)
+	movb $'1', (0x8)
+	movb $'2', (0xa)
+	movb $'3', (0xc)
 	movw $0x2008, data1
 	xorb $0x5, data1
 	addw $0x0101, data1
