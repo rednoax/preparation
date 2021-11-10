@@ -4,7 +4,7 @@
 #1. simplified 'set arch i8086' is equivalent to 'set architecture i8086'
 #2.'set architecture i8086' should be AFTER 'target remote:1234', there is warning otherwise.
 #3. display/i $pc is not right 8086 assembly and eip w/t cs is used as break point address
-qemu-system-i386 -m 16M  -boot c -hda $*
+qemu-system-i386 -m 16M  -boot c -hda $* -monitor stdio
 #the above can be simplified to: qemu-system-i386 -hda $*
 
 #-enable-kvm option makes 'b *0x7c00' not take effect, the breakpoint is never hit.
