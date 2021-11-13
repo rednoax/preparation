@@ -17,3 +17,8 @@ private_colormap: enabled=0
 fullscreen: enabled=0
 screenmode: name="sample"
 #i440fxsupport: enabled=0
+
+#Bochs is exiting with the following message:
+#[      ] linux_bochsrc.bxrc:20: gdbstub directive malformed.
+#gdbstub:enable=1,port=1234
+gdbstub: enabled=1, port=1234, text_base=0, data_base=0, bss_base=0

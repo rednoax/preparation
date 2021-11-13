@@ -20,6 +20,7 @@ _start:
 	xorb $0x5, data1
 	addw $0x0101, data1
 	mov data1, %ax
+	jmp .
 div1:
 	mov $0xa000, %ax
 	mov $0x9000, %bx
