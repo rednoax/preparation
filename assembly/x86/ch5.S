@@ -32,9 +32,9 @@ _start:
 	movb $':', %es:(0x18)
 	movb $0x7, %es:(0x19) #
 
-	xor %dx, %dx
 	mov $10, %bx
 	mov $number, %ax
+	xor %dx, %dx
 	div %bx #remainder: dx qutient: ax
 	mov %dl, number + 4
 	xor %dx, %dx
@@ -52,20 +52,25 @@ _start:
 
 	mov number, %al
 	add $0x30, %al
-	mov %al, %es:(0x20)
+	mov %al, %es:(0x1a)
+	movb $0x4, %es:(0x1b)
 	mov number + 1, %al
 	add $0x30, %al
-	mov %al, %es:(0x22)
+	mov %al, %es:(0x1c)
+	movb $0x4, %es:(0x1d)
 	mov number + 2, %al
 	add $0x30, %al
-	mov %al, %es:(0x24)
+	mov %al, %es:(0x1e)
+	movb $0x4, %es:(0x1f)
 	mov number + 3, %al
 	add $0x30, %al
-	mov %al, %es:(0x26)
+	mov %al, %es:(0x20)
+	movb $0x4, %es:(0x21)
 	mov number + 4, %al
 	add $0x30, %al
-	mov %al, %es:(0x28)
-	movb $'D', %es:(0x2a)
+	mov %al, %es:(0x22)
+	movb $0x4, %es:(0x23)
+	movb $'D', %es:(0x24)
 	jmp .
 number:
 	.byte 0, 0, 0, 0, 0 #[0x7c00, 0x7e00), 0x7e00==32256
