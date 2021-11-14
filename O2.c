@@ -8,9 +8,13 @@ gcc -O2 -Wall O2.c or -O1 will not report error!
 */
 #include <stdlib.h>
 extern unsigned int _arg;
+static volatile int g_i = 4;
 int main(int argc, char** argv)
 {
 	int arg = 0;
+asm volatile("1:");
+	g_i = 1;
+asm volatile("2:");
 	if (argc > 1)
 		arg = atoi(argv[1]);
 	if ( arg || (_arg & arg))
