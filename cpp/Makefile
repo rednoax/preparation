@@ -15,3 +15,4 @@ all:$(OUTS)
 	$(GPP) $(FLAGS) $< -o $@ -lpthread
 	$(OBJDUMP) -D $@ >$@.s
 auto_des.out unique2.out:FLAGS=--std=c++14 -Wall
+test_cons.out:FLAGS += -Os
