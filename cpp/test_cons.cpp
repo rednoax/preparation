@@ -1,16 +1,10 @@
-#include <stdio.h>
+#include <iostream>
 
-class A
-{
-public:
-	A(){
-		printf("%s\n", __func__);
-	}
-private:
-	int i;
-};
 int main()
 {
-	A a;
+	int i;
+	char c;
+	std::cin >> i >> c;
+	printf("%d %c\n", i, c);
 	return 0;
 }
