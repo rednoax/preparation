@@ -375,7 +375,7 @@ int main(int argc, char **argv)
 #endif
 	unique_ptr<MyClass> uniquePointer5(unique_ptr<MyClass>(new MyClass("MyClass3", 30)));//the 3rd quivalent
 	printf("uniquePointer2/3/4/5 @%p/%p/%p/%p\n", &uniquePointer2, &uniquePointer3, &uniquePointer4, &uniquePointer5);
-#if 0
+/*
 unique.cpp:88:50: error: use of deleted function ‘std::unique_ptr<_Tp, _Dp>::unique_ptr(const std::unique_ptr<_Tp, _Dp>&) [with _Tp = MyClass; _Dp = std::default_delete<MyClass>]’
   unique_ptr<MyClass> uniquePointer2(uniquePointer);
                                                   ^
@@ -385,7 +385,7 @@ unique.cpp:110:39: error: use of deleted function ‘std::unique_ptr<_Tp, _Dp>::
 unique.cpp:120:39: error: invalid conversion from ‘int’ to ‘MyClass*’ [-fpermissive]
   unique_ptr<MyClass> uniquePointer5 = 3;//make_unique<MyClass>("MyClass2", 20);
                                        ^                                        
-#endif
+*/
 	printf("###move test, unique_ptr<T> 's copy cons(NOT deep copy) is called??\n");
 	/*
 	unique_ptr<T> move(unique_ptr<T>);
@@ -396,14 +396,14 @@ unique.cpp:120:39: error: invalid conversion from ‘int’ to ‘MyClass*’ [-
 			"*uniquePointer6: %p, uniquePointer6 @%p=>\"%s:%d\"\n",
 			*uniquePointer5, *uniquePointer6, &uniquePointer6, uniquePointer6->GetName().data(), uniquePointer6->GetValue());
 	}
-#if 0
+/*
 unique.cpp:188:70: error: no match for ‘operator[]’ (operand types are ‘std::unique_ptr<MyClass>’ and ‘int’)
    printf("*uniquePointer6: %p, *uniquePointer7: %p\n", uniquePointer6[0], uniquePointer7[0]);
                                                                       ^
 unique.cpp:188:89: error: no match for ‘operator[]’ (operand types are ‘std::unique_ptr<MyClass>’ and ‘int’)
    printf("*uniquePointer6: %p, *uniquePointer7: %p\n", uniquePointer6[0], uniquePointer7[0]);
                                                                                          ^
-#endif	
+*/
 	unique_ptr<MyClass> uniquePointer7(move(uniquePointer6));//equal to uniquePointer7 = move(...)
 	if (uniquePointer6 == nullptr) {
 		printf("*uniquePointer6: %p, *uniquePointer7: %p\n", *uniquePointer6, *uniquePointer7);
