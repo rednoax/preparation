@@ -6,7 +6,8 @@ OUTS:=$(patsubst %.cpp, %.out, $(CSRCS))
 
 #export CROSS_COMPILE=~/OP-TEE/toolchains/aarch32/bin/arm-linux-gnueabihf-
 #to objdump, "export PATH=~/OP-TEE/toolchains/aarch32/bin/:$PATH" in bash
-GPP=$(CROSS_COMPILE)g++
+#GPP=$(CROSS_COMPILE)g++
+GPP=$(CROSS_COMPILE)clang++
 OBJDUMP=$(CROSS_COMPILE)objdump
 .PHONY:all
 all:$(OUTS)
