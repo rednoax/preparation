@@ -30,6 +30,40 @@ test_cons.cpp:3:7: note: candidate constructor (the implicit move constructor) n
 	}
 };
 A ma;
+
+class base
+{
+public:
+		base(int i)
+		{
+			printf("%s(%d)\n", __func__, i);
+		}
+};
+
+class derived:public base
+{
+public:
+#if 0
+	derived()
+	{
+		printf("%s()\n", __func__);
+	}
+/*
+test_cons.cpp:46:2: error: constructor for 'derived' must explicitly initialize the base class 'base' which does not have a default constructor
+        derived()
+        ^
+test_cons.cpp:34:7: note: 'base' declared here
+class base
+      ^
+1 error generated.
+*/
+#endif
+	derived():base(1)
+	{
+		printf("%s()\n", __func__);
+	}
+};
+derived d;
 int main()
 {
 	int i;
