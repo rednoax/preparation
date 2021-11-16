@@ -1,6 +1,11 @@
 #include <stdio.h>
-#define report_func() printf("%s: %p\n", __PRETTY_FUNCTION__, this)
-#define report_line() printf("%s: %d\n", __PRETTY_FUNCTION__, __LINE__)
+#ifdef __clang__ //-E -dM
+#define str __PRETTY_FUNCTION__
+#else
+#define str __PRETTY_FUNCTION__
+#endif
+#define report_func() printf("%s: %p\n", str, this)
+#define report_line() printf("%s: %d\n", str, __LINE__)
 class Base
 {
 public:
