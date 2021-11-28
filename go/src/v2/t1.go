@@ -9,6 +9,10 @@ import (
 SO A RELATIVE IMPORT w/t any prefix means relative to GOROOT & GOPATH
 */
 /*"/mod":import "/mod": cannot import absolute path*/
+/*"./main2":<=even mod/t2.go is of 'package main2', the imported name here should be dir name real existing
+t1.go:12:2: cannot find package "." in:
+        /home/rednoah/opt/preparation/go/src/v2/main2
+*/
 	"./mod"//ok
 )
 func main() {
