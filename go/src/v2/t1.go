@@ -6,7 +6,7 @@ import (
 /*"mod":t1.go:6:2: cannot find package "mod" in any of:
         /usr/lib/go-1.13/src/mod (from $GOROOT)
         /home/rednoah/go/src/mod (from $GOPATH)
-SO A RELATIVE IMPORT means relative to GOROOT & GOPATH
+SO A RELATIVE IMPORT w/t any prefix means relative to GOROOT & GOPATH
 */
 /*"/mod":import "/mod": cannot import absolute path*/
 	"./mod"//ok
