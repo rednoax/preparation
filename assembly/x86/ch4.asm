@@ -41,9 +41,9 @@ label1 db 0xaa,0x55
 ;00000004  00000214 R_386_16          00000000   .text<=Info:[31:8]relocation table entry's symbol 's index in symbol table[7:0]:relocation entry type;
 ;00000030  00000214 R_386_16          00000000   .text<=type:0x14 seems R_386_16,0x2 means index 2 in .symtab, ie ".text", which is neither 'label0' nor 'label1' as we expect. REASON unknow. In theory the [31:8] indexed symbol's value ie address in exec-elf .symtab is the used to fill at the offset of .text.
 ;00000034  00000214 R_386_16          00000000   .text<=R_386_16 seems the fixed bytes is 16bits ie 2B.
-
+;			Value	size						Ndx
 ;     2: 00000000     0 SECTION LOCAL  DEFAULT    1 
-;     3: 00000036     1 OBJECT  LOCAL  DEFAULT    1 label0
+;     3: 00000036     1 OBJECT  LOCAL  DEFAULT    1 label0<= shn_idx==1 means symbol label0 is in .text, value 0x36 means symbol's offset is 0x36 in .text, not like its counterpart meaning(symbol address)in execelf
 ;     4: 00000038     1 OBJECT  LOCAL  DEFAULT    1 label1
 ;00000000 <_start>:
 ;   0:   b8 36 00                mov    $0x36,%ax<=offset 1 in .rel.text means [36,... to be fixed;R_386_16 seems means fix 2B. In theory symbol 'label0'(actually the symbol is .text, not 'label0' as expected,reason unknow) in exec elf's value is 0x7c36, so at last 36 00 is fixed to be 36 7c
