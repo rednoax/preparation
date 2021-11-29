@@ -1,5 +1,5 @@
 package main
-//package main1//cannot run non-main package
+//package main1//`go run t1.go`: go run: cannot run non-main package
 import (
 	_"fmt"//			/usr/lib/go-1.13/pkg/linux_amd64/fmt.a: current ar archive
 	//"os/exec"//	/usr/lib/go-1.13/pkg/linux_amd64/os/exec.a
