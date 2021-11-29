@@ -1,0 +1,3 @@
+#to prove different package .go can't be put together in the same dir
+$go build
+can't load package: package .: found packages main (t1.go) and main2 (t2.go) in /home/rednoah/opt/preparation/go/src/v1
