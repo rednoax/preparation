@@ -1,3 +1,4 @@
+#define NR (divisor - number)
 .code16
 .text
 .globl _start
@@ -16,7 +17,30 @@ start:
 	mov $0, %di
 	mov $((start - src) / 2), %cx
 	rep movsw #ds:si=>es:di
+	mov $number, %ax #todo:if number>0xffff?
+	mov $0, %si
+func:
+	mov $0, %dx
+	divw divisor
+	mov %dx, number(%si) #AT&T: imm(base,index) or imm(index)
+	inc %si #can be rm8/16 but not immedite
+	cmp $NR, %si #si - 5
+	jl func # signed <
+	mov $0, %di
+	dec %si #si 4<=5
+display:
+	mov number(%si), %bx
+	mov %bx, %es:(%di)
+	movb $0x4, %es:1(%di)
+	add $2, %di
+	dec %si
+	cmp $0, %si #si - 0
+	jge display #signed >=
 	jmp .
+number:
+	.byte 0, 0, 0, 0, 0
+divisor:
+	.byte 10
 obsolete:
 	mov $-1, %ax
 	mov $0xf, %dx
