@@ -6,7 +6,7 @@ _start:
 	jmp start
 src:
 	.byte 'L', 0x7, 'A', 0x7, 'B', 0x7, 'E', 0x7, 'L', 0x7, ' ', 0x7,\
-	 'O', 0x7, 'F', 0x7, 'F', 0x7, 'S', 0x7, 'E', 0x7, 'T', 0x7, ':', 0x7
+	 'O', 0x7, 'F', 0x7, 'F', 0x7, 'S', 0x7, 'E', 0x7, 'T', 0x7, ':', 0x7 #0x1a bytes
 start:
 	mov $0, %ax
 	mov %ax, %ds
@@ -17,19 +17,21 @@ start:
 	mov $0, %di
 	mov $((start - src) / 2), %cx
 	rep movsw #ds:si=>es:di
+#rdi:0x1a
 	mov $number, %ax #todo:if number>0xffff?
 	mov $0, %si
 func:
 	mov $0, %dx
 	divw divisor
-	mov %dx, number(%si) #AT&T: imm(base,index) or imm(index)
+	movb %dl, number(%si) #AT&T: imm(base,index) or imm(index)
 	inc %si #can be rm8/16 but not immedite
 	cmp $NR, %si #si - 5
 	jl func # signed <
-	mov $0, %di
+#	mov $0, %di
 	dec %si #si 4<=5
 display:
 	mov number(%si), %bx
+	add $0x30, %bx
 	mov %bx, %es:(%di)
 	movb $0x4, %es:1(%di)
 	add $2, %di
@@ -40,7 +42,7 @@ display:
 number:
 	.byte 0, 0, 0, 0, 0
 divisor:
-	.byte 10
+	.byte 10, 0
 obsolete:
 	mov $-1, %ax
 	mov $0xf, %dx
