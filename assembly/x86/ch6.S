@@ -39,6 +39,8 @@ display:
 	cmp $0, %si #si - 0
 	jge display #signed >=
 	jmp .
+	mov (%bp), %ax #mov ax, word ptr ss:[bp]  ; 8b4600
+	mov (%bp,%si), %ax #mov ax, word ptr ss:[bp+si] ; 8b02
 number:
 	.byte 0, 0, 0, 0, 0
 divisor:
