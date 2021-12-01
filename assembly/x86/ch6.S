@@ -21,7 +21,7 @@ start:
 	mov $number, %ax #todo:if number>0xffff?
 	mov $0, %si
 func:
-	mov $0, %dx
+	xor %dx, %dx #mov $0, %dx
 	divw divisor
 	movb %dl, number(%si) #AT&T: imm(base,index) or imm(index)
 	inc %si #can be rm8/16 but not immedite
@@ -30,14 +30,18 @@ func:
 #	mov $0, %di
 	dec %si #si 4<=5
 display:
-	mov number(%si), %bx
-	add $0x30, %bx
-	mov %bx, %es:(%di)
-	movb $0x4, %es:1(%di)
+	mov number(%si), %bl
+	add $0x30, %bl
+	mov $0x4, %bh
+	mov %bx, %es:(%di) #movb $0x4, %es:1(%di)
 	add $2, %di
 	dec %si
+#if 0
 	cmp $0, %si #si - 0
 	jge display #signed >=
+#else
+	jns display
+#endif
 	jmp .
 	mov (%bp), %ax #mov ax, word ptr ss:[bp]  ; 8b4600
 	mov (%bp,%si), %ax #mov ax, word ptr ss:[bp+si] ; 8b02
