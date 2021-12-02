@@ -43,7 +43,13 @@ display:
 	jns display
 #endif
 	mov $0, %cx
+	movw $0, number
+	movw $0, number + 2 #<bochs:2> x 0x7c7e [bochs]: 0x0000000000007c7e <bogus+       0>:	0x00010000
 delay:
+	incw number
+	jnz _loop
+	incw number + 2
+_loop:
 	loop delay #cx count down range: 0, -1, ..., -0xffff: 0 then [0xffff, 1]
 	jmp .
 	mov (%bp), %ax #mov ax, word ptr ss:[bp]  ; 8b4600
