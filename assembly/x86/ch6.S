@@ -16,8 +16,8 @@ start:
 	mov $src, %si
 	mov $0, %di
 	mov $((start - src) / 2), %cx
-	rep movsw #ds:si=>es:di
-#rdi:0x1a
+	rep movsw #ds:si=>es:di; one time 's' or 'n' can't finish this line
+#rdi:0x1a, cx:0x0
 	mov $number, %ax #todo:if number>0xffff?
 	mov $0, %si
 func:
