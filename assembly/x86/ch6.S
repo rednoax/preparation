@@ -42,6 +42,9 @@ display:
 #else
 	jns display
 #endif
+	mov $0, %cx
+delay:
+	loop delay #cx count down range: 0, -1, ..., -0xffff: 0 then [0xffff, 1]
 	jmp .
 	mov (%bp), %ax #mov ax, word ptr ss:[bp]  ; 8b4600
 	mov (%bp,%si), %ax #mov ax, word ptr ss:[bp+si] ; 8b02
