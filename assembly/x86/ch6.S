@@ -51,6 +51,8 @@ delay:
 	incw number + 2
 _loop:
 	loop delay #cx count down range: 0, -1, ..., -0xffff: 0 then [0xffff, 1]
+	#there is no counterpart for $$ in NASM
+	movw $_start, divisor #objdump: 7c77:       c7 06 89 7c 00 7c       movw   $0x7c00,0x7c89
 	jmp .
 	mov (%bp), %ax #mov ax, word ptr ss:[bp]  ; 8b4600
 	mov (%bp,%si), %ax #mov ax, word ptr ss:[bp+si] ; 8b02
