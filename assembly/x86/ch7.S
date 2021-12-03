@@ -23,18 +23,17 @@ calc:
     inc %cx
     cmp $100, %cx #s: cx - 100 <= 0
     jle calc
-    mov $4, %bx
+    mov $8, %bx
 divide:
     xor %dx, %dx
     divw divisor
     add $0x30, %dl
     mov $0x4, %dh
-    mov %dx, %es:(%bx)
-    dec %bx
+    mov %dx, %es:(%bx, %di)//(%di,%bx):`%es:(%di,%bx)' is not a valid base/index expression
+    sub $2, %bx
     cmp $0, %ax #ax - 0
-    je 1f
-    jns divide
-1:  jmp .
+    jne divide
+    jmp .
 str:
     .ascii "1+2+3+...+100="
 end:
