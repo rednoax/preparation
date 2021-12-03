@@ -73,3 +73,11 @@ remainder:
 	.short 0
 quotient:
 	.short 0
+str1:
+	.ascii "012"
+str1_end:
+	.equ len1, str1_end - str1 #3    21: 00000003     0 NOTYPE  LOCAL  DEFAULT  ABS len1
+str2:
+	.asciz "012"
+str2_end:
+	.set len2, str2_end - str2 #4    24: 00000004     0 NOTYPE  LOCAL  DEFAULT  ABS len2
