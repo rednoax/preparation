@@ -9,10 +9,10 @@ end: .set len, end - str
     mov %ax, %es
     mov $0, %di
     mov %ah, 0x7
+    mov $len, %cx
 prompt:
-    mov %al, str(%di)
+    mov str(%di), %al
     mov %ax, %es:(%di)
     inc %di
-    cmp $len, %di #u: %di - $len < 0
-    jl prompt
+    loop prompt
     jmp .
