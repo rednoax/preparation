@@ -46,6 +46,7 @@ divide:
     push %dx
     cmp $0, %ax
     jne 1b
+1:
     pop %dx
     mov %dx, %es:(%di)
     add $2, %di
