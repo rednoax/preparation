@@ -8,7 +8,8 @@ TEXT_OFFSET=0x7c00
 LDFLAGS=-Ttext $(TEXT_OFFSET) -e _start -m elf_i386
 OBJDUMP=objdump
 OBJCOPY=objcopy
-target0=label ch4 cp5.3 ch5 ch6 ch7 ch7.1 ch8 c08
+needlds=c08
+target0=label ch4 cp5.3 ch5 ch6 ch7 ch7.1 ch8 $(needlds)
 target1=$(addsuffix .asm,$(target0)) $(addsuffix .S,$(target0))
 target2=$(wildcard $(target1))
 target=$(sort $(patsubst %.S,%.out,$(filter %.S,$(target2))) $(patsubst %.asm,%.asm.out,$(filter %.asm,$(target2))))
@@ -18,7 +19,7 @@ _all:$(target)
 %.out:%.o
 #for %.o gened from NASM: if removing '-e _start' from $(LDFLAGS), there is still warning:\
 'warning: cannot find entry symbol _start; defaulting to 0000000000007c00' if no global symbol '_start' defined in ch4.asm
-	$(LD) $(LDFLAGS) -o $@ $^
+	$(LD) $(LDFLAGS) -o $@ $(filter %.o, $^)
 	$(OBJCOPY) -O binary $@ $@.bin
 #$(OBJDUMP) -M i8086 -d $@ #>$@.lst
 
@@ -42,5 +43,9 @@ debug:
 
 LDFLAGS2=-m elf_i386 -T $(@:.out=.lds)
 c08.out:LDFLAGS=$(LDFLAGS2)
+define rule
+$1.out: $1.lds
+endef
+$(foreach i,$(needlds),$(eval $(call rule,$i)))
 
 .PRECIOUS:%.o %.asm.o
