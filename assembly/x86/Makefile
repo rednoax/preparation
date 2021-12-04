@@ -40,4 +40,7 @@ debug:
 	nasm -f elf -g3 -F dwarf -o $@ $<
 	nasm -f bin -o $@.bin $<
 
+LDFLAGS2=-m elf_i386 -T $(@:.out=.lds)
+c08.out:LDFLAGS=$(LDFLAGS2)
+
 .PRECIOUS:%.o %.asm.o
