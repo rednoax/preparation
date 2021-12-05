@@ -76,7 +76,17 @@ quotient:
 str1:
 	.ascii "012"
 str1_end:
-	.equ len1, str1_end - str1 #3    21: 00000003     0 NOTYPE  LOCAL  DEFAULT  ABS len1
+/*
+the .equ&.set wont generate any instruction, they only generate one symbol entry in elf:
+000000a6 <str1_end>:
+  a6:   30 31                   xor    %dh,(%bx,%di)
+  a8:   32 00                   xor    (%bx,%si),%al
+x86$ readelf -s ch6.out|grep len[0-1]
+    21: 00000003     0 NOTYPE  LOCAL  DEFAULT  ABS len1
+    22: 00000003     0 NOTYPE  LOCAL  DEFAULT  ABS len0
+*/
+	.equ len1, str1_end - str1
+	.set len0, len1
 str2:
 	.asciz "012"
 str2_end:
