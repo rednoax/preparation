@@ -17,8 +17,7 @@ _start:
     call read_hard_disk_0
     mov %ax, %ds:(0)
     mov %dx, %ds:(2)
-    mov $512, $divisor
-    divw divisor
+    divw divisor + 4
 #511 512 513 1024
 #0   1   1   2 qutient
 #511 0   1   0 remainder
@@ -34,7 +33,11 @@ _start:
     call read_hard_disk_0
     loop 1b
 fin:
-    ljmp $0x1000, $0
+    mov (6), %ax
+    mov (8), %dx
+    call calc_segment_base
+    mov %ax, (6)
+    ljmp (4)#$0x1000, $start
 read_hard_disk_0:   #read LBA[DI:SI] to mem DS:BX, DI:[27:16] SI[15:0]
     push %ax
     push %bx
@@ -78,9 +81,18 @@ read_hard_disk_0:   #read LBA[DI:SI] to mem DS:BX, DI:[27:16] SI[15:0]
     pop %dx
     pop %ax
     ret
+calc_segment_base:#in DX:AX, return AX
+    push %dx
+    add app_start, %ax
+    adc app_start + 2, %dx #TODO: 2 number's adding's carry is 1 at most
+    divw divisor + 2
+    pop %dx
+    ret
 .data
 divisor:
     .word 16
+    .word 10
+    .word 512
 app_start:
     .int 0x10000
 
