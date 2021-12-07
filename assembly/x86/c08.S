@@ -37,26 +37,26 @@ begin:
 .section data_1
 .align 16
 msg0:
-    .asciz "  This is NASM - the famous Netwide Assembler. \n"\
-    "Back at SourceForge and in intensive development! \n"\
-    "Get the current versions from http://www.nasm.us/.\n"\
-    "\n\n"\
-    "  Example code for calculate 1+2+...+1000: \n\n"\
-    "     xor dx,dx\n"\
-    "     xor ax,ax\n"\
-    "     xor cx,cx\n"\
-    "  @@:\n"\
-    "     inc cx\n"\
-    "     add ax,cx\n"\
-    "     adc dx,0\n"\
-    "     inc cx\n"\
-    "     cmp cx,1000\n"\
-    "     jle @@\n"\
-    "     ... ...(Some other codes)\n\n"
+    .asciz "  This is NASM - the famous Netwide Assembler. \r\n"\
+    "Back at SourceForge and in intensive development! \r\n"\
+    "Get the current versions from http://www.nasm.us/.\r\n"\
+    "\r\n\r\n"\
+    "  Example code for calculate 1+2+...+1000: \r\n\r\n"\
+    "     xor dx,dx\r\n"\
+    "     xor ax,ax\r\n"\
+    "     xor cx,cx\r\n"\
+    "  @@:\r\n"\
+    "     inc cx\r\n"\
+    "     add ax,cx\r\n"\
+    "     adc dx,0\r\n"\
+    "     inc cx\r\n"\
+    "     cmp cx,1000\r\n"\
+    "     jle @@\r\n"\
+    "     ... ...(Some other codes)\r\n\r\n"
 .section data_2
 .align 16
 msg1:
-    .asciz "  The above contents is written by LeeChung. \n"\
+    .asciz "  The above contents is written by LeeChung. \r\n"\
          "2011-05-06"
 #define NOBITS
 #ifdef NOBITS

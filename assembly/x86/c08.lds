@@ -1,7 +1,8 @@
 ENTRY(start)
 SECTIONS
 {
-    . = 0x0;
+    /*. = 0x10000;*//*wrong way*/
+    . = 0;
     .text.head ALIGN(16) : {
         section.header.start = .;
         *(header)
