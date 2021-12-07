@@ -26,7 +26,7 @@ _start:
     dec %ax
     mov %ax, %cx
 1:
-    inc $si
+    inc %si
     add divisor + 4, %bx
     call read_hard_disk_0
     loop 1b
@@ -35,7 +35,8 @@ fin:
     mov (8), %dx
     call calc_segment_base #fix section.code_1.start
     mov %ax, (6)
-    ljmp (4)#$0x1000, $start
+#    ljmp (4)#Warning: indirect ljmp without `*' #$0x1000, $start
+    ljmp *(4)
 read_hard_disk_0:   #read LBA[DI:SI] to mem DS:BX, DI:[27:16] SI[15:0], DI[31:28]
     push %ax
     push %bx
@@ -48,18 +49,20 @@ read_hard_disk_0:   #read LBA[DI:SI] to mem DS:BX, DI:[27:16] SI[15:0], DI[31:28
     mov %si, %ax
     out %al, %dx    #0x1f3: 8bit port, LBA[7:0]
     inc %dx
-    out %ah, %dx    #0x1f4: 8bit port, LBA[15:8]
+    mov %ah, %al
+    out %al, %dx    #0x1f4: 8bit port, LBA[15:8]
     inc %dx
     mov %di, %ax
     out %al, %dx    #0x1f5: 8bit port, LBA[23:16]
     inc %dx
     or $0xe0, %ah	#ah [31:28] is empty
-    out %ah, %dx    #0x1f6: 8bit port, LBA[27:24]
+    mov %ah, %al
+    out %al, %dx    #0x1f6: 8bit port, LBA[27:24]
     inc %dx
     mov $0x20, %al  #0x20: read command
     out %al, %dx    #0x1f7: 8bit port, command port
 .waits:
-    in %al, %dx     #0x1f7: status port
+    in %dx, %al    #0x1f7: status port
     and $0x89, %al   #1000 1001:BUSY, Data read ready, err
     cmp $0x80, %al  #al - 0x80
     jnz .waits
