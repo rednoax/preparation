@@ -64,11 +64,10 @@ normal:
     push %ds
     mov $0xb800, %bx
     mov %bx, %ds
-    shl $1, %ax #before shift: ax is 1999 at most
-    mov %ax, %bx
+    mov %ax, %bx #ax is 1999 at most
+    shl $1, %bx
     mov %cl, (%bx)
-    shr $1, %ax
-    add $2, %ax
+    add $1, %ax
     pop %ds
 1:
     cmp $25*80, %ax #u ax - 2000 < 0
