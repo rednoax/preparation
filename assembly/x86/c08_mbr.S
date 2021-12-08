@@ -93,6 +93,7 @@ calc_segment_base:#in DX:AX, return AX
     ret
 //.data//if enable: 10x8000 divisor
 divisor:
+$.divisor:# a strange symbol, isn't it?
     .word 16
     .word 10
     .word 512
