@@ -53,7 +53,7 @@ put_char: #cl contains the char
     cmp $'\r', %cl #0xd: carriage return
     jnz normal
     divb divisor #ax/80, max(ax):2000
-    mov %0, %ah
+    mov $0, %ah
     mulb divisor #ax=al*80
     jmp 1f
     cmp $'\n', %cl #0xa: line feed
@@ -65,7 +65,8 @@ normal:
     mov $0xb800, %bx
     mov %bx, %ds
     shl $1, %ax #before shift: ax is 1999 at most
-    mov %cl, (%ax)
+    mov %ax, %bx
+    mov %cl, (%bx)
     shr $1, %ax
     add $2, %ax
     pop %ds
@@ -80,10 +81,10 @@ movupClear: #ds/es:0x1000
     cld
     rep movsw
     mov $80, %cx
-1.5:
+.5: #1.5:#Error: junk at end of line, first unrecognized character is `1'
     movw $0x0720, (%bx)
     add $2, %bx
-    loop 1.5b
+    loop .5
 2:
     call set_cursor
     pop %di
