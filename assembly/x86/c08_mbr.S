@@ -17,7 +17,7 @@ _start:
     call read_hard_disk_0 #cs: 0
     mov %ds:(0), %ax
     mov %ds:(2), %dx
-    divw divisor + 4
+    divw %cs:(divisor + 4)
 #511 512 513 1024
 #0   1   1   2 qutient
 #511 0   1   0 remainder
@@ -27,7 +27,7 @@ _start:
     mov %ax, %cx
 1:
     inc %si
-    add divisor + 4, %bx
+    add %cs:(divisor + 4), %bx
     call read_hard_disk_0
     loop 1b
 fin:
@@ -36,7 +36,7 @@ fin:
     call calc_segment_base #fix section.code_1.start
     mov %ax, (6)
 #    ljmp (4)#Warning: indirect ljmp without `*' #$0x1000, $start
-    ljmp *(4)
+    ljmp *4 #ljmp *(4) is also ok
 read_hard_disk_0:   #read LBA[DI:SI] to mem DS:BX, DI:[27:16] SI[15:0], DI[31:28]
     push %ax
     push %bx
@@ -64,12 +64,8 @@ read_hard_disk_0:   #read LBA[DI:SI] to mem DS:BX, DI:[27:16] SI[15:0], DI[31:28
 .waits:
     in %dx, %al    #0x1f7: status port
     and $0x89, %al   #1000 1001:BUSY, Data read ready, err
-    cmp $0x80, %al  #al - 0x80
+    cmp $0x08, %al  #al - 0x80
     jnz .waits
-    cmp $0x8, %al
-    jz 1f
-    jmp .
-1:
     mov $256, %cx
     mov $0x1f0, %dx #0x1f0: data port, 16bit
 .read:
@@ -84,12 +80,18 @@ read_hard_disk_0:   #read LBA[DI:SI] to mem DS:BX, DI:[27:16] SI[15:0], DI[31:28
     ret
 calc_segment_base:#in DX:AX, return AX
     push %dx
+#if 0
     add %cs:(app_start), %ax
     adc %cs:(app_start + 2), %dx #TODO: 2 number's adding's carry is 1 at most
-    divw divisor + 2
+    divw %cs:(divisor) #divisor: undefined reference to `$divisor'
+#else//the above 3 is ok but here is a bettwe way
+	add %cs:app_start, %ax
+	adc %cs:app_start+2, %dx
+	divw %cs:divisor
+#endif
     pop %dx
     ret
-.data
+//.data//if enable: 10x8000 divisor
 divisor:
     .word 16
     .word 10

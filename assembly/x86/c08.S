@@ -59,6 +59,7 @@ msg0:
 msg1:
     .asciz "  The above contents is written by LeeChung. \r\n"\
          "2011-05-06"
+//program_end:
 #define NOBITS
 #ifdef NOBITS
 .section stack, "aw", %nobits
