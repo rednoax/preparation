@@ -49,6 +49,8 @@ put_char: #cl contains the char
     push %cx
     push %si
     push %di
+    push %ds
+    push %es
     call get_cursor #ax cursor 16 bits
     cmp $'\r', %cl #0xd: carriage return
     jnz 0f
@@ -62,31 +64,36 @@ put_char: #cl contains the char
     add $80, %ax #ax += 80
     jmp 1f
 normal:
-    push %ds
     mov $0xb800, %bx
     mov %bx, %ds
     mov %ax, %bx #ax is 1999 at most
     shl $1, %bx
     mov %cl, (%bx)
     add $1, %ax
-    pop %ds
 1:
     cmp $25*80, %ax #u ax - 2000 < 0, hex(2000):0x7d0
     jnae 2f
 movupClear: #ds/es:0x1000
-    mov $24*80, %bx
-    mov $80, %si
+    mov $24*80, %bx #0x780
+    mov $0xb800, %ax
+    mov %ax, %ds
+    mov %ax, %es
+    mov $80*2, %si
     mov $0, %di
     mov %bx, %cx
     cld
     rep movsw
     mov $80, %cx
+    mov %bx, %ax
+    shl $1, %bx
 .5: #1.5:#Error: junk at end of line, first unrecognized character is `1'
     movw $0x0720, (%bx)
     add $2, %bx
     loop .5
 2:
     call set_cursor
+    pop %es
+    pop %ds
     pop %di
     pop %si
     pop %cx
@@ -133,7 +140,7 @@ start: #cs,ds,es:0x1000 already, but set them once more
     mov %ax, %es #mov %cs, %es;Error: operand type mismatch for `mov'
     mov %ax, %ss
     mov $stack_end, %sp
-#if 0
+#if 10
     mov $msg0, %bx
     call put_string
 #endif
@@ -166,8 +173,8 @@ msg0:
     "     ... ...(Some other codes)\r\n\r\n\0"
 .section data_2
 .align 16
-msg1:
-    .ascii "  The above contents is written by LeeChung. \r\n"\
+msg1:#the following 1st line contains 81 digits
+    .ascii "012345678901234567890123456789012345678901234567890123456789012345678901234567890\r\n"\
          "2011-05-06\0"
 #.asciz "string1" "string2"#readelf -x .data proves each splitted string has its own \0 so: string1\0 string2\0
 //program_end:
