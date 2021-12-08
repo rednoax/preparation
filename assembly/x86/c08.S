@@ -28,9 +28,41 @@ header_end:
 
 .section code_1
 .align 16
+put_string: #DS:BX asciz string
+    push %bx
+    cmp $0, (%bx)
+    jz fin
+    call put_char
+    inc %bx
+fin:
+    pop %bx
+    ret
 put_char:
-    jmp .
-start:
+    call get_cursor
+    ret
+get_cursor: #out al
+    push %dx
+    mov $0x3d4, %dx
+    mov $0xe, %al   #8bit port: cursor higher 8 bit
+    out %al, %dx
+    mov $0x3d5, %dx
+    in %dx, %al
+    mov %al, %ah
+    mov $0x3d4, %dx
+    mov $0xf, %al   #8bit port: cursor lower 8 bit
+    out %al, %dx
+    mov $0x3d5, %dx
+    in %dx, %al
+    pop %dx
+    ret
+
+start: #cs,ds,es:0x1000; 
+    mov %cs, %ss
+    mov $stack_end, %sp
+    mov $msg0, %bx
+    call put_string
+    mov $msg1, %bx
+    call put_string
     jmp .
 
 .section code_2
