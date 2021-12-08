@@ -1,3 +1,4 @@
+#[0cx800,...]
 .code16
 .globl program_end, start, header_end
 #if 0
