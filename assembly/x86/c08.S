@@ -10,8 +10,8 @@
 program_length:
     .int program_end
 code_entry:
-    .word start #+4
-    .int section.code_1.start #+6
+    .word start #+4, eg 0x0022
+    .int section.code_1.start #+6, 0x0020
 realloc_tbl_len:
     .word (header_end-code_1_segment)/4
 code_1_segment:
@@ -28,6 +28,8 @@ header_end:
 
 .section code_1
 .align 16
+put_char:
+    jmp .
 start:
     jmp .
 
