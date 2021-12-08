@@ -51,11 +51,12 @@ put_char: #cl contains the char
     push %di
     call get_cursor #ax cursor 16 bits
     cmp $'\r', %cl #0xd: carriage return
-    jnz normal
+    jnz 0f
     divb divisor #ax/80, max(ax):2000
     mov $0, %ah
     mulb divisor #ax=al*80
     jmp 1f
+0:
     cmp $'\n', %cl #0xa: line feed
     jnz normal
     add $80, %ax #ax += 80
