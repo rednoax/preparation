@@ -71,7 +71,7 @@ normal:
     add $1, %ax
     pop %ds
 1:
-    cmp $25*80, %ax #u ax - 2000 < 0
+    cmp $25*80, %ax #u ax - 2000 < 0, hex(2000):0x7d0
     jnae 2f
 movupClear: #ds/es:0x1000
     mov $24*80, %bx
@@ -148,7 +148,7 @@ begin:
 .section data_1
 .align 16
 msg0:
-    .asciz "  This is NASM - the famous Netwide Assembler. \r\n"\
+    .ascii "  This is NASM - the famous Netwide Assembler. \r\n"\
     "Back at SourceForge and in intensive development! \r\n"\
     "Get the current versions from http://www.nasm.us/.\r\n"\
     "\r\n\r\n"\
@@ -163,12 +163,13 @@ msg0:
     "     inc cx\r\n"\
     "     cmp cx,1000\r\n"\
     "     jle @@\r\n"\
-    "     ... ...(Some other codes)\r\n\r\n"
+    "     ... ...(Some other codes)\r\n\r\n\0"
 .section data_2
 .align 16
 msg1:
-    .asciz "  The above contents is written by LeeChung. \r\n"\
-         "2011-05-06"
+    .ascii "  The above contents is written by LeeChung. \r\n"\
+         "2011-05-06\0"
+#.asciz "string1" "string2"#readelf -x .data proves each splitted string has its own \0 so: string1\0 string2\0
 //program_end:
 #define NOBITS
 #ifdef NOBITS
