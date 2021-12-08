@@ -31,10 +31,14 @@ _start:
     call read_hard_disk_0
     loop 1b
 fin:
+#if 0
     mov (6), %ax #ds:0x1000
     mov (8), %dx
     call calc_segment_base #fix section.code_1.start
     mov %ax, (6)
+#else
+    mov %ds, 6
+#endif
 #    ljmp (4)#Warning: indirect ljmp without `*' #$0x1000, $start
     ljmp *4 #ljmp *(4) is also ok
 read_hard_disk_0:   #read LBA[DI:SI] to mem DS:BX, DI:[27:16] SI[15:0], DI[31:28]
