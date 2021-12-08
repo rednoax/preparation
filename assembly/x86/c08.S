@@ -30,17 +30,43 @@ header_end:
 .align 16
 put_string: #DS:BX asciz string
     push %bx
-    cmp $0, (%bx)
+    push %cx
+next:
+    mov (%bx), %cl
+    cmp $0, %cl
     jz fin
     call put_char
     inc %bx
+    jmp next
 fin:
     pop %bx
+    pop %cx
     ret
-put_char:
+
+put_char: #cl contains the char
+    push %ax
     call get_cursor
+    cmp $'\r', %cl #0xd: carriage return
+    jnz normal
+    cmp $'\n', %cl #0xa: line feed
+    jnz normal
+normal:
+    push %bx
+    push %ds
+    mov $0xb800, %bx
+    mov %cl, (%bx)
+    add $2, %ax
+    cmp $25*80, %ax #u ax - 2000 < 0
+    jnae 1f
+movupClear:
+    mov $24*80, %ax
+1:
+    call set_cursor
+    pop %ds
+    pop %bx
+    pop %ax
     ret
-get_cursor: #out al
+get_cursor: #out ax:[0,1999]
     push %dx
     mov $0x3d4, %dx
     mov $0xe, %al   #8bit port: cursor higher 8 bit
@@ -55,9 +81,28 @@ get_cursor: #out al
     in %dx, %al
     pop %dx
     ret
-
-start: #cs,ds,es:0x1000; 
-    mov %cs, %ss
+set_cursor:
+    push %bx
+    push %dx
+    mov %ax, %bx
+    mov $0x3d4, %dx
+    mov $0xe, %al #0xe: cursor high 8 bit
+    out %al, %dx
+    mov $0x3d5, %dx
+    mov %ah, %al
+    out %al, %dx #
+    mov $0x3d4, %dx
+    mov $0xf, %al #0xf: cursor low 8 bit
+    out %al, %dx
+    mov $0x3d5, %dx
+    mov %bx, %ax
+    out %al, %dx
+    pop %dx
+    pop %bx
+    ret
+start: #cs,ds,es:0x1000
+    mov %cs, %ax
+    mov %ax, %es #mov %cs, %es;Error: operand type mismatch for `mov'
     mov $stack_end, %sp
     mov $msg0, %bx
     call put_string
@@ -72,6 +117,7 @@ begin:
 .section data_1
 .align 16
 msg0:
+#if 0
     .asciz "  This is NASM - the famous Netwide Assembler. \r\n"\
     "Back at SourceForge and in intensive development! \r\n"\
     "Get the current versions from http://www.nasm.us/.\r\n"\
@@ -88,6 +134,9 @@ msg0:
     "     cmp cx,1000\r\n"\
     "     jle @@\r\n"\
     "     ... ...(Some other codes)\r\n\r\n"
+#else
+    .asciz "012"
+#endif
 .section data_2
 .align 16
 msg1:
