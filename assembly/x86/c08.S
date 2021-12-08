@@ -45,13 +45,22 @@ fin:
 
 put_char: #cl contains the char
     push %ax
+    push %bx
+    push %cx
+    push %si
+    push %di
     call get_cursor #ax cursor 16 bits
     cmp $'\r', %cl #0xd: carriage return
     jnz normal
+    divb divisor #ax/80, max(ax):2000
+    mov %0, %ah
+    mulb divisor #ax=al*80
+    jmp 1f
     cmp $'\n', %cl #0xa: line feed
     jnz normal
+    add $80, %ax #ax += 80
+    jmp 1f
 normal:
-    push %bx
     push %ds
     mov $0xb800, %bx
     mov %bx, %ds
@@ -59,13 +68,27 @@ normal:
     mov %cl, (%ax)
     shr $1, %ax
     add $2, %ax
-    cmp $25*80, %ax #u ax - 2000 < 0
-    jnae 1f
-movupClear:
-    mov $24*80, %ax
-1:
-    call set_cursor
     pop %ds
+1:
+    cmp $25*80, %ax #u ax - 2000 < 0
+    jnae 2f
+movupClear: #ds/es:0x1000
+    mov $24*80, %bx
+    mov $80, %si
+    mov $0, %di
+    mov %bx, %cx
+    cld
+    rep movsw
+    mov $80, %cx
+1.5:
+    movw $0x0720, (%bx)
+    add $2, %bx
+    loop 1.5b
+2:
+    call set_cursor
+    pop %di
+    pop %si
+    pop %cx
     pop %bx
     pop %ax
     ret
@@ -116,7 +139,7 @@ start: #cs,ds,es:0x1000 already, but set them once more
     mov $msg1, %bx
     call put_string
     jmp .
-
+divisor: .byte 80
 .section code_2
 .align 16
 begin:
