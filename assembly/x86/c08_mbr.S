@@ -22,15 +22,24 @@ _start:
 #511 512 513 1024
 #0   1   1   2 qutient
 #511 0   1   0 remainder
-    cmp $1, %ax #unsgined: ax - 1 <= 0
-    jna fin
+    cmp $0, %dx
+    jz 0f
+    inc %ax
+0:#ax is 1 at least
     dec %ax
+    cmp $0, %ax #unsgined: ax - 0 <= 0
+    jz fin
+    push %ds
     mov %ax, %cx
 1:
     inc %si
-    add %cs:(divisor + 4), %bx
+    mov %ds, %ax
+    add $0x20, %ax
+    mov %ax, %ds
+    mov $0, %bx
     call read_hard_disk_0
     loop 1b
+    pop %ds
 fin:
 #if 0
     mov (6), %ax #ds:0x1000
