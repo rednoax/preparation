@@ -13,9 +13,9 @@ code_entry:
     .word start #+4, eg 0x0022
     .int section.code_1.start #+6, 0x0020
 realloc_tbl_len:
-    .word (header_end-code_1_segment)/4
+    .word (header_end-code_1_segment)/4 #10
 code_1_segment:
-    .int section.code_1.start
+    .int section.code_1.start #12
 code_2_segment:
     .int section.code_2.start
 data_1_segment:
