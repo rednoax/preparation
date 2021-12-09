@@ -1,11 +1,11 @@
 .code16
 .text
-.equ app_lba_start, 100 #LBA start from [0,...
+.equ app_lba_start, 100 #this line not gen instruction; LBA start from [0,...
 .globl _start
 _start:
-    mov $0, %bx
-    mov %bx, %ss
-    mov %bx, %sp #sp is full-decrement, so the most high addr holding pushed data is [0xffff, 0xfffe,...
+    mov $0, %ax
+    mov %ax, %ss
+    mov %ax, %sp #sp is full-decrement, so the highest addr holding pushed data is [0xffff, 0xfffe,...
     mov app_start, %ax  #nasm:mov ax, [app_start], ds<<4, ds:0 now
     mov app_start + 2, %dx
     divw divisor
@@ -14,6 +14,7 @@ _start:
 
     mov $app_lba_start, %si
     mov $0, %di
+    mov $0, %bx
     call read_hard_disk_0 #cs: 0
     mov %ds:(0), %ax
     mov %ds:(2), %dx
@@ -41,13 +42,13 @@ fin:
 #endif
 #    ljmp (4)#Warning: indirect ljmp without `*' #$0x1000, $start
     ljmp *4 #ljmp *(4) is also ok
-read_hard_disk_0:   #read LBA[DI:SI] to mem DS:BX, DI:[27:16] SI[15:0], DI[31:28]
+read_hard_disk_0:   #read LBA[DI:SI] to mem DS:BX, DI:[27:16] SI[15:0], DI[31:28] not used
     push %ax
     push %bx
     push %cx
     push %dx
     mov $0x1f2, %dx #0x1f2: 8bit port, read sector#
-    mov $1, %al
+    mov $1, %al #read 1 sector
     out %al, %dx
     inc %dx
     mov %si, %ax
@@ -102,5 +103,5 @@ $.divisor:# a strange symbol, isn't it?
     .word 10
     .word 512
 app_start:
-    .int 0x10000 #le: 0x0000 0x0001
+    .int 0x10000 #le: ax: 0x0000 dx: 0x0001
 
