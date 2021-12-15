@@ -92,7 +92,7 @@ read_hard_disk_0:   #read LBA[DI:SI] to mem DS:BX, DI:[27:16] SI[15:0], DI[31:28
     pop %bx
     pop %ax
     ret
-calc_segment_base:#in DX:AX, return AX
+calc_segment_base:#in DX:AX, return AX; in-ed AX is 0xffff at most
     push %dx
 #if 0
     add %cs:(app_start), %ax
