@@ -115,7 +115,7 @@ get_cursor: #out ax:[0,1999]
     in %dx, %al
     pop %dx
     ret
-set_cursor: #ax [15:8] cursor high 8bits [7:0] low 8bits
+set_cursor: #ax [15:8] cursor high 8bits [7:0] low 8bits; TODO:change ax to bx to simplify
     push %bx
     push %dx
     mov %ax, %bx
@@ -155,9 +155,9 @@ begin:
 .section data_1
 .align 16
 msg0:
-    .ascii "  This is NASM - the famous Netwide Assembler. \r\n"\
-    "Back at SourceForge and in intensive development! \r\n"\
-    "Get the current versions from http://www.nasm.us/.\r\n"\
+    .ascii "  This is NASM - the famous Netwide Assembler. "\
+    "Back at SourceForge and in intensive development! "\
+    "Get the current versions from http://www.nasm.us/."\
     "\r\n\r\n"\
     "  Example code for calculate 1+2+...+1000: \r\n\r\n"\
     "     xor dx,dx\r\n"\
