@@ -34,15 +34,15 @@ put_string: #DS:BX asciz string
 next:
     mov (%bx), %cl
     cmp $0, %cl
-    jz fin
+    jz .exit
     call put_char
     inc %bx
     jmp next
-fin:
+.exit:
     pop %bx
     pop %cx
     ret
-
+//u16[25][80]:1B ascii + 1B property
 put_char: #cl contains the char
     push %ax
     push %bx
@@ -55,7 +55,7 @@ put_char: #cl contains the char
     cmp $'\r', %cl #0xd: carriage return
     jnz 0f
     divb divisor #ax/80, max(ax):2000
-    mov $0, %ah
+#    mov $0, %ah #no matter if enabled
     mulb divisor #ax=al*80
     jmp 1f
 0:
