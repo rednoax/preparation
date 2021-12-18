@@ -1,4 +1,5 @@
+#include "b.h"
 int add(int x, int y)
 {
-	return x + y;
+	return minus(x, y);
 }
