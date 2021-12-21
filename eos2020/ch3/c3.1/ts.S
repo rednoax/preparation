@@ -1,4 +1,5 @@
 .text
+#if 10
 .code 32 //generate ARM instruction, rather than thumb
 .global reset, vectors_start, vectors_end
 reset:
@@ -51,4 +52,4 @@ fiq_handler:
 i:
 j:
 k: .word 0xdeadbeef
-
+#endif

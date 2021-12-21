@@ -1,3 +1,4 @@
+set -x
 func()
 {
 	$*
@@ -7,11 +8,16 @@ func()
 		exit 1
 	fi
 }
-
-arm-none-eabi-gcc -c -g -Wall -mcpu=arm926ej-s ts.s -o ts.o
-arm-none-eabi-gcc -c -g -Wall -mcpu=arm926ej-s t.c -fno-builtin -o t.o
-func arm-none-eabi-ld -T t.ld ts.o t.o -o t.elf
-arm-none-eabi-objcopy -O binary t.elf t.bin
+#cross_compile=arm-none-linux-gnueabi-
+cross_compile=arm-none-eabi-
+mabi=aapcs-linux
+#mabi=apcs-gnu
+${cross_compile}gcc -c -g -Wall -mcpu=arm926ej-s ts.S -o ts.o
+${cross_compile}gcc -c -g -Wall -mcpu=arm926ej-s -mabi=$mabi t.c -fno-builtin -o t.o
+#linkgcc="-lgcc -L $(dirname `${cross_compile}gcc -print-libgcc-file-name`)"
+#arm-none-eabi-gcc -print-libgcc-file-name|xargs arm-none-eabi-ar tv|less
+func ${cross_compile}ld -T t.ld ts.o t.o $linkgcc -Map t.map -o t.elf
+${cross_compile}objcopy -O binary t.elf t.bin
 
 echo "ready to go?"
 read dummy
