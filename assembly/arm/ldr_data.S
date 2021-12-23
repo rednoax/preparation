@@ -3,13 +3,14 @@
 _start:
 //	ldr r0, fb //Error: internal_relocation (type: OFFSET_IMM) not fixed up
 #if 0
-	ldr r0, =fb//ok, will be translated to the block of the followin branch
+	ldr r0, =fb//ok, will be translated to the block of the following branch
 #else
 	ldr r0, label //gnu assembly's label is equals to [mem] in x86 NASM format
-	ldr r0, [r0]
-#endif
 label:
 	.word fb
+#endif
+	nop
+	ldr r0, [r0]
 .data
 .global fb
 fb:
