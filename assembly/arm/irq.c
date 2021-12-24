@@ -32,3 +32,31 @@ void irq()
 {
 
 }
+
+/* arm-none-eabi-gcc -Wall -Os -S irq.c
+	.cpu arm7tdmi
+	......
+	sub	lr, lr, #4
+	push	{r0, r1, r2, r3, ip, lr}<= these 6 regs can be clobbered after preserved
+	mov	r3, #1241513984 <=r3, r2, r0, lr clobbered below
+	ldr	r2, [r3, #20]
+	ldr	r3, .L7
+	mov	r0, #0
+	ldr	r3, [r3, r2, lsl #2]
+	mov	lr, pc
+	bx	r3
+	ldmfd	sp!, {r0, r1, r2, r3, ip, pc}^
+.L8:
+	.align	2
+.L7:
+	.word	HandleEINT0
+*/
+typedef void* (*func)(void*);
+extern func HandleEINT0[32];
+#define INTOFFSET ((volatile int*)0x4a000014)
+void __attribute__((interrupt("IRQ"))) irq2()
+{
+	int offset = *INTOFFSET;
+	func p = HandleEINT0[offset];
+	p(0);
+}
