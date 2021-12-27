@@ -8,7 +8,7 @@ irq0:
 	ldmfd	sp!, {r0, r1, r2, r3, ip, pc}^
 irq:
     bx lr
-irq1:
+irq1:<=no {r0-r3,ip,lr} saved as they will not be clobbered due to no further call
 	subs	pc, lr, #4 @Rd==pc so s means cpsr=spsr, pc=lr-4
 */
 extern int undefined_func();
@@ -60,3 +60,14 @@ void __attribute__((interrupt("IRQ"))) irq2()
 	func p = HandleEINT0[offset];
 	p(0);
 }
+#if 0
+void __attribute__((noinline)) handler(int i)
+{
+	*(volatile int*)0xc0000000 = i;
+}
+
+void /*__attribute__((interrupt("IRQ")))*/ irq3()
+{
+	handler(*(volatile int*)0x0);
+}
+#endif
