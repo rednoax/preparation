@@ -11,6 +11,12 @@ label:
 #endif
 	nop
 	ldr r0, [r0]
+	ldr sp, =stack_end
+	push {r0}
+	pop {r0}
+stack:
+	.space 32
+stack_end:
 .data
 .global fb
 fb:

@@ -1,7 +1,7 @@
 CROSS_COMPILE=arm-none-eabi-
 CC=$(CROSS_COMPILE)gcc
 LD=$(CROSS_COMPILE)ld# $(CC) will link libc.a
-CFLAGS=-g -Wall
+CFLAGS=-g -Wall -mcpu=arm920t
 LDFLAGS=
 target:=illegal_instruction label ldr_data
 
