@@ -109,9 +109,13 @@ int main()
 	printf("%x %x %x\n", pgd[1] - pgd[0],//2<=not 1!!!
 		(unsigned long)pgd[1] - (unsigned long)pgd[0],//8
 		p2 - p1);//1
-	printf("%x %x %x\n", ar[0] + 1 - ar[0],//1
+	printf("%p %p\n"
+		"%p %p\n"
+		"%x %x %x\n", ar[0] + 1, ar[0], //0x84f84 0x84f80<==diff value:4
+		ar + 1, ar,//0x84f8c 0x84f80<==diff value:0xc
+		ar[0] + 1 - ar[0],//1
 		ar + 1 - ar,//1
-		ar[1] - ar[0]//3
+		ar[1] - ar[0]//3: ulong* - ulong*
 		);
 	return 0;
 }
