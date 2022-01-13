@@ -75,6 +75,7 @@ test:
 --readelf -s--
     13: 00000004     4 OBJECT  GLOBAL DEFAULT  COM pgd
     14: 00000004     4 OBJECT  GLOBAL DEFAULT  COM pmd*/
+#if 0
 void test()
 {
 	pgd = (void*)0xc0000000;
@@ -95,3 +96,23 @@ type = long unsigned int<=
 
 */
 }
+#else
+#include <stdlib.h>
+#include <stdio.h>
+typedef long ar_t[3];
+int main()
+{
+	pgd_t * pgd = malloc(1024);
+	unsigned long long *p1 = (void*)0, *p2 = p1 + 1;
+	ar_t *ar = (void*)pgd;
+	printf("%p %p\n", p1, p2);//(nil) 0x8
+	printf("%x %x %x\n", pgd[1] - pgd[0],//2<=not 1!!!
+		(unsigned long)pgd[1] - (unsigned long)pgd[0],//8
+		p2 - p1);//1
+	printf("%x %x %x\n", ar[0] + 1 - ar[0],//1
+		ar + 1 - ar,//1
+		ar[1] - ar[0]//3
+		);
+	return 0;
+}
+#endif
