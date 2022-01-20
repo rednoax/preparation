@@ -42,7 +42,7 @@ int main(int argc, char **argv)
 		sleep(10);
 	} else {
 		ret = 0x99;
-		pid = waitpid(-1, &ret, WNOHANG);
+		pid = waitpid(-1, &ret, 0);//WNOHANG);
 		printf("waitpid:%d %x\n", pid, ret);//return 0 at once if no child has exited, and ret not touched
 	}
 	return 0;

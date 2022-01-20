@@ -28,6 +28,6 @@ for i in "$@";do
 done
 count=0
 for i in "$*";do
-	echo "$count:$i"
+	echo "$count :$i"
 	((count++))
 done
