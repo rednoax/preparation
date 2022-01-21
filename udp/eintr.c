@@ -11,6 +11,8 @@
 #include <errno.h>
 #include <signal.h>
 
+#define _sigemptyset0(ptr) (*(ptr) = 3)//3 is returned so no need to:(*(ptr = 3), 4)
+#define _sigemptyset1(ptr) (*(ptr) = 0, -1)//-1 is returned
 int nflag;
 
 void inthandler(int s)
@@ -48,7 +50,8 @@ int main(int argc, char **argv)
 			sa.sa_flags |= SA_RESTART;
 			break;
 		default:
-			printf("%c not supported\n", optopt);
+			printf("%c not supported %d %d\n", optopt, _sigemptyset0(&nflag), _sigemptyset1(&nflag));
+			exit(1);
 		}
 	}
 	struct sockaddr_in addr = {
@@ -82,12 +85,12 @@ BUT WHY NO EINTR RETURNED IN REAL WORLD?
 `man signal`:
 BSD improved on this situation, but unfortunately also changed the semantics of the existing signal() interface while doing so.  On
 BSD,  when	a  signal handler is invoked, the signal disposition is not reset, and further instances of the signal are blocked from
-being delivered while the handler is executing.  Furthermore, certain blocking system calls are automatically restarted  if  inter‚Äê
+being delivered while the handler is executing.  Furthermore, certain blocking system calls are automatically restarted  if  inter‚Ä?
 rupted by a signal handler (see signal(7)).  The BSD semantics are equivalent to calling sigaction(2) with the following flags:
    sa.sa_flags = SA_RESTART;
 The situation on Linux is as follows:
 * The kernel's signal() system call provides System V semantics.
-* By default, in glibc 2 and later, the signal() wrapper function does not invoke the kernel system call.  Instead, it calls sigac‚Äê
+* By default, in glibc 2 and later, the signal() wrapper function does not invoke the kernel system call.  Instead, it calls sigac‚Ä?
  tion(2) using flags that supply BSD semantics.
 $ ldd --version
 ldd (Ubuntu GLIBC 2.31-0ubuntu9.2) 2.31
